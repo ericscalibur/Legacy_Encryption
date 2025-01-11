@@ -4,80 +4,185 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Legacy - Decrypt</title>
+        <link rel="stylesheet" href="styles.css" />
         <style>
-            body {
-                font-family: Arial, sans-serif;
-                margin: 20px;
-                padding-right: 5%;
+            header {
+                background-image: url("legacy-background.png"); /* Replace with your image URL */
+                background-position: center;
+                background-repeat: no-repeat;
+                background-size: cover;
+                justify-content: center;
+                align-items: center;
+                color: white; /* Text color */
             }
             input,
             textarea {
-                width: 100%;
-                margin-bottom: 10px;
+                width: calc(100% - 20px);
+                margin: 10px;
                 padding: 10px;
+            }
+
+            h2 {
+                margin: 30px;
+            }
+            p {
+                margin-top: 0px;
+            }
+            section {
+                width: 80%;
+                margin: auto;
             }
             button {
                 padding: 10px 15px;
                 background-color: #f7931a; /* Bitcoin orange */
                 color: white; /* Text color */
                 border: none; /* Remove default border */
-                padding: 10px 15px; /* Padding for the button */
                 cursor: pointer; /* Change cursor to pointer on hover */
                 border-radius: 5px; /* Optional: rounded corners */
+                display: block;
+                margin: auto;
+                margin-bottom: 30px;
             }
+
             button:hover {
                 background-color: #d6811a; /* Darker shade on hover for better UX */
             }
+
             .container {
-                margin: 20px;
+                background-image: url("background.png");
+                background-position: center;
+                background-repeat: no-repeat;
+                background-size: cover;
+                justify-content: center;
+                align-items: center;
+                width: 100%;
+                margin: auto;
+                color: white;
+                padding-top: 30px;
+                padding-bottom: 30px;
+            }
+            .input-container {
+                position: relative; /* Make this container relative for absolute positioning of the icon */
+            }
+            .toggle-visibility {
+                position: absolute; /* Position the icon absolutely */
+                right: 10px; /* Space from the right edge of the input field */
+                top: 50%; /* Center vertically */
+                transform: translateY(-50%); /* Adjust for vertical centering */
+                cursor: pointer; /* Change cursor to pointer for the icon */
+                display: flex; /* Use flexbox for alignment */
+                align-items: center; /* Center items vertically */
+            }
+            .eyelid {
+                display: inline-block;
+                font-size: 24px;
+                transform: rotate(90deg); /* Rotate eyelids to be horizontal */
+                color: black;
+            }
+
+            .top {
+                position: absolute;
+                top: -18px;
+                left: -20px;
+            }
+
+            .bottom {
+                position: absolute;
+                top: -11px;
+                left: -20px;
+            }
+
+            .iris {
+                display: inline-block;
+                font-size: 16px; /* Size of the iris (0) */
+                line-height: 0; /* Center vertically with eyelids */
+                margin-left: -23px; /* Adjust positioning as needed */
+                margin-right: -4px; /* Adjust positioning as needed */
+                color: black;
+            }
+
+            .logo {
+                position: absolute;
+                top: 20px; /* Adjust as needed for vertical spacing */
+                right: 10px; /* Adjust as needed for horizontal spacing */
+                width: auto;
+                height: 250px; /* Set desired height for your logo */
+            }
+
+            a {
+                color: #007bff;
+                text-decoration: none;
+            }
+
+            ul li {
+                margin-top: 10px;
             }
         </style>
     </head>
     <body>
-        <h1>Legacy</h1>
-        <h3>2-Key Bitcoin Seed Phrase Decryption</h3>
-        <p>Created by @ericscalibur</p>
-
-        <p>
-            This tool, in combination with a deadman switch, is inteded for
-            Bitcoin holders to secure the timely transfer of their Bitcoin to
-            their beneficiaries.
-        </p>
-        <p>
-            To decrypt a seed phrase, enter the Benefactor Key, Beneficiary Key
-            and Encrypted Seed Phrase in the fields below.
-        </p>
+        <header>
+            <nav id="navbar" class="navbar">
+                <div class="navbar-toggle" id="navbar-toggle">
+                    &#9776;
+                    <!-- Hamburger icon -->
+                </div>
+                <ul class="navbar-menu">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="mission.html">Mission</a></li>
+                    <li><a href="how-it-works.html">How It Works</a></li>
+                    <li><a href="benefits.html">Benefits</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                </ul>
+            </nav>
+            <div style="height: 70vh"></div>
+            <h1>Legacy</h1>
+            <div style="height: 5vh"></div>
+            <h3>2-Key Bitcoin Seed Phrase Decryption</h3>
+            <div style="height: 5vh"></div>
+            <div style="width: 80%; margin: auto">
+                <p>
+                    To decrypt a seed phrase, enter the Benefactor Key,
+                    Beneficiary Key and Encrypted Seed Phrase in the fields
+                    below.
+                </p>
+            </div>
+        </header>
 
         <div class="container">
-            <label for="key1">Benefactor Key:</label>
-            <input
-                type="text"
-                id="key1"
-                placeholder="alllowercasenospaces"
-                required
-            />
+            <div style="width: 80%; margin: auto">
+                <label for="key1">Benefactor Key:</label>
+                <input
+                    type="text"
+                    id="key1"
+                    placeholder="benefactorkey"
+                    required
+                />
 
-            <label for="key2">Beneficiary Key:</label>
-            <input
-                type="text"
-                id="key2"
-                placeholder="alllowercasenospaces"
-                required
-            />
+                <label for="key2">Beneficiary Key:</label>
+                <input
+                    type="text"
+                    id="key2"
+                    placeholder="beneficiarykey"
+                    required
+                />
 
-            <label for="ciphertext">Encrypted Seed Phrase:</label>
-            <textarea
-                id="ciphertextInput"
-                rows="2"
-                placeholder="alllowercasenospaces"
-                required
-            ></textarea>
+                <label for="ciphertext">Encrypted Seed Phrase:</label>
+                <textarea
+                    id="ciphertextInput"
+                    rows="2"
+                    placeholder="encryptedseedphrase"
+                    required
+                ></textarea>
+                <button onclick="decryptMessage()">Decrypt</button>
+
+                <h3>Decrypted Seed Phrase:</h3>
+                <p id="decryptedText"></p>
+            </div>
+            <div style="height: 10vh"></div>
+            <footer>
+                Legacy - Encryption and Consulting. All Rights Reserved 2025.
+            </footer>
         </div>
-
-        <button onclick="decryptMessage()">Decrypt</button>
-
-        <h2>Decrypted Seed Phrase:</h2>
-        <p id="decryptedText"></p>
 
         <script>
             // Function to compute SHA-256 hash
