@@ -15,7 +15,6 @@ header {
     background-position: center;
     background-repeat: no-repeat;
     background-size: cover;
-    /* height: 100vh; /* Full viewport height */
     justify-content: center;
     align-items: center;
     color: white; /* Text color */
@@ -107,6 +106,9 @@ p {
 .container {
     width: 80vw;
     margin: auto;
+    font-size: 20px;
+    margin-top: 50px;
+    margin-bottom: 50px;
 }
 
 .content {

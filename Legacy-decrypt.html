@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Legacy - Decrypt</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                margin: 20px;
+                padding-right: 5%;
+            }
+            input,
+            textarea {
+                width: 100%;
+                margin-bottom: 10px;
+                padding: 10px;
+            }
+            button {
+                padding: 10px 15px;
+                background-color: #f7931a; /* Bitcoin orange */
+                color: white; /* Text color */
+                border: none; /* Remove default border */
+                padding: 10px 15px; /* Padding for the button */
+                cursor: pointer; /* Change cursor to pointer on hover */
+                border-radius: 5px; /* Optional: rounded corners */
+            }
+            button:hover {
+                background-color: #d6811a; /* Darker shade on hover for better UX */
+            }
+            .container {
+                margin: 20px;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Legacy</h1>
+        <h3>2-Key Bitcoin Seed Phrase Decryption</h3>
+        <p>Created by @ericscalibur</p>
+
+        <p>
+            This tool, in combination with a deadman switch, is inteded for
+            Bitcoin holders to secure the timely transfer of their Bitcoin to
+            their beneficiaries.
+        </p>
+        <p>
+            To decrypt a seed phrase, enter the Benefactor Key, Beneficiary Key
+            and Encrypted Seed Phrase in the fields below.
+        </p>
+
+        <div class="container">
+            <label for="key1">Benefactor Key:</label>
+            <input
+                type="text"
+                id="key1"
+                placeholder="alllowercasenospaces"
+                required
+            />
+
+            <label for="key2">Beneficiary Key:</label>
+            <input
+                type="text"
+                id="key2"
+                placeholder="alllowercasenospaces"
+                required
+            />
+
+            <label for="ciphertext">Encrypted Seed Phrase:</label>
+            <textarea
+                id="ciphertextInput"
+                rows="2"
+                placeholder="alllowercasenospaces"
+                required
+            ></textarea>
+        </div>
+
+        <button onclick="decryptMessage()">Decrypt</button>
+
+        <h2>Decrypted Seed Phrase:</h2>
+        <p id="decryptedText"></p>
+
+        <script>
+            // Function to compute SHA-256 hash
+            async function sha256(message) {
+                const encoder = new TextEncoder();
+                const data = encoder.encode(message);
+                const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                // Convert bytes to hex string
+                return hashArray
+                    .map((b) => ("00" + b.toString(16)).slice(-2))
+                    .join("");
+            }
+
+            // Function to convert hash to alphabetic key (only letters)
+            function getAlphabeticKey(hash) {
+                return hash
+                    .split("")
+                    .map((char) =>
+                        String.fromCharCode(
+                            (parseInt(char, 16) % 26) + "a".charCodeAt(0),
+                        ),
+                    )
+                    .join("");
+            }
+
+            async function decryptMessage() {
+                const key1 = document.getElementById("key1").value.trim();
+                const key2 = document.getElementById("key2").value.trim();
+                const ciphertext = document
+                    .getElementById("ciphertextInput")
+                    .value.trim();
+
+                console.log("User 1 Key:", key1);
+                console.log("User 2 Key:", key2);
+                console.log("Ciphertext Message:", ciphertext);
+
+                // Combine keys
+                const combinedKey = key1 + key2;
+                console.log("Combined Key:", combinedKey);
+
+                // Hash the combined key using SHA-256
+                const hashedKey = await sha256(combinedKey);
+                console.log("Hashed Key:", hashedKey);
+
+                // Convert hashed key to alphabetic key
+                const numberlessHashedKey = getAlphabeticKey(hashedKey);
+                console.log("Numberless Hashed Key:", numberlessHashedKey);
+
+                // Decrypting logic
+                let decryptedText = "";
+                let keyIndex = 0;
+
+                for (let i = 0; i < ciphertext.length; i++) {
+                    let char = ciphertext[i];
+
+                    // Calculate shift based on lowercase character
+                    let shift =
+                        numberlessHashedKey[
+                            keyIndex % numberlessHashedKey.length
+                        ].charCodeAt(0) - "a".charCodeAt(0);
+
+                    console.log(`Character: ${char}, Shift: ${shift}`);
+
+                    // Decrypt character
+                    let charIndex = char.charCodeAt(0) - "a".charCodeAt(0); // Get index of current character
+                    let decryptedCharIndex = (charIndex - shift + 26) % 26;
+
+                    if (isNaN(decryptedCharIndex)) {
+                        console.error(
+                            `Invalid decryptedCharIndex for character '${char}':`,
+                            decryptedCharIndex,
+                        );
+                    } else {
+                        let decryptedChar = String.fromCharCode(
+                            decryptedCharIndex + "a".charCodeAt(0),
+                        );
+                        decryptedText += decryptedChar; // Concatenate decrypted character
+                        console.log(`Decrypted Character: ${decryptedChar}`);
+                        keyIndex++; // Move to the next character in the key
+                    }
+
+                    console.log(`Current Decrypted Text: ${decryptedText}`);
+                }
+
+                document.getElementById("decryptedText").innerText =
+                    decryptedText || "No valid decrypted text generated.";
+            }
+        </script>
+    </body>
+</html>
