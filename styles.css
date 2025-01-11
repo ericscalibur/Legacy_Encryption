@@ -146,6 +146,14 @@ ol li {
     margin-bottom: 8px;
 }
 
+ul {
+    margin-top: 30px;
+}
+
+ul li {
+    margin-top: 5px;
+}
+
 footer {
     font-size: 0.8rem;
     font-family: "Courier New";
