@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Legacy - Encryption and Consulting</title>
+        <link rel="stylesheet" href="styles.css" />
+        <style>
+            header {
+                background-image: url("background.png");
+            }
+        </style>
+    </head>
+    <body>
+        <header>
+            <nav id="navbar" class="navbar">
+                <div class="navbar-toggle" id="navbar-toggle">
+                    &#9776;
+                    <!-- Hamburger icon -->
+                </div>
+                <ul class="navbar-menu">
+                    <ul class="navbar-menu">
+                        <li><a href="mission.html">Mission</a></li>
+                        <li><a href="how-it-works.html">How It Works</a></li>
+                        <li><a href="benefits.html">Benefits</a></li>
+                        <li><a href="contact.html">Contact</a></li>
+                    </ul>
+                </ul>
+            </nav>
+            <div style="height: 100px"></div>
+            <h1>How It Works...</h1>
+            <div class="container">
+                <ol style="margin-top: 50px">
+                    <li>
+                        The Benefactor uses Legacy's encryption system to generate a key pair and
+                        encrypt their seed phrase.
+                    </li>
+                    <li>
+                        One key is given to the Benefiary to keep safe.
+                    </li>
+                    <li>
+                        The other key is kept by the Benefactor with the Encrypted Seed Phrase.
+                    </li>
+                    <li>
+                        The Benefactor sets up a Deadman Switch whereby, upon the death of the
+                        Benefactor, an email is sent to the Beneficiary.
+
+                    </li>
+                    <li>
+                        The email contains the Benefactor's key and the Encrypted Seed Phrase.
+                    </li>
+                    <li>
+                        Finally, the Beneficiary uses both keys to decrypt the seed phrase and recover
+                        the Bitcoin.
+                    </li>
+                </ol>
+            </div>
+            <div class="button-container">
+                <a href="../Legacy-encrypt.html" class="learn-more-button">
+                    Try It Out
+                </a>
+            </div>
+            <div style="height: 100vh"></div>
+            <footer>
+                Legacy - Encryption and Consulting. All Rights Reserved 2025.
+            </footer>
+        </div>
+
+        <!-- JavaScript for toggling navbar -->
+        <script>
+            const toggle = document.getElementById("navbar-toggle");
+            const menu = document.querySelector(".navbar-menu");
+
+            toggle.addEventListener("click", function () {
+                menu.classList.toggle("active"); // Toggle the 'active' class
+            });
+        </script>
+    </body>
+</html>

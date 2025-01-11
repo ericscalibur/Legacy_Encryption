@@ -1,0 +1,203 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body,
+html {
+    height: 100%;
+    font-family: Arial, sans-serif;
+}
+
+header {
+    background-image: url("legacy-background.png"); /* Replace with your image URL */
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    /* height: 100vh; /* Full viewport height */
+    justify-content: center;
+    align-items: center;
+    color: white; /* Text color */
+}
+
+h1 {
+    font-family: "Georgia", sans-serif; /* Desired font */
+    font-size: 4.5rem; /* Adjust size as needed */
+    font-weight: 150; /* Set font weight */
+    color: white; /* Change text color */
+    text-align: center; /* Centers the text */
+    letter-spacing: 3px;
+    text-shadow:
+        0 0 5px #0289cb,
+        0 0 10px #0289cb,
+        0 0 15px #0289cb; /* Glow effect */
+}
+
+h2 {
+    font-family: "Georgia", sans-serif;
+    font-size: 2.5rem; /* Adjust size as needed */
+    color: white; /* Change text color */
+    text-align: center; /* Centers the text */
+}
+
+h3 {
+    font-family: "Courier New";
+    font-weight: normal;
+    font-size: 1.1rem;
+    color: white;
+    text-align: center;
+    /* margin: 30px; */
+}
+
+p {
+    margin-top: 30px;
+    font-family: "Courier New";
+    font-weight: normal;
+    font-size: 1.2rem;
+    text-align: center;
+}
+
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+.navbar-toggle {
+    display: none;
+    font-size: 40px;
+    margin-left: 10px;
+    cursor: pointer; /* Change cursor to pointer for better UX */
+}
+
+.navbar-menu {
+    display: flex; /* Hide menu by default */
+    list-style-type: none;
+    margin-top: 10px;
+}
+
+.navbar-menu.active {
+    display: flex; /* Show menu when active */
+    flex-direction: column; /* Stack items vertically */
+    position: absolute; /* Position it absolutely */
+    top: 50px; /* Adjust based on your navbar height */
+    left: 0; /* Align to the left */
+    background-color: rgba(0, 0, 0, 0.7); /* Background color for dropdown */
+    list-style-type: none;
+}
+
+.navbar-menu li {
+    margin-left: 10px; /* Space between menu items */
+}
+
+.navbar-menu a {
+    color: white; /* Default color */
+    text-decoration: none;
+    padding: 15px;
+    transition: color 0.3s ease; /* Smooth transition for color change */
+}
+
+.navbar-menu a:hover {
+    color: #00aaff; /* Color on hover */
+}
+
+.container {
+    width: 80vw;
+    margin: auto;
+}
+
+.content {
+    background-image: url("background.png");
+    background-position: center;
+    background-repeat: repeat;
+    background-size: cover;
+    /* background-size: cover; */
+    /*background-color: #000102;  Dark blue color */
+    top: 800px;
+    /* height: calc(100vh + 200px); /* Full viewport height */
+    justify-content: center;
+    align-items: center;
+    color: white; /* Text color */
+    padding-top: 50px;
+}
+
+.section {
+    min-height: calc(100vh - (80vh + 60px));
+    padding-top: 60px;
+    text-align: center;
+}
+
+.section h2 {
+    margin: 50px;
+}
+
+ol {
+    text-align: left; /* Left-justify the text */
+    margin-left: 20px; /* Add a left margin for spacing */
+}
+
+ol li {
+    margin-left: 20px; /* Add additional left margin to each list item */
+    margin-bottom: 8px;
+}
+
+footer {
+    font-size: 0.8rem;
+    font-family: "Courier New";
+    font-weight: normal;
+    justify-self: right;
+}
+
+.button-container {
+    text-align: center; /* Center the button */
+    margin-top: 50px; /* Space from the top */
+}
+
+.learn-more-button {
+    border: 2px solid #0296ff; /* Set the border width and color */
+    background-color: transparent; /* Optional: make background transparent */
+    color: #007bff; /* Text color */
+    padding: 15px 30px; /* Padding for size */
+    text-decoration: none; /* Remove underline */
+    border-radius: 5px; /* Rounded corners */
+    display: block;
+    width: 20vw;
+    margin: auto;
+}
+
+.learn-more-button:hover {
+    background-color: #0296ff; /* Change background on hover */
+    color: black; /* Change text color on hover */
+    font-weight: bold;
+}
+
+/* Mobile Styles */
+@media (max-width: 768px) {
+    .navbar-menu {
+        display: none;
+        flex-direction: column;
+        position: absolute;
+        top: 50px;
+        width: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        align-items: flex-start; /* Align items to start (left) in mobile view*/
+    }
+
+    .navbar-toggle {
+        display: block;
+        cursor: pointer;
+        padding: 15px;
+        color: white;
+    }
+
+    .navbar-menu.active {
+        display: flex;
+    }
+
+    .learn-more-button {
+        width: 40vw;
+    }
+}
