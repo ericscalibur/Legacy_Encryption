@@ -109,8 +109,13 @@
                 height: 250px; /* Set desired height for your logo */
             }
 
-            button {
-                margin-left: 30px;
+            a {
+                color: #007bff;
+                text-decoration: none;
+            }
+
+            ul li {
+                margin-top: 10px;
             }
         </style>
     </head>
@@ -134,8 +139,6 @@
             <div style="height: 5vh"></div>
             <h3>2-Key Bitcoin Seed Phrase Encryption</h3>
             <div style="height: 5vh"></div>
-            <p>Created by @ericscalibur</p>
-            <div style="height: 10vh"></div>
         </header>
         <div class="container">
             <h2>Instructions</h2>
@@ -368,11 +371,9 @@
 
                 // Hash the combined key using SHA-256
                 const hashedKey = await sha256(combinedKey);
-                console.log("Hashed Key:", hashedKey);
 
                 // Convert hashed key to alphabetic key
                 const numberlessHashedKey = getAlphabeticKey(hashedKey);
-                console.log("Numberless Hashed Key:", numberlessHashedKey);
 
                 // Encrypting logic
                 let ciphertext = "";
@@ -386,8 +387,6 @@
                             keyIndex % numberlessHashedKey.length
                         ].charCodeAt(0) - "a".charCodeAt(0);
 
-                    console.log(`Character: ${char}, Shift: ${shift}`);
-
                     let charIndex = char.charCodeAt(0) - "a".charCodeAt(0); // Get index of current character
                     let encryptedCharIndex = (charIndex + shift) % 26;
 
@@ -396,7 +395,6 @@
                             encryptedCharIndex + "a".charCodeAt(0),
                         );
                         ciphertext += encryptedChar; // Concatenate encrypted character
-                        console.log(`Encrypted Character: ${encryptedChar}`);
                         keyIndex++; // Move to the next character in the key
                     } else {
                         console.error(
@@ -404,8 +402,6 @@
                             encryptedCharIndex,
                         );
                     }
-
-                    console.log(`Current Ciphertext: ${ciphertext}`);
                 }
 
                 document.getElementById("ciphertext").innerText =
