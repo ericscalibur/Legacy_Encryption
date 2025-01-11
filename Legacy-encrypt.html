@@ -42,7 +42,9 @@
                 border: none; /* Remove default border */
                 cursor: pointer; /* Change cursor to pointer on hover */
                 border-radius: 5px; /* Optional: rounded corners */
-                margin: 30px;
+                display: block;
+                margin: auto;
+                margin-bottom: 30px;
             }
 
             button:hover {
@@ -60,6 +62,7 @@
                 margin: auto;
                 color: white;
                 padding-top: 30px;
+                padding-bottom: 30px;
             }
             .input-container {
                 position: relative; /* Make this container relative for absolute positioning of the icon */
@@ -284,10 +287,11 @@
                     placeholder="Confirm your Seed Phrase here"
                     required
                 ></textarea>
+                <button onclick="encryptMessage()">Encrypt</button>
+                <h3>Encrypted Seed Phrase:</h3>
+                <p id="ciphertext"></p>
             </section>
-            <button onclick="encryptMessage()">Encrypt</button>
-            <h3>Encrypted Seed Phrase:</h3>
-            <p id="ciphertext"></p>
+
             <div style="height: 10vh"></div>
             <footer>
                 Legacy - Encryption and Consulting. All Rights Reserved 2025.
