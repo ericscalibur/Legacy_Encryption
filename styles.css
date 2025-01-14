@@ -90,6 +90,7 @@ p {
 
 .navbar-menu li {
     margin-left: 10px; /* Space between menu items */
+    margin-top: 10px;
 }
 
 .navbar-menu a {
