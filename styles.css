@@ -151,7 +151,7 @@ footer {
     font-size: 0.8rem;
     font-family: "Courier New";
     font-weight: normal;
-    justify-self: right;
+    justify-self: center;
 }
 
 .button-container {
