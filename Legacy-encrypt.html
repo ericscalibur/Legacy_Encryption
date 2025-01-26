@@ -48,11 +48,13 @@
                 background-color: #d6811a; /* Darker shade on hover for better UX */
             }
 
-            .container {
+            .background {
                 background-image: url("background.png");
                 background-position: center;
                 background-repeat: no-repeat;
                 background-size: cover;
+            }
+            .container {
                 justify-content: center;
                 align-items: center;
                 width: 100%;
@@ -140,122 +142,128 @@
             <h3>2-Key Seed Phrase Encryption</h3>
             <div style="height: 5vh"></div>
         </header>
-        <div class="container">
-            <h2>Instructions</h2>
-            <section style="align-items: center; justify-content: center">
-                <ul>
-                    <li>
-                        DO NOT ENTER YOUR ACTUAL SEED PHRASE. This online
-                        version is for demonstration purposes only.
-                    </li>
-                    <li>
-                        Please read the
-                        <a href="how-it-works.html">HOW-IT-WORKS</a> page and
-                        the <a href="benefits.html">BENEFITS</a> page before
-                        using
-                    </li>
-                    <li>
-                        Check the expected functionality of your keys using the
-                        <a href="Legacy-decrypt.html">DECRYPT</a> page.
-                    </li>
-                    <li>
-                        Keys and seed phrase must be entered with all lowercase,
-                        no caps, no spaces, no numbers, no special characters.
-                    </li>
-                </ul>
-            </section>
-        </div>
-        <div class="container">
-            <section>
-                <label for="key1">Benefactor Key:</label>
-                <div class="input-container">
+        <div class="background">
+            <div class="container">
+                <h2>Instructions</h2>
+                <section style="align-items: center; justify-content: center">
+                    <ul>
+                        <li>
+                            DO NOT ENTER YOUR ACTUAL SEED PHRASE. This online
+                            version is for demonstration purposes only.
+                        </li>
+                        <li>
+                            Please read the
+                            <a href="how-it-works.html">HOW-IT-WORKS</a> page
+                            and the <a href="benefits.html">BENEFITS</a> page
+                            before using
+                        </li>
+                        <li>
+                            Check the expected functionality of your keys using
+                            the
+                            <a href="Legacy-decrypt.html">DECRYPT</a> page.
+                        </li>
+                        <li>
+                            Keys and seed phrase must be entered with all
+                            lowercase, no caps, no spaces, no numbers, no
+                            special characters.
+                        </li>
+                    </ul>
+                </section>
+            </div>
+
+            <div class="container">
+                <section>
+                    <label for="key1">Benefactor Key:</label>
+                    <div class="input-container">
+                        <input
+                            type="password"
+                            id="key1"
+                            placeholder="benefactorkey"
+                            required
+                        />
+                        <span
+                            class="toggle-visibility"
+                            onclick="toggleVisibility('key1', this)"
+                        >
+                            <!-- Top eyelid -->
+                            <span
+                                class="eyelid top"
+                                style="transform: rotate(90deg)"
+                                >(</span
+                            >
+                            <!-- Iris -->
+                            <span class="iris">0</span>
+                            <!-- Bottom eyelid -->
+                            <span
+                                class="eyelid bottom"
+                                style="transform: rotate(90deg)"
+                                >)</span
+                            >
+                        </span>
+                    </div>
+
+                    <label for="key1Confirm">Confirm Benefactor Key:</label>
+                    <div class="input-container">
+                        <input
+                            type="password"
+                            id="key1Confirm"
+                            placeholder="Confirm Benefactor key here"
+                            required
+                        />
+                        <span
+                            class="toggle-visibility"
+                            onclick="toggleVisibility('key1Confirm', this)"
+                        >
+                            <span class="eyelid top">(</span>
+                            <!-- Top eyelid -->
+                            <span class="iris">0</span>
+                            <!-- Iris -->
+                            <span class="eyelid bottom">)</span>
+                            <!-- Bottom eyelid -->
+                            <!-- Open eye icon -->
+                            <span class="eye-closed" style="display: none"
+                                >)</span
+                            >
+                            <!-- Closed eye icon -->
+                        </span>
+                    </div>
+
+                    <label for="key2">Beneficiary Key:</label>
                     <input
-                        type="password"
-                        id="key1"
-                        placeholder="benefactorkey"
+                        type="text"
+                        id="key2"
+                        placeholder="beneficiarykey"
                         required
                     />
-                    <span
-                        class="toggle-visibility"
-                        onclick="toggleVisibility('key1', this)"
-                    >
-                        <!-- Top eyelid -->
-                        <span
-                            class="eyelid top"
-                            style="transform: rotate(90deg)"
-                            >(</span
-                        >
-                        <!-- Iris -->
-                        <span class="iris">0</span>
-                        <!-- Bottom eyelid -->
-                        <span
-                            class="eyelid bottom"
-                            style="transform: rotate(90deg)"
-                            >)</span
-                        >
-                    </span>
-                </div>
 
-                <label for="key1Confirm">Confirm Benefactor Key:</label>
-                <div class="input-container">
+                    <label for="key2Confirm">Confirm Beneficiary Key:</label>
                     <input
-                        type="password"
-                        id="key1Confirm"
-                        placeholder="Confirm Benefactor key here"
+                        type="text"
+                        id="key2Confirm"
+                        placeholder="Confirm Beneficiary key here"
                         required
                     />
-                    <span
-                        class="toggle-visibility"
-                        onclick="toggleVisibility('key1Confirm', this)"
-                    >
-                        <span class="eyelid top">(</span>
-                        <!-- Top eyelid -->
-                        <span class="iris">0</span>
-                        <!-- Iris -->
-                        <span class="eyelid bottom">)</span>
-                        <!-- Bottom eyelid -->
-                        <!-- Open eye icon -->
-                        <span class="eye-closed" style="display: none">)</span>
-                        <!-- Closed eye icon -->
-                    </span>
-                </div>
 
-                <label for="key2">Beneficiary Key:</label>
-                <input
-                    type="text"
-                    id="key2"
-                    placeholder="beneficiarykey"
-                    required
-                />
+                    <label for="plaintext">Seed Phrase:</label>
+                    <textarea
+                        id="plaintext"
+                        rows="2"
+                        placeholder="seedphrase"
+                        required
+                    ></textarea>
 
-                <label for="key2Confirm">Confirm Beneficiary Key:</label>
-                <input
-                    type="text"
-                    id="key2Confirm"
-                    placeholder="Confirm Beneficiary key here"
-                    required
-                />
-
-                <label for="plaintext">Seed Phrase:</label>
-                <textarea
-                    id="plaintext"
-                    rows="2"
-                    placeholder="seedphrase"
-                    required
-                ></textarea>
-
-                <label for="plaintextConfirm">Confirm Seed Phrase:</label>
-                <textarea
-                    id="plaintextConfirm"
-                    rows="2"
-                    placeholder="Confirm your Seed Phrase here"
-                    required
-                ></textarea>
-                <button onclick="encryptMessage()">Encrypt</button>
-                <h3>Encrypted Seed Phrase:</h3>
-                <p id="ciphertext"></p>
-            </section>
-
+                    <label for="plaintextConfirm">Confirm Seed Phrase:</label>
+                    <textarea
+                        id="plaintextConfirm"
+                        rows="2"
+                        placeholder="Confirm your Seed Phrase here"
+                        required
+                    ></textarea>
+                    <button onclick="encryptMessage()">Encrypt</button>
+                    <h3>Encrypted Seed Phrase:</h3>
+                    <p id="ciphertext"></p>
+                </section>
+            </div>
             <div style="height: 10vh"></div>
             <footer>
                 Legacy - Encryption and Consulting. All Rights Reserved 2025.

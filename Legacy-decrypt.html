@@ -48,11 +48,14 @@
                 background-color: #d6811a; /* Darker shade on hover for better UX */
             }
 
-            .container {
+            .background {
                 background-image: url("background.png");
                 background-position: center;
                 background-repeat: no-repeat;
                 background-size: cover;
+            }
+
+            .container {
                 justify-content: center;
                 align-items: center;
                 width: 100%;
@@ -161,49 +164,52 @@
             </div>
         </header>
 
-        <div class="container">
-            <div style="width: 80%; margin: auto">
-                <label for="key1">Benefactor Key:</label>
-                <input
-                    type="text"
-                    id="key1"
-                    placeholder="benefactorkey"
-                    required
-                />
+        <div class="background">
+            <div class="container">
+                <div style="width: 80%; margin: auto">
+                    <label for="key1">Benefactor Key:</label>
+                    <input
+                        type="text"
+                        id="key1"
+                        placeholder="benefactorkey"
+                        required
+                    />
 
-                <label for="key2">Beneficiary Key:</label>
-                <input
-                    type="text"
-                    id="key2"
-                    placeholder="beneficiarykey"
-                    required
-                />
+                    <label for="key2">Beneficiary Key:</label>
+                    <input
+                        type="text"
+                        id="key2"
+                        placeholder="beneficiarykey"
+                        required
+                    />
 
-                <label for="ciphertext">Encrypted Seed Phrase:</label>
-                <textarea
-                    id="ciphertextInput"
-                    rows="2"
-                    placeholder="encryptedseedphrase"
-                    required
-                ></textarea>
-                <button onclick="decryptMessage()">Decrypt</button>
+                    <label for="ciphertext">Encrypted Seed Phrase:</label>
+                    <textarea
+                        id="ciphertextInput"
+                        rows="2"
+                        placeholder="encryptedseedphrase"
+                        required
+                    ></textarea>
+                    <button onclick="decryptMessage()">Decrypt</button>
 
-                <h3>Decrypted Seed Phrase:</h3>
-                <p id="decryptedText"></p>
+                    <h3>Decrypted Seed Phrase:</h3>
+                    <p id="decryptedText"></p>
+                </div>
+                <div style="height: 10vh"></div>
+                <h2>Donations</h2>
+                <p>Legacy is free and open source. Please consider donating.</p>
+                <div style="height: 5vh"></div>
+                <div class="image-container">
+                    <img src="blinkQR.png" alt="qr-code" />
+                </div>
+                <div style="height: 5vh"></div>
+                <p>Lightning: ericscalibur@blink.sv</p>
+                <div style="height: 10vh"></div>
+                <footer>
+                    Legacy - Encryption and Consulting. All Rights Reserved
+                    2025.
+                </footer>
             </div>
-            <div style="height: 10vh"></div>
-            <h2>Donations</h2>
-            <p>Legacy is free and open source. Please consider donating.</p>
-            <div style="height: 5vh"></div>
-            <div class="image-container">
-                <img src="blinkQR.png" alt="qr-code" />
-            </div>
-            <div style="height: 5vh"></div>
-            <p>Lightning: ericscalibur@blink.sv</p>
-            <div style="height: 10vh"></div>
-            <footer>
-                Legacy - Encryption and Consulting. All Rights Reserved 2025.
-            </footer>
         </div>
         <script>
             const toggle = document.getElementById("navbar-toggle");
