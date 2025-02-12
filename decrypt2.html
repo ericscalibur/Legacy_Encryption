@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Legacy Encryption</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/aes.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/pbkdf2.js"></script>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: sans-serif;
+        }
+        input[type=text] {
+          width: 500px;
+          margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Legacy Encryption</h1>
+
+    <label for="benefactorKey">Benefactor Key:</label>
+    <input type="text" id="benefactorKey"></label><br><br>
+
+    <label for="beneficiaryKey">Beneficiary Key:</label>
+    <input type="text" id="beneficiaryKey"></label><br><br>
+
+    <label for="encryptedSeedPhrase">Encrypted Seed Phrase:</label>
+    <input type="text" id="encryptedSeedPhrase"></label><br><br>
+
+    <button onclick="decryptSeedPhrase()">Decrypt</button><br><br>
+
+    <p><b>Decrypted Seed Phrase:</b></p>
+    <p id="decryptedSeedPhrase"></p>
+
+    <script>
+    function decryptSeedPhrase() {
+        var benefactorKey = document.getElementById("benefactorKey").value;
+        var beneficiaryKey = document.getElementById("beneficiaryKey").value;
+        var encryptedSeedPhrase = document.getElementById("encryptedSeedPhrase").value;
+
+        // Split the encrypted data to get the salt, IV, and the encrypted seed phrase
+        var parts = encryptedSeedPhrase.split('$');
+        var salt = CryptoJS.enc.Hex.parse(parts[0]);
+        var iv = CryptoJS.enc.Hex.parse(parts[1]);
+        var encrypted = parts[2];
+
+        // Combine keys
+        var combinedKey = benefactorKey + beneficiaryKey;
+
+        //Use PBKDF2 to derive a key from the combined keys
+        var key = CryptoJS.PBKDF2(combinedKey, salt, {
+            keySize: 256/32,
+            iterations: 1000
+        });
+
+        // Decrypt the seed phrase
+        var decrypted = CryptoJS.AES.decrypt(encrypted, key, {
+            iv: iv,
+            mode: CryptoJS.mode.CBC,
+            padding: CryptoJS.pad.Pkcs7
+        });
+
+        // Convert the decrypted data to a string
+        var decryptedSeedPhrase = decrypted.toString(CryptoJS.enc.Utf8);
+
+        document.getElementById("decryptedSeedPhrase").innerText = decryptedSeedPhrase;
+    }
+    </script>
+</body>
+</html>

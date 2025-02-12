@@ -1,0 +1,144 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Legacy Encryption</title>
+        <style>
+            body {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+                margin: 0;
+                font-family: sans-serif;
+            }
+            input[type="text"] {
+                width: 500px;
+                margin: 5px;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Legacy Encryption</h1>
+
+        <p>
+            DO NOT ENTER YOUR ACTUAL SEED PHRASE. This online version is for
+            demonstration purposes only.
+        </p>
+        <p>
+            Please read the HOW-IT-WORKS page and the BENEFITS page before using
+            it offline.
+        </p>
+        <p>
+            Check the expected functionality of your keys using the DECRYPT
+            page.
+        </p>
+        <p>
+            Keys and seed phrase must be entered with all lowercase, no caps, no
+            spaces, no numbers, no special characters.
+        </p>
+
+        <label for="benefactorKey">Benefactor Key:</label>
+        <input type="text" id="benefactorKey" /><br /><br />
+
+        <label for="confirmBenefactorKey">Confirm Benefactor Key:</label>
+        <input type="text" id="confirmBenefactorKey" /><br /><br />
+
+        <label for="beneficiaryKey">Beneficiary Key:</label>
+        <input type="text" id="beneficiaryKey" /><br /><br />
+
+        <label for="confirmBeneficiaryKey">Confirm Beneficiary Key:</label>
+        <input type="text" id="confirmBeneficiaryKey" /><br /><br />
+
+        <label for="seedPhrase">Seed Phrase:</label>
+        <input type="text" id="seedPhrase" /><br /><br />
+
+        <button onclick="encryptSeedPhrase()">Encrypt</button><br /><br />
+
+        <p><b>Encrypted Seed Phrase:</b></p>
+        <p id="encryptedSeedPhrase"></p>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/aes.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/pbkdf2.js"></script>
+        <script>
+            function encryptSeedPhrase() {
+                var benefactorKey =
+                    document.getElementById("benefactorKey").value;
+                var confirmBenefactorKey = document.getElementById(
+                    "confirmBenefactorKey",
+                ).value;
+                var beneficiaryKey =
+                    document.getElementById("beneficiaryKey").value;
+                var confirmBeneficiaryKey = document.getElementById(
+                    "confirmBeneficiaryKey",
+                ).value;
+                var seedPhrase = document.getElementById("seedPhrase").value;
+
+                if (benefactorKey !== confirmBenefactorKey) {
+                    alert("Benefactor keys do not match.");
+                    return;
+                }
+
+                if (beneficiaryKey !== confirmBeneficiaryKey) {
+                    alert("Beneficiary keys do not match.");
+                    return;
+                }
+
+                // Implement BIP39 validation here (fetch english.txt and check)
+                fetch("english.txt")
+                    .then((response) => response.text())
+                    .then((text) => {
+                        const bip39Wordlist = new Set(
+                            text.split("\n").map((word) => word.trim()),
+                        );
+                        const words = seedPhrase.split(" ");
+                        if (words.length !== 12 && words.length !== 24) {
+                            alert(
+                                "Seed phrase must contain either 12 or 24 words.",
+                            );
+                            return;
+                        }
+
+                        for (const word of words) {
+                            if (!bip39Wordlist.has(word)) {
+                                alert(
+                                    "Invalid seed phrase. Check to make sure the words are correct.",
+                                );
+                                return;
+                            }
+                        }
+
+                        // Combine keys
+                        var combinedKey = benefactorKey + beneficiaryKey;
+
+                        //Use PBKDF2 to derive a key from the combined keys
+                        var salt = CryptoJS.lib.WordArray.random(16); // Generate a 128-bit salt
+                        var key = CryptoJS.PBKDF2(combinedKey, salt, {
+                            keySize: 256 / 32, // Use a 256-bit key
+                            iterations: 1000, // Number of iterations
+                        });
+
+                        // Generate a random IV
+                        var iv = CryptoJS.lib.WordArray.random(16); // 128-bit IV
+
+                        // Encrypt the seed phrase
+                        var encrypted = CryptoJS.AES.encrypt(seedPhrase, key, {
+                            iv: iv,
+                            mode: CryptoJS.mode.CBC,
+                            padding: CryptoJS.pad.Pkcs7,
+                        });
+
+                        // Output the encrypted seed phrase
+                        document.getElementById(
+                            "encryptedSeedPhrase",
+                        ).innerText = salt + "$" + iv + "$" + encrypted;
+                    })
+                    .catch((error) => {
+                        console.error("Error loading BIP39 wordlist:", error);
+                        alert("Failed to load BIP39 wordlist.");
+                    });
+            }
+        </script>
+    </body>
+</html>

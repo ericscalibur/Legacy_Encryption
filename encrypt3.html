@@ -1,0 +1,226 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Legacy Encryption</title>
+        <link rel="stylesheet" href="styles.css" />
+        <style>
+            body {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                /* justify-content: center; */
+                min-height: 100vh;
+                margin: 0;
+                font-family: sans-serif;
+                background-color: rgba(0, 0, 0, 0);
+            }
+            label {
+                width: 100%;
+                margin: auto;
+            }
+            input[type="text"] {
+                width: 100%;
+                margin: auto;
+            }
+            a:visited {
+                color: #6fd0ff;
+            }
+        </style>
+    </head>
+    <body>
+        <header>
+            <div style="height: 75vh"></div>
+            <h1>Legacy Encryption</h1>
+
+            <div class="content">
+                <div style="margin: auto; width: 80%">
+                    <p>
+                        DO NOT ENTER YOUR ACTUAL SEED PHRASE. <br />
+                        This offline version is for demonstration purposes only.
+                    </p>
+                    <p>
+                        Please read the HOW-IT-WORKS page and the BENEFITS page
+                        before using it offline.
+                    </p>
+                    <p>
+                        Check the expected functionality of your keys using the
+                        <a href="decrypt3.html">DECRYPT</a> page.
+                    </p>
+                    <div style="height: 10vh"></div>
+                    <label for="benefactorKey">Benefactor Key:</label><br />
+                    <input type="text" id="benefactorKey" /><br /><br />
+
+                    <label for="confirmBenefactorKey"
+                        >Confirm Benefactor Key:</label
+                    ><br />
+                    <input type="text" id="confirmBenefactorKey" /><br /><br />
+
+                    <label for="beneficiaryKey">Beneficiary Key:</label><br />
+                    <input type="text" id="beneficiaryKey" /><br /><br />
+
+                    <label for="confirmBeneficiaryKey"
+                        >Confirm Beneficiary Key:</label
+                    ><br />
+                    <input type="text" id="confirmBeneficiaryKey" /><br /><br />
+
+                    <label for="seedPhrase">Seed Phrase:</label><br />
+                    <input type="text" id="seedPhrase" /><br /><br />
+
+                    <button onclick="encryptSeedPhrase()">Encrypt</button
+                    ><br /><br />
+                    <label for="encryptedSeedPhrase"
+                        >Encrypted Seed Phrase:</label
+                    >
+                    <p
+                        id="encryptedSeedPhrase"
+                        style="overflow-wrap: break-word"
+                    ></p>
+                    <div style="height: 20vh"></div>
+                </div>
+            </div>
+        </header>
+        <script>
+            // Function to convert string to array buffer
+            function strToArrayBuffer(str) {
+                const buf = new ArrayBuffer(str.length);
+                const bufView = new Uint8Array(buf);
+                for (let i = 0, strLen = str.length; i < strLen; i++) {
+                    bufView[i] = str.charCodeAt(i);
+                }
+                return buf;
+            }
+
+            // Function to convert array buffer to string
+            function arrayBufferToStr(buf) {
+                return String.fromCharCode.apply(null, new Uint8Array(buf));
+            }
+
+            // Function to generate a salt
+            function generateSalt() {
+                return window.crypto.getRandomValues(new Uint8Array(16));
+            }
+
+            async function deriveKey(password, salt) {
+                const encoder = new TextEncoder();
+                const keyMaterial = await window.crypto.subtle.importKey(
+                    "raw",
+                    encoder.encode(password),
+                    { name: "PBKDF2" },
+                    false,
+                    ["deriveKey"],
+                );
+
+                const key = await window.crypto.subtle.deriveKey(
+                    {
+                        name: "PBKDF2",
+                        salt: salt,
+                        iterations: 10000,
+                        hash: "SHA-256",
+                    },
+                    keyMaterial,
+                    { name: "AES-GCM", length: 256 },
+                    true,
+                    ["encrypt", "decrypt"],
+                );
+                return key;
+            }
+
+            async function encryptData(plaintext, password) {
+                const salt = generateSalt();
+                const key = await deriveKey(password, salt);
+                const iv = window.crypto.getRandomValues(new Uint8Array(12));
+
+                const encoder = new TextEncoder();
+                const encoded = encoder.encode(plaintext);
+
+                const ciphertext = await window.crypto.subtle.encrypt(
+                    { name: "AES-GCM", iv: iv },
+                    key,
+                    encoded,
+                );
+
+                // Convert to Base64
+                const ivString = arrayBufferToStr(iv);
+                const ciphertextString = arrayBufferToStr(ciphertext);
+                const saltString = arrayBufferToStr(salt);
+
+                const ivBase64 = btoa(ivString);
+                const ciphertextBase64 = btoa(ciphertextString);
+                const saltBase64 = btoa(saltString);
+
+                return {
+                    salt: saltBase64,
+                    iv: ivBase64,
+                    ciphertext: ciphertextBase64,
+                };
+            }
+
+            async function encryptSeedPhrase() {
+                var benefactorKey =
+                    document.getElementById("benefactorKey").value;
+                var confirmBenefactorKey = document.getElementById(
+                    "confirmBenefactorKey",
+                ).value;
+                var beneficiaryKey =
+                    document.getElementById("beneficiaryKey").value;
+                var confirmBeneficiaryKey = document.getElementById(
+                    "confirmBeneficiaryKey",
+                ).value;
+                var seedPhrase = document.getElementById("seedPhrase").value;
+
+                if (benefactorKey !== confirmBenefactorKey) {
+                    alert("Benefactor keys do not match.");
+                    return;
+                }
+
+                if (beneficiaryKey !== confirmBeneficiaryKey) {
+                    alert("Beneficiary keys do not match.");
+                    return;
+                }
+
+                // 1. Load BIP39 Wordlist
+                const wordlist = await fetch("english.txt").then((response) =>
+                    response.text(),
+                );
+                const words = wordlist.split("\n").map((word) => word.trim());
+
+                // 2. Validate Seed Phrase
+                const seedWords = seedPhrase.split(" ");
+                if (seedWords.length !== 12 && seedWords.length !== 24) {
+                    alert("Seed phrase must contain 12 or 24 words.");
+                    return;
+                }
+
+                const isValid = seedWords.every((word) => words.includes(word));
+                if (!isValid) {
+                    alert(
+                        "Invalid seed phrase.  Make sure each word is a valid BIP39 word from english.txt.",
+                    );
+                    return;
+                }
+
+                // Combine keys
+                var combinedKey = benefactorKey + beneficiaryKey;
+
+                try {
+                    const encryptedData = await encryptData(
+                        seedPhrase,
+                        combinedKey,
+                    );
+                    const combinedString =
+                        encryptedData.salt +
+                        "." +
+                        encryptedData.iv +
+                        "." +
+                        encryptedData.ciphertext;
+                    const base64Encoded = btoa(combinedString); // Base64 encode the entire string
+                    document.getElementById("encryptedSeedPhrase").innerText =
+                        base64Encoded;
+                } catch (error) {
+                    console.error("Encryption error:", error);
+                    alert("Encryption failed. Check console for details.");
+                }
+            }
+        </script>
+    </body>
+</html>
