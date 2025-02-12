@@ -11,7 +11,7 @@ ericscalibur@blink.sv
 
 Instructions:
 
-Download the files encrypt3.html, decrypt3.html and english.txt
+Download the files encrypt.html, decrypt.html and english.txt
 That is all you need to encrypt and decrypt your seedphrase and create a key pair.
 For further instructions, read the <a href="how-it-works.html">How-It-Works</a> page.
 If you want indepth consultion on how to use this product, see the Contact page.
