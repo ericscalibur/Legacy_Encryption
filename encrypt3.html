@@ -3,6 +3,7 @@
     <head>
         <title>Legacy Encryption</title>
         <link rel="stylesheet" href="styles.css" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <style>
             body {
                 display: flex;
@@ -22,13 +23,28 @@
                 width: 100%;
                 margin: auto;
             }
-            a:visited {
+            p a {
+                color: #6fd0ff;
+            }
+            p a:visited {
                 color: #6fd0ff;
             }
         </style>
     </head>
     <body>
         <header>
+            <nav id="navbar" class="navbar">
+                <div class="navbar-toggle" id="navbar-toggle">
+                    &#9776;
+                    <!-- Hamburger icon -->
+                </div>
+                <ul class="navbar-menu">
+                    <li><a href="mission.html">Mission</a></li>
+                    <li><a href="how-it-works.html">How It Works</a></li>
+                    <li><a href="benefits.html">Benefits</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                </ul>
+            </nav>
             <div style="height: 75vh"></div>
             <h1>Legacy Encryption</h1>
 
@@ -79,6 +95,15 @@
                 </div>
             </div>
         </header>
+        <!-- JavaScript for toggling navbar -->
+        <script>
+            const toggle = document.getElementById("navbar-toggle");
+            const menu = document.querySelector(".navbar-menu");
+
+            toggle.addEventListener("click", function () {
+                menu.classList.toggle("active"); // Toggle the 'active' class
+            });
+        </script>
         <script>
             // Function to convert string to array buffer
             function strToArrayBuffer(str) {

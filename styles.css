@@ -1,6 +1,4 @@
 * {
-    margin: 0;
-    padding: 0;
     box-sizing: border-box;
 }
 
@@ -8,6 +6,10 @@ body,
 html {
     height: 100%;
     font-family: Arial, sans-serif;
+}
+
+body {
+    background-color: #000102;
 }
 
 header {
@@ -86,13 +88,18 @@ p {
     position: absolute; /* Position it absolutely */
     top: 50px; /* Adjust based on your navbar height */
     left: 0; /* Align to the left */
-    background-color: rgba(0, 0, 0, 0.7); /* Background color for dropdown */
+    /* background-color: rgba(0, 0, 0, 0.7); /* Background color for dropdown */
+    background: linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0.7),
+        transparent
+    ); /* Vertical gradient from black to transparent */
     list-style-type: none;
 }
 
 .navbar-menu li {
     margin-left: 10px; /* Space between menu items */
-    margin-top: 10px;
+    margin-top: 30px;
 }
 
 .navbar-menu a {
@@ -112,15 +119,15 @@ p {
     font-size: 20px;
     margin-top: 50px;
     margin-bottom: 50px;
+    word-break: break-word; /* Ensures text wraps */
 }
 
 .content {
     /* background-image: url("background.png");
-    background-position: center;
-    background-repeat: repeat;
-    background-size: cover; */
-
-    background-color: #000102;  Dark blue color
+  background-position: center;
+  background-repeat: repeat;
+  background-size: cover; */
+    background-color: #000102; /* Dark blue color */
     /* top: 800px; */
     /* height: calc(100vh + 200px); /* Full viewport height */
     /* display: flex; */
@@ -145,11 +152,13 @@ p {
 ol {
     text-align: left; /* Left-justify the text */
     margin-left: 20px; /* Add a left margin for spacing */
+    word-break: break-word; /* Ensures text wraps */
 }
 
 ol li {
     margin-left: 20px; /* Add additional left margin to each list item */
     margin-bottom: 8px;
+    word-break: break-word; /* Ensures text wraps */
 }
 
 footer {
@@ -200,6 +209,35 @@ button:hover {
 
 /* Mobile Styles */
 @media (max-width: 768px) {
+    /* Prevent shrinking of text */
+    body {
+        -webkit-text-size-adjust: 100%; /* Prevents iOS from ऑटो-adjusting font sizes */
+        text-size-adjust: 100%; /* Standard property */
+    }
+
+    h1 {
+        font-size: 3.5rem; /* Adjust header font size for smaller screens */
+    }
+
+    h2 {
+        font-size: 2rem; /* Adjust sub-header font size for smaller screens */
+    }
+
+    p,
+    ol li,
+    h3 {
+        font-size: 1.2rem; /* Maintain a readable font size */
+    }
+
+    nav ul li {
+        margin-top: 30px;
+    }
+
+    .container {
+        width: 95vw; /* More width for content */
+        word-break: break-word;
+    }
+
     .navbar-menu {
         display: none;
         flex-direction: column;
@@ -222,6 +260,8 @@ button:hover {
     }
 
     .learn-more-button {
-        width: 40vw;
+        width: 70vw; /* Adjust button width */
+        padding: 10px 15px;
+        font-size: 1rem;
     }
 }
