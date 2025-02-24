@@ -1,7 +1,7 @@
-/* ***Congradulations! You're one of the few people that knows how to view
-source code. ***I hope you are here to vet the security of my encryption
-program. ***I have included useful comments throughout the code to explain the
-protocol. ***Enjoy! */
+<!-- """ Congradulations! You're one of the few people that knows how to view source
+code. I hope you are here to vet the security of my encryption program. I have
+included useful comments throughout the code to explain the protocol. Enjoy! """ -->
+
 <!doctype html>
 <html>
     <head>
@@ -13,7 +13,6 @@ protocol. ***Enjoy! */
                 display: flex;
                 flex-direction: column;
                 align-items: center;
-                /* justify-content: center; */
                 min-height: 100vh;
                 margin: 0;
                 font-family: sans-serif;
@@ -53,13 +52,17 @@ protocol. ***Enjoy! */
 
             <div class="content">
                 <div style="margin: auto; width: 80%">
+                    <p>DO NOT ENTER YOUR ACTUAL SEED PHRASE.</p>
                     <p>
-                        DO NOT ENTER YOUR ACTUAL SEED PHRASE. <br />
                         This online version is for demonstration purposes only.
                     </p>
                     <p>
                         Please read the HOW-IT-WORKS page and the BENEFITS page
                         before using it offline.
+                    </p>
+                    <p>
+                        For testing purposes, you can generate random seed
+                        phrases using the 12 or 24 word buttons.
                     </p>
                     <p>
                         Check the expected functionality of your keys using the
@@ -83,10 +86,27 @@ protocol. ***Enjoy! */
                     <input type="text" id="confirmBeneficiaryKey" /><br /><br />
 
                     <label for="seedPhrase">Seed Phrase:</label><br />
-                    <input type="text" id="seedPhrase" /><br /><br />
+                    <input
+                        type="text"
+                        id="seedPhrase"
+                        style="color: #000000"
+                    /><br /><br />
 
-                    <button onclick="encryptSeedPhrase()">Encrypt</button
-                    ><br /><br />
+                    <div style="display: flex">
+                        <button
+                            id="encryptButton"
+                            onclick="encryptSeedPhrase()"
+                        >
+                            Encrypt
+                        </button>
+                        <button id="12Button" onclick="generate12SeedPhrase()">
+                            12 words
+                        </button>
+                        <button id="24Button" onclick="generate24SeedPhrase()">
+                            24 words
+                        </button>
+                    </div>
+                    <br /><br />
                     <label for="encryptedSeedPhrase"
                         >Encrypted Seed Phrase:</label
                     >
@@ -107,7 +127,7 @@ protocol. ***Enjoy! */
                 menu.classList.toggle("active"); // Toggle the 'active' class
             });
         </script>
-        <!-- Here's the good stuff! -->
+        <!-- The Javascript to Encrypt -->
         <script>
             // Function to convert string to array buffer
             function strToArrayBuffer(str) {
@@ -128,7 +148,8 @@ protocol. ***Enjoy! */
             function generateSalt() {
                 return window.crypto.getRandomValues(new Uint8Array(16));
             }
-
+            // salts the combined key, then iteritively hashes with sha256
+            // returns the cipherkey used to encrypt
             async function deriveKey(password, salt) {
                 const encoder = new TextEncoder();
                 const keyMaterial = await window.crypto.subtle.importKey(
@@ -153,15 +174,21 @@ protocol. ***Enjoy! */
                 );
                 return key;
             }
-
+            // Takes seedphrase and combinedkey to generate salt, IV and ciphertext
+            // Everything is converted to Base64 and returned in JSON format
             async function encryptData(plaintext, password) {
                 const salt = generateSalt();
                 const key = await deriveKey(password, salt);
                 const iv = window.crypto.getRandomValues(new Uint8Array(12));
-
                 const encoder = new TextEncoder();
                 const encoded = encoder.encode(plaintext);
+                // console.log("salt", salt);
+                // console.log("key", key);
+                // console.log("iv", iv);
+                // console.log("plaintext: ", plaintext);
+                // console.log("encoded: ", encoded);
 
+                <!-- Advanced Encryption Standard - Galois/Counter Mode -->
                 const ciphertext = await window.crypto.subtle.encrypt(
                     { name: "AES-GCM", iv: iv },
                     key,
@@ -176,6 +203,13 @@ protocol. ***Enjoy! */
                 const ivBase64 = btoa(ivString);
                 const ciphertextBase64 = btoa(ciphertextString);
                 const saltBase64 = btoa(saltString);
+                // console.log("ciphertext: ", ciphertext);
+                // console.log("ivString: ", ivString);
+                // console.log("ciphertextString: ", ciphertextString);
+                // console.log("saltString", saltString);
+                // console.log("ivBase64: ", ivBase64);
+                // console.log("ciphertextBase64: ", ciphertextBase64);
+                // console.log("saltBase64", saltBase64);
 
                 return {
                     salt: saltBase64,
@@ -184,6 +218,7 @@ protocol. ***Enjoy! */
                 };
             }
 
+            // this function is called when Encrypt button is clicked
             async function encryptSeedPhrase() {
                 var benefactorKey =
                     document.getElementById("benefactorKey").value;
@@ -207,13 +242,13 @@ protocol. ***Enjoy! */
                     return;
                 }
 
-                // 1. Load BIP39 Wordlist
+                // Load BIP39 Wordlist
                 const wordlist = await fetch("english.txt").then((response) =>
                     response.text(),
                 );
                 const words = wordlist.split("\n").map((word) => word.trim());
 
-                // 2. Validate Seed Phrase
+                // Validate Seed Phrase
                 const seedWords = seedPhrase.split(" ");
                 if (seedWords.length !== 12 && seedWords.length !== 24) {
                     alert("Seed phrase must contain 12 or 24 words.");
@@ -231,6 +266,7 @@ protocol. ***Enjoy! */
                 // Combine keys
                 var combinedKey = benefactorKey + beneficiaryKey;
 
+                // Encryption function is called passing in seedphrase and combinedkey
                 try {
                     const encryptedData = await encryptData(
                         seedPhrase,
@@ -242,13 +278,60 @@ protocol. ***Enjoy! */
                         encryptedData.iv +
                         "." +
                         encryptedData.ciphertext;
-                    const base64Encoded = btoa(combinedString); // Base64 encode the entire string
+                    // Base64 encode the entire string (this is not part of the encryption)
+                    const base64Encoded = btoa(combinedString);
+                    document.getElementById("encryptButton").innerText =
+                        "Scroll Down";
                     document.getElementById("encryptedSeedPhrase").innerText =
                         base64Encoded;
                 } catch (error) {
                     console.error("Encryption error:", error);
                     alert("Encryption failed. Check console for details.");
                 }
+            }
+
+            // this function is called when the 12 word button is clicked
+            async function generate12SeedPhrase() {
+                fetch("english.txt")
+                    .then((response) => response.text())
+                    .then((data) => {
+                        const wordlist = data
+                            .split("\n")
+                            .map((line) => line.trim());
+                        const numWords = 12;
+                        const seedPhraseWords = [];
+                        for (let i = 0; i < parseInt(numWords); i++) {
+                            const randomIndex = Math.floor(
+                                Math.random() * wordlist.length,
+                            );
+                            seedPhraseWords.push(wordlist[randomIndex]);
+                        }
+                        const seedPhrase12 = seedPhraseWords.join(" ");
+                        document.getElementById("seedPhrase").value =
+                            seedPhrase12;
+                    });
+            }
+
+            // this function is called when the 12 word button is clicked
+            async function generate24SeedPhrase() {
+                fetch("english.txt")
+                    .then((response) => response.text())
+                    .then((data) => {
+                        const wordlist = data
+                            .split("\n")
+                            .map((line) => line.trim());
+                        const numWords = 24;
+                        const seedPhraseWords = [];
+                        for (let i = 0; i < parseInt(numWords); i++) {
+                            const randomIndex = Math.floor(
+                                Math.random() * wordlist.length,
+                            );
+                            seedPhraseWords.push(wordlist[randomIndex]);
+                        }
+                        const seedPhrase24 = seedPhraseWords.join(" ");
+                        document.getElementById("seedPhrase").value =
+                            seedPhrase24;
+                    });
             }
         </script>
     </body>
