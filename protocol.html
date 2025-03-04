@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Legacy - Encryption and Consulting</title>
+        <link rel="stylesheet" href="styles.css" />
+        <style>
+            html,
+            body {
+                margin: 0;
+                padding: 0;
+                width: 100%;
+                height: 100%;
+                overflow-y: auto; /* Ensure vertical scrolling */
+            }
+
+            body {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                font-family: sans-serif;
+            }
+
+            .container {
+                max-width: 800px;
+                padding: 20px;
+            }
+        </style>
+    </head>
+    <body>
+        <header>
+            <nav id="navbar" class="navbar">
+                <div class="navbar-toggle" id="navbar-toggle">
+                    &#9776;
+                    <!-- Hamburger icon -->
+                </div>
+                <ul class="navbar-menu">
+                    <li><a href="mission.html">Mission</a></li>
+                    <li><a href="how-it-works.html">How It Works</a></li>
+                    <li><a href="benefits.html">Benefits</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                </ul>
+            </nav>
+
+            <div class="container">
+                <div style="height: 75vh"></div>
+                <h1>Legacy Encryption</h1>
+                <h1>Protocol Summary</h1>
+                <div style="height: 10vh"></div>
+                <h2>User Input:</h2>
+                <div style="height: 5vh"></div>
+                <ul>
+                    <li>
+                        The user enters a seed phrase, a benefactor key, and a
+                        beneficiary key.
+                    </li>
+                    <li>
+                        The benefactor and beneficiary keys are concatenated to
+                        form a combined key.
+                    </li>
+                </ul>
+                <div style="height: 10vh"></div>
+                <h2>Key Derivation:</h2>
+                <div style="height: 5vh"></div>
+                <ul>
+                    <li>
+                        A random salt (16 bytes) is generated using
+                        window.crypto.getRandomValues().
+                    </li>
+                    <li>
+                        The combined key and salt are used in the deriveKey()
+                        function, which employs PBKDF2 (Password-Based Key
+                        Derivation Function 2) to derive a 256-bit AES key.
+                    </li>
+                    <li>PBKDF2 is configured with:</li>
+                    <ul style="padding-left: 20px">
+                        <li>10,000 iterations</li>
+                        <li>SHA-256 as the hashing algorithm</li>
+                    </ul>
+                    <li>
+                        The resulting AES key is suitable for AES-GCM encryption
+                        (Advanced Encryption Standard - Galois/Counter Mode)
+                    </li>
+                </ul>
+                <div style="height: 10vh"></div>
+                <h2>Encryption Process:</h2>
+                <div style="height: 5vh"></div>
+                <ul>
+                    <li>
+                        A random Initialization Vector (IV) of 12 bytes is
+                        generated using window.crypto.getRandomValues().
+                    </li>
+                    <li>
+                        The seed phrase is encoded into a Uint8Array using a
+                        TextEncoder.
+                    </li>
+                    <li>
+                        AES-GCM encryption is performed using
+                        window.crypto.subtle.encrypt():
+                    </li>
+                    <ul style="padding-left: 20px">
+                        <li>Algorithm: AES-GCM</li>
+                        <li>Key: Derived AES key from PBKDF2</li>
+                        <li>IV: Randomly generated IV</li>
+                        <li>Plaintext: Encoded seed phrase</li>
+                    </ul>
+                </ul>
+                <div style="height: 10vh"></div>
+                <h2>Data Formatting:</h2>
+                <div style="height: 5vh"></div>
+                <ul>
+                    <li>
+                        The IV, ciphertext, and salt are converted to strings
+                        using arrayBufferToStr().
+                    </li>
+                    <li>These strings are then Base64 encoded using btoa().</li>
+                </ul>
+                <div style="height: 10vh"></div>
+                <h2>Output:</h2>
+                <div style="height: 5vh"></div>
+                <ul>
+                    <li>
+                        The Base64-encoded salt, IV, and ciphertext are returned
+                        as a JSON object:
+                    </li>
+                    <code>
+                        json { "salt": saltBase64, "iv": ivBase64, "ciphertext":
+                        ciphertextBase64 }</code
+                    >
+                </ul>
+                <div style="height: 10vh"></div>
+                <h2>Summary of Functions:</h2>
+                <div style="height: 5vh"></div>
+                <ul>
+                    <li>
+                        strToArrayBuffer(str): Converts a string to an
+                        ArrayBuffer.
+                    </li>
+                    <li>
+                        arrayBufferToStr(buf): Converts an ArrayBuffer to a
+                        string.
+                    </li>
+                    <li>generateSalt(): Generates a 16-byte random salt.</li>
+                    <li>
+                        deriveKey(password, salt): Derives a 256-bit AES key
+                        from a password (combined key) and salt using PBKDF2.
+                    </li>
+                    <li>
+                        encryptData(plaintext, password): Encrypts the plaintext
+                        (seed phrase) using AES-GCM with a derived key, salt,
+                        and IV. Returns the encrypted data components.
+                    </li>
+                    <li>
+                        encryptSeedPhrase(): Orchestrates the encryption
+                        process: retrieves user inputs, validates seed phrase,
+                        derives the key, encrypts the seed phrase, and displays
+                        the encrypted output.
+                    </li>
+                </ul>
+                <div style="height: 10vh"></div>
+                <h2>Security Considerations:</h2>
+                <div style="height: 5vh"></div>
+                <ul>
+                    <li>
+                        AES-GCM: This is a modern, authenticated encryption
+                        mode, providing both confidentiality and integrity.
+                    </li>
+                    <li>
+                        PBKDF2: Using PBKDF2 with a high iteration count
+                        (10,000) strengthens the key derivation process against
+                        brute-force attacks.
+                    </li>
+                    <li>
+                        Random Salt and IV: Using random salts and IVs is
+                        crucial for the security of the encryption scheme.
+                    </li>
+                    <li>
+                        Base64 Encoding: Base64 encoding is used for
+                        representing binary data as strings but does not provide
+                        any encryption.
+                    </li>
+                    <li>
+                        Key Management: The security of this system relies
+                        heavily on the secrecy and strength of the benefactor
+                        and beneficiary keys.
+                    </li>
+                </ul>
+            </div>
+        </header>
+    </body>
+</html>
