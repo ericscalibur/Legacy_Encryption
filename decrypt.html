@@ -9,17 +9,31 @@
                 display: flex;
                 flex-direction: column;
                 align-items: center;
-                /* justify-content: center; */
                 min-height: 100vh;
                 margin: 0;
                 font-family: sans-serif;
             }
+
+            label {
+                width: 100%;
+                margin: auto;
+            }
+
             input[type="text"] {
                 width: 100%;
                 margin: auto;
             }
+
+            p a {
+                color: #6fd0ff;
+            }
+
+            p a:visited {
+                color: #6fd0ff;
+            }
         </style>
     </head>
+
     <body>
         <header>
             <nav id="navbar" class="navbar">
@@ -35,11 +49,27 @@
                 </ul>
             </nav>
             <div style="height: 75vh"></div>
-
             <h1>Legacy Decryption</h1>
 
             <div class="content">
                 <div style="margin: auto; width: 80%">
+                    <p>
+                        Enter the encrypted seed phrase and the correct keys to
+                        decrypt it.
+                    </p>
+                    <p>
+                        This online version is for demonstration purposes only.
+                    </p>
+                    <p>
+                        Please read the HOW-IT-WORKS page and the BENEFITS page
+                        before using it offline.
+                    </p>
+                    <p>
+                        This page is used to check the functionality of your
+                        keys.
+                    </p>
+                    <div style="height: 10vh"></div>
+
                     <label for="benefactorKey">Benefactor Key:</label><br />
                     <input type="text" id="benefactorKey" /><br /><br />
 
@@ -49,16 +79,24 @@
                     <label for="encryptedSeedPhrase"
                         >Encrypted Seed Phrase:</label
                     ><br />
-                    <input type="text" id="encryptedSeedPhrase" /><br /><br />
+                    <input
+                        type="text"
+                        id="encryptedSeedPhrase"
+                        style="color: #000000"
+                    /><br /><br />
 
-                    <button onclick="decryptSeedPhrase()">Decrypt</button
+                    <button id="decryptButton" onclick="decryptSeedPhrase()">
+                        Decrypt</button
                     ><br /><br />
 
                     <label for="decryptedSeedPhrase"
                         >Decrypted Seed Phrase:</label
                     >
-                    <p id="decryptedSeedPhrase"></p>
-                    <div style="height: 10vh"></div>
+                    <p
+                        id="decryptedSeedPhrase"
+                        style="overflow-wrap: break-word"
+                    ></p>
+                    <div style="height: 20vh"></div>
                 </div>
             </div>
         </header>
@@ -71,6 +109,7 @@
                 menu.classList.toggle("active"); // Toggle the 'active' class
             });
         </script>
+        <!-- The Javascript to Decrypt -->
         <script>
             // Function to convert string to array buffer
             function strToArrayBuffer(str) {
@@ -87,12 +126,21 @@
                 return String.fromCharCode.apply(null, new Uint8Array(buf));
             }
 
+            // Function to generate a salt
+            function generateSalt() {
+                return window.crypto.getRandomValues(new Uint8Array(16));
+            }
+
+            // salts the combined key, then iteratively hashes with SHA-256
+            // returns the cipherkey used to encrypt
             async function deriveKey(password, salt) {
                 const encoder = new TextEncoder();
                 const keyMaterial = await window.crypto.subtle.importKey(
                     "raw",
                     encoder.encode(password),
-                    { name: "PBKDF2" },
+                    {
+                        name: "PBKDF2",
+                    },
                     false,
                     ["deriveKey"],
                 );
@@ -105,7 +153,10 @@
                         hash: "SHA-256",
                     },
                     keyMaterial,
-                    { name: "AES-GCM", length: 256 },
+                    {
+                        name: "AES-GCM",
+                        length: 256,
+                    },
                     true,
                     ["encrypt", "decrypt"],
                 );
@@ -114,36 +165,47 @@
 
             async function decryptData(data, password) {
                 try {
-                    console.log("decryptData: data object:", data);
                     const salt = new Uint8Array(
                         strToArrayBuffer(atob(data.salt)),
                     );
-                    console.log("decryptData: salt:", salt);
                     const key = await deriveKey(password, salt);
-                    console.log("decryptData: key:", key);
-
                     const iv = new Uint8Array(strToArrayBuffer(atob(data.iv)));
-                    console.log("decryptData: iv:", iv);
                     const ciphertext = new Uint8Array(
                         strToArrayBuffer(atob(data.ciphertext)),
                     );
-                    console.log("decryptData: ciphertext:", ciphertext);
 
                     const decrypted = await window.crypto.subtle.decrypt(
-                        { name: "AES-GCM", iv: iv },
+                        {
+                            name: "AES-GCM",
+                            iv: iv,
+                        },
                         key,
                         ciphertext,
                     );
-                    console.log("decryptData: decrypted:", decrypted);
 
                     const decoder = new TextDecoder();
-                    return decoder.decode(decrypted);
+                    let decryptedText = decoder.decode(decrypted);
+
+                    // Remove random padding
+                    const paddingLength = data.paddingLength;
+                    if (
+                        paddingLength > 0 &&
+                        paddingLength <= decryptedText.length
+                    ) {
+                        decryptedText = decryptedText.slice(0, -paddingLength);
+                    }
+
+                    return decryptedText;
                 } catch (error) {
-                    console.error(
-                        "Decryption error within decryptData:",
-                        error,
-                    );
-                    throw error; // Re-throw the error to be caught in decryptSeedPhrase
+                    if (error.name === "OperationError") {
+                        // Authentication tag verification failure
+                        throw new Error(
+                            "Decryption failed due to authentication tag mismatch. This may indicate an incorrect key or corrupted data.",
+                        );
+                    } else {
+                        // Other decryption errors
+                        throw new Error(`Decryption error: ${error.message}`);
+                    }
                 }
             }
 
@@ -152,28 +214,16 @@
                     document.getElementById("benefactorKey").value;
                 var beneficiaryKey =
                     document.getElementById("beneficiaryKey").value;
-
                 var combinedKey = benefactorKey + beneficiaryKey;
                 const encryptedSeedPhrase = document.getElementById(
                     "encryptedSeedPhrase",
                 ).value;
 
-                console.log("decryptSeedPhrase: benefactorKey:", benefactorKey);
-                console.log(
-                    "decryptSeedPhrase: beneficiaryKey:",
-                    beneficiaryKey,
-                );
-                console.log("decryptSeedPhrase: combinedKey:", combinedKey);
-                console.log(
-                    "decryptSeedPhrase: encryptedSeedPhrase:",
-                    encryptedSeedPhrase,
-                );
-
                 try {
-                    const base64Decoded = atob(encryptedSeedPhrase); // Base64 decode the string
-                    components = base64Decoded.split(".");
+                    const base64Decoded = atob(encryptedSeedPhrase);
+                    const components = base64Decoded.split(".");
 
-                    if (components.length != 3) {
+                    if (components.length !== 4) {
                         throw new Error(
                             "Invalid encrypted seed phrase format.",
                         );
@@ -183,6 +233,7 @@
                         salt: components[0],
                         iv: components[1],
                         ciphertext: components[2],
+                        paddingLength: parseInt(components[3], 10),
                     };
 
                     const decryptedSeedPhrase = await decryptData(
@@ -193,9 +244,24 @@
                         decryptedSeedPhrase;
                 } catch (error) {
                     console.error("Decryption error:", error);
-                    alert("Decryption failed. Check console for details.");
+
+                    if (error.message.includes("authentication tag mismatch")) {
+                        alert(
+                            "Decryption failed: Authentication tag verification failed. Please check that both keys are correct and the encrypted data is intact.",
+                        );
+                    } else if (
+                        error.message.includes(
+                            "Invalid encrypted seed phrase format",
+                        )
+                    ) {
+                        alert(
+                            "Decryption failed: The encrypted seed phrase format is invalid. Ensure it is correctly formatted.",
+                        );
+                    } else {
+                        alert(`Decryption failed: ${error.message}`);
+                    }
                 } finally {
-                    //clear field
+                    // Clear field
                     document.getElementById("encryptedSeedPhrase").value = "";
                 }
             }

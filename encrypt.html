@@ -1,7 +1,3 @@
-<!-- """ Congradulations! You're one of the few people that knows how to view source
-code. I hope you are here to vet the security of my encryption program. I have
-included useful comments throughout the code to explain the protocol. Enjoy! """ -->
-
 <!doctype html>
 <html>
     <head>
@@ -17,22 +13,27 @@ included useful comments throughout the code to explain the protocol. Enjoy! """
                 margin: 0;
                 font-family: sans-serif;
             }
+
             label {
                 width: 100%;
                 margin: auto;
             }
+
             input[type="text"] {
                 width: 100%;
                 margin: auto;
             }
+
             p a {
                 color: #6fd0ff;
             }
+
             p a:visited {
                 color: #6fd0ff;
             }
         </style>
     </head>
+
     <body>
         <header>
             <nav id="navbar" class="navbar">
@@ -155,7 +156,9 @@ included useful comments throughout the code to explain the protocol. Enjoy! """
                 const keyMaterial = await window.crypto.subtle.importKey(
                     "raw",
                     encoder.encode(password),
-                    { name: "PBKDF2" },
+                    {
+                        name: "PBKDF2",
+                    },
                     false,
                     ["deriveKey"],
                 );
@@ -168,7 +171,10 @@ included useful comments throughout the code to explain the protocol. Enjoy! """
                         hash: "SHA-256",
                     },
                     keyMaterial,
-                    { name: "AES-GCM", length: 256 },
+                    {
+                        name: "AES-GCM",
+                        length: 256,
+                    },
                     true,
                     ["encrypt", "decrypt"],
                 );
@@ -181,16 +187,24 @@ included useful comments throughout the code to explain the protocol. Enjoy! """
                 const key = await deriveKey(password, salt);
                 const iv = window.crypto.getRandomValues(new Uint8Array(12));
                 const encoder = new TextEncoder();
-                const encoded = encoder.encode(plaintext);
-                // console.log("salt", salt);
-                // console.log("key", key);
-                // console.log("iv", iv);
-                // console.log("plaintext: ", plaintext);
-                // console.log("encoded: ", encoded);
+
+                // Add random padding to the plaintext
+                const randomPaddingLength = Math.floor(Math.random() * 5); // Add 0-4 random bytes
+                let paddedPlaintext = plaintext;
+                for (let i = 0; i < randomPaddingLength; i++) {
+                    paddedPlaintext += String.fromCharCode(
+                        Math.floor(Math.random() * 256),
+                    ); // Add random characters
+                }
+
+                const encoded = encoder.encode(paddedPlaintext);
 
                 <!-- Advanced Encryption Standard - Galois/Counter Mode -->
                 const ciphertext = await window.crypto.subtle.encrypt(
-                    { name: "AES-GCM", iv: iv },
+                    {
+                        name: "AES-GCM",
+                        iv: iv,
+                    },
                     key,
                     encoded,
                 );
@@ -203,19 +217,65 @@ included useful comments throughout the code to explain the protocol. Enjoy! """
                 const ivBase64 = btoa(ivString);
                 const ciphertextBase64 = btoa(ciphertextString);
                 const saltBase64 = btoa(saltString);
-                // console.log("ciphertext: ", ciphertext);
-                // console.log("ivString: ", ivString);
-                // console.log("ciphertextString: ", ciphertextString);
-                // console.log("saltString", saltString);
-                // console.log("ivBase64: ", ivBase64);
-                // console.log("ciphertextBase64: ", ciphertextBase64);
-                // console.log("saltBase64", saltBase64);
 
                 return {
                     salt: saltBase64,
                     iv: ivBase64,
                     ciphertext: ciphertextBase64,
+                    paddingLength: randomPaddingLength, // Added padding length to the return object
                 };
+            }
+            async function decryptData(data, password) {
+                try {
+                    console.log("decryptData: data object:", data);
+                    const salt = new Uint8Array(
+                        strToArrayBuffer(atob(data.salt)),
+                    );
+                    console.log("decryptData: salt:", salt);
+                    const key = await deriveKey(password, salt);
+                    console.log("decryptData: key:", key);
+
+                    const iv = new Uint8Array(strToArrayBuffer(atob(data.iv)));
+                    console.log("decryptData: iv:", iv);
+                    const ciphertext = new Uint8Array(
+                        strToArrayBuffer(atob(data.ciphertext)),
+                    );
+                    console.log("decryptData: ciphertext:", ciphertext);
+
+                    const decrypted = await window.crypto.subtle.decrypt(
+                        {
+                            name: "AES-GCM",
+                            iv: iv,
+                        },
+                        key,
+                        ciphertext,
+                    );
+                    console.log("decryptData: decrypted:", decrypted);
+
+                    const decoder = new TextDecoder();
+                    let decryptedText = decoder.decode(decrypted);
+
+                    // Remove random padding
+                    const paddingLength = data.paddingLength;
+                    if (
+                        paddingLength > 0 &&
+                        paddingLength <= decryptedText.length
+                    ) {
+                        decryptedText = decryptedText.slice(0, -paddingLength);
+                    }
+
+                    return decryptedText;
+                } catch (error) {
+                    if (error.name === "OperationError") {
+                        // Authentication tag verification failure
+                        throw new Error(
+                            "Decryption failed due to authentication tag mismatch. This may indicate an incorrect key or corrupted data.",
+                        );
+                    } else {
+                        // Other decryption errors
+                        throw new Error(`Decryption error: ${error.message}`);
+                    }
+                }
             }
 
             // this function is called when Encrypt button is clicked
@@ -272,14 +332,22 @@ included useful comments throughout the code to explain the protocol. Enjoy! """
                         seedPhrase,
                         combinedKey,
                     );
+                    const paddingStr = String(
+                        encryptedData.paddingLength,
+                    ).padStart(2, "0"); //format padding
                     const combinedString =
                         encryptedData.salt +
                         "." +
                         encryptedData.iv +
                         "." +
-                        encryptedData.ciphertext;
+                        encryptedData.ciphertext +
+                        "." +
+                        paddingStr; // Added padding length to string
+
                     // Base64 encode the entire string (this is not part of the encryption)
-                    const base64Encoded = btoa(combinedString);
+                    let base64Encoded = btoa(combinedString);
+                    base64Encoded = base64Encoded.replace(/=+$/, "");
+
                     document.getElementById("encryptButton").innerText =
                         "Scroll Down";
                     document.getElementById("encryptedSeedPhrase").innerText =
