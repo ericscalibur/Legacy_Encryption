@@ -21,7 +21,7 @@ header {
     background-size: cover;
     justify-content: center;
     align-items: center;
-    color: white; /* Text color */
+    color: #e8e8e8; /* Text color */
     height: 100%;
     width: 100%;
 }
@@ -30,7 +30,7 @@ h1 {
     font-family: "Georgia", sans-serif; /* Desired font */
     font-size: 4.5rem; /* Adjust size as needed */
     font-weight: 150; /* Set font weight */
-    color: white; /* Change text color */
+    color: #e8e8e8; /* Change text color */
     text-align: center; /* Centers the text */
     letter-spacing: 3px;
     text-shadow:
@@ -42,7 +42,7 @@ h1 {
 h2 {
     font-family: "Georgia", sans-serif;
     font-size: 2.5rem; /* Adjust size as needed */
-    color: white; /* Change text color */
+    color: #e8e8e8; /* Change text color */
     text-align: center; /* Centers the text */
 }
 
@@ -50,7 +50,7 @@ h3 {
     font-family: "Courier New";
     font-weight: normal;
     font-size: 1.1rem;
-    color: white;
+    color: #e8e8e8;
     text-align: center;
     /* margin: 30px; */
 }
@@ -99,7 +99,7 @@ p {
 }
 
 .navbar-menu a {
-    color: white; /* Default color */
+    color: #e8e8e8; /* Default color */
     text-decoration: none;
     padding: 15px;
     transition: color 0.3s ease; /* Smooth transition for color change */
@@ -118,17 +118,10 @@ p {
 }
 
 .content {
-    /* background-image: url("background.png");
-  background-position: center;
-  background-repeat: repeat;
-  background-size: cover; */
     background-color: #000102; /* Dark blue color */
-    /* top: 800px; */
-    /* height: calc(100vh + 200px); /* Full viewport height */
-    /* display: flex; */
     justify-content: center;
     align-items: center;
-    color: white; /* Text color */
+    color: #e8e8e8; /* Text color */
     padding-top: 50px;
     margin: auto;
     width: 100%;
