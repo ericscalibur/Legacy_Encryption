@@ -177,7 +177,7 @@
 
                 const encoded = encoder.encode(paddedPlaintext);
 
-                <!-- Advanced Encryption Standard - Galois/Counter Mode -->
+                // Advanced Encryption Standard - Galois/Counter Mode //
                 const ciphertext = await window.crypto.subtle.encrypt(
                     {
                         name: "AES-GCM",
@@ -200,25 +200,20 @@
                     salt: saltBase64,
                     iv: ivBase64,
                     ciphertext: ciphertextBase64,
-                    paddingLength: randomPaddingLength, // Added padding length to the return object
+                    paddingLength: randomPaddingLength,
                 };
             }
             async function decryptData(data, password) {
                 try {
-                    console.log("decryptData: data object:", data);
                     const salt = new Uint8Array(
                         strToArrayBuffer(atob(data.salt)),
                     );
-                    console.log("decryptData: salt:", salt);
                     const key = await deriveKey(password, salt);
-                    console.log("decryptData: key:", key);
 
                     const iv = new Uint8Array(strToArrayBuffer(atob(data.iv)));
-                    console.log("decryptData: iv:", iv);
                     const ciphertext = new Uint8Array(
                         strToArrayBuffer(atob(data.ciphertext)),
                     );
-                    console.log("decryptData: ciphertext:", ciphertext);
 
                     const decrypted = await window.crypto.subtle.decrypt(
                         {
@@ -228,7 +223,6 @@
                         key,
                         ciphertext,
                     );
-                    console.log("decryptData: decrypted:", decrypted);
 
                     const decoder = new TextDecoder();
                     let decryptedText = decoder.decode(decrypted);
