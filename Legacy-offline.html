@@ -2353,13 +2353,18 @@
                 // Use shared BIP-39 wordlist
                 const words = BIP39_WORDLIST;
 
-                // Validate Seed Phrase with proper BIP-39 checksum validation
-                const validationResult = await validateBIP39SeedPhrase(
-                    seedPhrase,
-                    words,
-                );
-                if (!validationResult.valid) {
-                    alert("Invalid seed phrase: " + validationResult.error);
+                // Validate Seed Phrase
+                const seedWords = seedPhrase.split(" ");
+                if (seedWords.length !== 12 && seedWords.length !== 24) {
+                    alert("Seed phrase must contain 12 or 24 words.");
+                    return;
+                }
+
+                const isValid = seedWords.every((word) => words.includes(word));
+                if (!isValid) {
+                    alert(
+                        "Invalid seed phrase.  Make sure each word is a valid BIP39 word from english.txt.",
+                    );
                     return;
                 }
 
@@ -2410,7 +2415,7 @@
                 document.getElementById("seedPhrase").value = seedPhrase12;
             }
 
-            // this function is called when the 12 word button is clicked
+            // this function is called when the 24 word button is clicked
             async function generate24SeedPhrase() {
                 const numWords = 24;
                 const seedPhraseWords = [];
@@ -2419,191 +2424,9 @@
                         Math.random() * BIP39_WORDLIST.length,
                     );
                     seedPhraseWords.push(BIP39_WORDLIST[randomIndex]);
-                        }
-                        const seedPhrase24 = seedPhraseWords.join(" ");
-                        document.getElementById("seedPhrase").value =
-                            seedPhrase24;
-                    });
-            }
-        </script>
-        <script>
-            // Function to convert string to array buffer
-            function strToArrayBuffer(str) {
-                const buf = new ArrayBuffer(str.length);
-                const bufView = new Uint8Array(buf);
-                for (let i = 0, strLen = str.length; i < strLen; i++) {
-                    bufView[i] = str.charCodeAt(i);
                 }
-                return buf;
-            }
-
-            // Function to convert array buffer to string
-            function arrayBufferToStr(buf) {
-                return String.fromCharCode.apply(null, new Uint8Array(buf));
-            }
-
-            // Function to generate a salt
-            function generateSalt() {
-                return window.crypto.getRandomValues(new Uint8Array(16));
-            }
-
-            // salts the combined key, then iteratively hashes with SHA-256
-            // returns the cipherkey used to encrypt
-            async function deriveKey(password, salt) {
-                const encoder = new TextEncoder();
-                const keyMaterial = await window.crypto.subtle.importKey(
-                    "raw",
-                    encoder.encode(password),
-                    {
-                        name: "PBKDF2",
-                    },
-                    false,
-                    ["deriveKey"],
-                );
-
-                const key = await window.crypto.subtle.deriveKey(
-                    {
-                        name: "PBKDF2",
-                        salt: salt,
-                        iterations: 10000,
-                        hash: "SHA-256",
-                    },
-                    keyMaterial,
-                    {
-                        name: "AES-GCM",
-                        length: 256,
-                    },
-                    true,
-                    ["encrypt", "decrypt"],
-                );
-                return key;
-            }
-
-            async function decryptData(data, password) {
-                try {
-                    const salt = new Uint8Array(
-                        strToArrayBuffer(atob(data.salt)),
-                    );
-                    const key = await deriveKey(password, salt);
-                    const iv = new Uint8Array(strToArrayBuffer(atob(data.iv)));
-                    const ciphertext = new Uint8Array(
-                        strToArrayBuffer(atob(data.ciphertext)),
-                    );
-
-                    const decrypted = await window.crypto.subtle.decrypt(
-                        {
-                            name: "AES-GCM",
-                            iv: iv,
-                        },
-                        key,
-                        ciphertext,
-                    );
-
-                    const decoder = new TextDecoder();
-                    let decryptedText = decoder.decode(decrypted);
-
-                    // Remove random padding
-                    const paddingLength = data.paddingLength;
-                    if (
-                        paddingLength > 0 &&
-                        paddingLength <= decryptedText.length
-                    ) {
-                        decryptedText = decryptedText.slice(0, -paddingLength);
-                    }
-
-                    return decryptedText;
-                } catch (error) {
-                    if (error.name === "OperationError") {
-                        // Authentication tag verification failure
-                        throw new Error(
-                            "Decryption failed due to authentication tag mismatch. This may indicate an incorrect key or corrupted data.",
-                        );
-                    } else {
-                        // Other decryption errors
-                        throw new Error(`Decryption error: ${error.message}`);
-                    }
-                }
-            }
-
-            // BIP-39 checksum validation function
-            async function validateBIP39SeedPhrase(seedPhrase, wordlist) {
-                try {
-                    const words = seedPhrase.trim().toLowerCase().split(/\s+/);
-
-                    // Check word count - must be 12, 15, 18, 21, or 24
-                    const validLengths = [12, 15, 18, 21, 24];
-                    if (!validLengths.includes(words.length)) {
-                        return {
-                            valid: false,
-                            error: `Invalid word count: ${words.length}. Must be 12, 15, 18, 21, or 24 words.`,
-                        };
-                    }
-
-                    // Check if all words are in the BIP-39 wordlist
-                    for (let i = 0; i < words.length; i++) {
-                        const word = words[i];
-                        const wordIndex = wordlist.indexOf(word);
-                        if (wordIndex === -1) {
-                            return {
-                                valid: false,
-                                error: `Invalid word: "${word}". Not found in BIP-39 wordlist.`,
-                            };
-                        }
-                    }
-
-                    // Convert words to indices and then to binary
-                    const indices = words.map((word) => wordlist.indexOf(word));
-                    const binaryString = indices
-                        .map((index) => index.toString(2).padStart(11, "0"))
-                        .join("");
-
-                    // Calculate checksum bits based on word count
-                    const checksumBits = words.length / 3; // 4 for 12 words, 8 for 24, etc.
-                    const entropyBits = binaryString.length - checksumBits;
-
-                    // Split entropy and actual checksum
-                    const entropyBinary = binaryString.slice(0, entropyBits);
-                    const actualChecksum = binaryString.slice(entropyBits);
-
-                    // Convert entropy binary to bytes
-                    const entropyBytes = [];
-                    for (let i = 0; i < entropyBinary.length; i += 8) {
-                        const byte = entropyBinary.slice(i, i + 8);
-                        entropyBytes.push(parseInt(byte, 2));
-                    }
-
-                    // Calculate SHA-256 hash of entropy
-                    const entropyArray = new Uint8Array(entropyBytes);
-                    const hashBuffer = await window.crypto.subtle.digest(
-                        "SHA-256",
-                        entropyArray,
-                    );
-                    const hashArray = new Uint8Array(hashBuffer);
-
-                    // Extract expected checksum from hash
-                    const hashBinary = Array.from(hashArray)
-                        .map((byte) => byte.toString(2).padStart(8, "0"))
-                        .join("");
-                    const expectedChecksum = hashBinary.slice(0, checksumBits);
-
-                    // Compare checksums
-                    if (actualChecksum !== expectedChecksum) {
-                        return {
-                            valid: false,
-                            error: "Invalid checksum. This is not a valid BIP-39 seed phrase. Please check for typos or word order.",
-                        };
-                    }
-
-                    return {
-                        valid: true,
-                        message: "Valid BIP-39 seed phrase!",
-                    };
-                } catch (error) {
-                    return {
-                        valid: false,
-                        error: `Validation error: ${error.message}`,
-                    };
-                }
+                const seedPhrase24 = seedPhraseWords.join(" ");
+                document.getElementById("seedPhrase").value = seedPhrase24;
             }
 
             async function decryptSeedPhrase() {
