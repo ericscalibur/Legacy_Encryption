@@ -372,46 +372,101 @@
 
             // this function is called when the 12 word button is clicked
             async function generate12SeedPhrase() {
-                fetch("english.txt")
-                    .then((response) => response.text())
-                    .then((data) => {
-                        const wordlist = data
-                            .split("\n")
-                            .map((line) => line.trim());
-                        const numWords = 12;
-                        const seedPhraseWords = [];
-                        for (let i = 0; i < parseInt(numWords); i++) {
-                            const randomIndex = Math.floor(
-                                Math.random() * wordlist.length,
-                            );
-                            seedPhraseWords.push(wordlist[randomIndex]);
-                        }
-                        const seedPhrase12 = seedPhraseWords.join(" ");
-                        document.getElementById("seedPhrase").value =
-                            seedPhrase12;
-                    });
+                try {
+                    const response = await fetch("english.txt");
+                    const data = await response.text();
+                    const wordlist = data
+                        .split("\n")
+                        .map((line) => line.trim())
+                        .filter((word) => word.length > 0);
+
+                    // Generate valid BIP-39 12-word phrase
+                    const seedPhrase = await generateValidBIP39Phrase(
+                        12,
+                        wordlist,
+                    );
+                    document.getElementById("seedPhrase").value = seedPhrase;
+                } catch (error) {
+                    console.error(
+                        "Error generating 12-word seed phrase:",
+                        error,
+                    );
+                    alert("Error generating seed phrase. Please try again.");
+                }
             }
 
-            // this function is called when the 12 word button is clicked
+            // this function is called when the 24 word button is clicked
             async function generate24SeedPhrase() {
-                fetch("english.txt")
-                    .then((response) => response.text())
-                    .then((data) => {
-                        const wordlist = data
-                            .split("\n")
-                            .map((line) => line.trim());
-                        const numWords = 24;
-                        const seedPhraseWords = [];
-                        for (let i = 0; i < parseInt(numWords); i++) {
-                            const randomIndex = Math.floor(
-                                Math.random() * wordlist.length,
-                            );
-                            seedPhraseWords.push(wordlist[randomIndex]);
-                        }
-                        const seedPhrase24 = seedPhraseWords.join(" ");
-                        document.getElementById("seedPhrase").value =
-                            seedPhrase24;
-                    });
+                try {
+                    const response = await fetch("english.txt");
+                    const data = await response.text();
+                    const wordlist = data
+                        .split("\n")
+                        .map((line) => line.trim())
+                        .filter((word) => word.length > 0);
+
+                    // Generate valid BIP-39 24-word phrase
+                    const seedPhrase = await generateValidBIP39Phrase(
+                        24,
+                        wordlist,
+                    );
+                    document.getElementById("seedPhrase").value = seedPhrase;
+                } catch (error) {
+                    console.error(
+                        "Error generating 24-word seed phrase:",
+                        error,
+                    );
+                    alert("Error generating seed phrase. Please try again.");
+                }
+            }
+
+            // Generate a valid BIP-39 seed phrase with proper checksum
+            async function generateValidBIP39Phrase(wordCount, wordlist) {
+                if (![12, 15, 18, 21, 24].includes(wordCount)) {
+                    throw new Error(
+                        "Invalid word count. Must be 12, 15, 18, 21, or 24.",
+                    );
+                }
+
+                // Calculate entropy and checksum bits
+                const checksumBits = wordCount / 3;
+                const entropyBits = wordCount * 11 - checksumBits;
+                const entropyBytes = entropyBits / 8;
+
+                // Generate random entropy
+                const entropy = new Uint8Array(entropyBytes);
+                window.crypto.getRandomValues(entropy);
+
+                // Calculate SHA-256 hash of entropy
+                const hashBuffer = await window.crypto.subtle.digest(
+                    "SHA-256",
+                    entropy,
+                );
+                const hashArray = new Uint8Array(hashBuffer);
+
+                // Convert hash to binary and extract checksum
+                const hashBinary = Array.from(hashArray)
+                    .map((byte) => byte.toString(2).padStart(8, "0"))
+                    .join("");
+                const checksum = hashBinary.slice(0, checksumBits);
+
+                // Convert entropy to binary
+                const entropyBinary = Array.from(entropy)
+                    .map((byte) => byte.toString(2).padStart(8, "0"))
+                    .join("");
+
+                // Combine entropy and checksum
+                const fullBinary = entropyBinary + checksum;
+
+                // Convert to word indices and then to words
+                const words = [];
+                for (let i = 0; i < wordCount; i++) {
+                    const binarySlice = fullBinary.slice(i * 11, (i + 1) * 11);
+                    const wordIndex = parseInt(binarySlice, 2);
+                    words.push(wordlist[wordIndex]);
+                }
+
+                return words.join(" ");
             }
         </script>
     </body>
