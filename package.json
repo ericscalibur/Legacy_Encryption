@@ -1,0 +1,26 @@
+{
+  "name": "legacy-encryption-tests",
+  "version": "1.0.0",
+  "description": "Comprehensive test suite for Legacy Encryption system",
+  "main": "test-legacy-encryption.js",
+  "scripts": {
+    "test": "node test-legacy-encryption.js",
+    "test:verbose": "node test-legacy-encryption.js --verbose",
+    "test:quick": "node test-legacy-encryption.js --quick"
+  },
+  "keywords": [
+    "encryption",
+    "testing",
+    "crypto",
+    "seed-phrase",
+    "bip39"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "devDependencies": {
+    "chalk": "^5.3.0"
+  }
+}
