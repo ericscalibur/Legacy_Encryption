@@ -4,8 +4,9 @@ This program offers a P2P solution for Bitcoin inheritance.
 
 It is free and open source.
 
-Please consider donating
+Please consider donating to
 
+Lightning Address:
 ericscalibur@blink.sv
 
 
