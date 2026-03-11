@@ -65,9 +65,18 @@
 
             <div class="content">
                 <div style="margin: auto; width: 80%">
-                    <p>DO NOT ENTER YOUR ACTUAL SEED PHRASE.</p>
+                    <p><strong>Online Demo</strong> — test the encryption here before downloading anything.</p>
                     <p>
-                        This online version is for demonstration purposes only.
+                        Use the 12 or 24 word buttons to generate a random seed
+                        phrase, enter any keys you like, and verify the full
+                        encrypt/decrypt cycle works as expected.
+                    </p>
+                    <p>
+                        When you're ready to use Legacy for real, download
+                        <strong>Legacy-offline.html</strong> from
+                        <a href="https://github.com/ericscalibur/Legacy_Encryption">github</a>,
+                        disconnect from the internet, and open it locally.
+                        Do not enter your actual seed phrase into this online version.
                     </p>
                     <p>
                         Please read the
@@ -179,7 +188,7 @@
                     {
                         name: "PBKDF2",
                         salt: salt,
-                        iterations: 10000,
+                        iterations: 600000,
                         hash: "SHA-256",
                     },
                     keyMaterial,

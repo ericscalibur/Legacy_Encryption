@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Legacy - Deadman Switch</title>
+        <link rel="icon" type="image/png" href="favicon.png" />
+        <link rel="stylesheet" href="styles.css" />
+        <style>
+            header {
+                background-image: url("background.png");
+            }
+
+            ol li {
+                margin-top: 20px;
+            }
+
+            .option-title {
+                font-weight: bold;
+                margin-top: 30px;
+                margin-bottom: 5px;
+            }
+        </style>
+    </head>
+    <body>
+        <header>
+            <nav id="navbar" class="navbar">
+                <div class="navbar-toggle" id="navbar-toggle">
+                    &#9776;
+                </div>
+                <ul class="navbar-menu">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="mission.html">Mission</a></li>
+                    <li><a href="how-it-works.html">How It Works</a></li>
+                    <li><a href="benefits.html">Benefits</a></li>
+                    <li><a href="FAQ.html">FAQ</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                </ul>
+            </nav>
+            <div style="height: 200px"></div>
+            <h1>Deadman Switch</h1>
+            <div class="container">
+                <p>
+                    A Deadman Switch is a service that monitors whether you are
+                    still alive or active and, if you stop responding, sends a
+                    pre-written email to your Beneficiary containing the
+                    Benefactor Key and Encrypted Seed Phrase.
+                </p>
+                <p>
+                    Legacy does not provide a Deadman Switch — it is a separate
+                    system you configure yourself. Several options exist. Choose
+                    the one you trust most.
+                </p>
+
+                <h2 style="margin-top: 50px">Options</h2>
+
+                <p class="option-title">Google Inactive Account Manager (Gmail Digital Legacy)</p>
+                <p>
+                    Google allows you to designate what happens to your account
+                    and its data after a period of inactivity. You can configure
+                    it to send an email to a trusted contact if your account
+                    goes inactive for a set period (3–18 months). This requires
+                    a Gmail account and trust in Google.
+                </p>
+                <p>
+                    Set up at:
+                    <a href="https://myaccount.google.com/inactive-account-manager" target="_blank">
+                        myaccount.google.com/inactive-account-manager
+                    </a>
+                </p>
+
+                <p class="option-title">Apple Digital Legacy</p>
+                <p>
+                    Apple's Digital Legacy program allows you to designate Legacy
+                    Contacts who receive access to your Apple account data after
+                    your death. This is certificate-based and tied to your Apple
+                    ID. It requires trust in Apple.
+                </p>
+                <p>
+                    Set up at:
+                    <a href="https://support.apple.com/en-us/HT212360" target="_blank">
+                        support.apple.com/en-us/HT212360
+                    </a>
+                </p>
+
+                <p class="option-title">Deploy — Self-Hosted Deadman Switch</p>
+                <p>
+                    Deploy is an open-source Deadman Switch you run on your own
+                    private server. It sends a check-in email on a schedule; if
+                    you fail to respond, it sends the pre-written message to your
+                    Beneficiary. Because you control the server, no third party
+                    holds your data.
+                </p>
+                <p>
+                    Source code and setup instructions:
+                    <a href="https://github.com/ericscalibur/Deploy-Deadman-Switch" target="_blank">
+                        github.com/ericscalibur/Deploy-Deadman-Switch
+                    </a>
+                </p>
+
+                <p class="option-title">Other Services</p>
+                <p>
+                    Various third-party Deadman Switch services exist. Research
+                    any service carefully before trusting it with a key — consider
+                    how long the service has operated, whether it is open source,
+                    and what happens to your data if the service shuts down.
+                </p>
+
+                <h2 style="margin-top: 50px">Need Help Setting This Up?</h2>
+                <p>
+                    Configuring Legacy and a Deadman Switch correctly requires
+                    attention to detail. If you would like hands-on assistance,
+                    consulting is available.
+                </p>
+                <div class="button-container" style="margin-top: 20px">
+                    <a href="contact.html" class="learn-more-button">
+                        Contact for Consulting
+                    </a>
+                </div>
+            </div>
+            <div style="height: 200px"></div>
+            <footer>
+                Legacy - Encryption and Consulting. <br />All Rights Reserved
+                2025.
+            </footer>
+        </header>
+
+        <!-- JavaScript for toggling navbar -->
+        <script>
+            const toggle = document.getElementById("navbar-toggle");
+            const menu = document.querySelector(".navbar-menu");
+
+            toggle.addEventListener("click", function () {
+                menu.classList.toggle("active");
+            });
+        </script>
+    </body>
+</html>

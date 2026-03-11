@@ -59,7 +59,8 @@
                     </li>
                     <li>
                         The benefactor and beneficiary keys are concatenated to
-                        form a combined key.
+                        form a single combined password. Neither party can decrypt
+                        alone — both halves are required.
                     </li>
                 </ul>
                 <div style="height: 10vh"></div>
@@ -77,7 +78,7 @@
                     </li>
                     <li>PBKDF2 is configured with:</li>
                     <ul style="padding-left: 20px">
-                        <li>10,000 iterations</li>
+                        <li>600,000 iterations</li>
                         <li>SHA-256 as the hashing algorithm</li>
                     </ul>
                     <li>

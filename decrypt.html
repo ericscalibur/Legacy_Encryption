@@ -55,20 +55,17 @@
 
             <div class="content">
                 <div style="margin: auto; width: 80%">
+                    <p><strong>Online Demo</strong> — use this to verify your keys work correctly.</p>
                     <p>
-                        Enter the encrypted seed phrase and the correct keys to
-                        decrypt it.
+                        Paste an encrypted seed phrase from the
+                        <a href="encrypt.html">demo encrypt page</a> along with
+                        the keys you used, and confirm the decryption returns
+                        the correct result.
                     </p>
                     <p>
-                        This online version is for demonstration purposes only.
-                    </p>
-                    <p>
-                        Please read the HOW-IT-WORKS page and the BENEFITS page
-                        before using it offline.
-                    </p>
-                    <p>
-                        This page is used to check the functionality of your
-                        keys.
+                        For real use, run <strong>Legacy-offline.html</strong>
+                        locally with your internet disconnected. Do not enter
+                        your actual seed phrase or keys into this online version.
                     </p>
                     <div style="height: 10vh"></div>
 
@@ -151,7 +148,7 @@
                     {
                         name: "PBKDF2",
                         salt: salt,
-                        iterations: 10000,
+                        iterations: 600000,
                         hash: "SHA-256",
                     },
                     keyMaterial,
