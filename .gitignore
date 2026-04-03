@@ -1,0 +1,17 @@
+# macOS
+.DS_Store
+
+# Release artifacts (signed releases live outside the repo)
+releases/
+
+# Dependencies
+node_modules/
+
+# Logs
+*.log
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
