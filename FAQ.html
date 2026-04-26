@@ -77,17 +77,44 @@
 
                     <li>What makes a good key?</li>
                     <p>
-                        Your encryption is only as strong as your keys are
-                        secure. The stronger the keys, the harder to brute
-                        force. Use long, random strings — not memorable words or
-                        phrases. Record your keys and store them somewhere safe,
-                        but keep the Benefactor Key and Beneficiary Key
-                        separate. Avoid ambiguous characters such as
-                        <strong>0</strong> (zero) and <strong>O</strong>
-                        (letter O), or <strong>1</strong> (one) and
-                        <strong>l</strong> (letter L), which are easy to
-                        confuse when transcribing by hand.
+                        The best keys are <strong>4–5 random, unrelated words separated by spaces</strong> — for example, <em>cloud mango river tuesday</em>. This approach gives you high entropy while remaining memorable enough to carry in your head or communicate verbally to your Beneficiary. You should never need to write both keys down together or store them with the encrypted QR.
                     </p>
+                    <p>
+                        Legacy uses PBKDF2 with 600,000 iterations of SHA-256, which makes even a modest passphrase extremely resistant to brute force. The dual-key design means an attacker who obtains one key still cannot decrypt anything — they need both.
+                    </p>
+                    <p>
+                        Keep the Benefactor Key and Beneficiary Key stored separately. Never store either key alongside the encrypted QR.
+                    </p>
+
+                    <li>Key dos and don'ts — with examples</li>
+                    <p><strong>✓ Good keys</strong> — random, unrelated words with no personal connection:</p>
+                    <ul>
+                        <li><code>cloud mango river tuesday</code></li>
+                        <li><code>lamp orbit forest eleven quiet</code></li>
+                        <li><code>thunder anchor velvet parade</code></li>
+                        <li><code>seven bridge harbor silk moon</code></li>
+                        <li><code>arctic bench window plum escape</code></li>
+                    </ul>
+                    <p><strong>✗ Bad keys</strong> — guessable by anyone who knows you, or by anyone in the Bitcoin space:</p>
+                    <ul>
+                        <li><code>bitcoin</code> — single obvious word</li>
+                        <li><code>satoshi2009</code> — predictable Bitcoin reference</li>
+                        <li><code>john1985</code> — name + birth year, trivially guessable</li>
+                        <li><code>password123</code> — among the most common passwords in existence</li>
+                        <li><code>iloveyou</code> — common and emotionally predictable for an inheritance tool</li>
+                    </ul>
+                    <p>
+                        Note: the examples above are illustrations only — do not use them. Choose your own words at random.
+                    </p>
+
+                    <li>Tips for scanning QR codes on SeedSigner</li>
+                    <p>For best results when scanning an encrypted QR:</p>
+                    <ul>
+                        <li><strong>Printed QR codes scan most reliably</strong> — printing eliminates screen glare, pixel grid artifacts, and double-digitization blur. If you can, print the encrypted QR and store it with your estate documents.</li>
+                        <li><strong>Laptop or desktop screen</strong> is the next best option — larger display means larger QR modules and better contrast.</li>
+                        <li><strong>Phone screen:</strong> set brightness to maximum and display the QR full-screen (not as a thumbnail). Hold the phone steady, parallel to the SeedSigner camera, at roughly 10–15 cm distance.</li>
+                        <li><strong>Back button:</strong> during active scanning, hold the back button for 1–2 seconds — it only registers between decode attempts.</li>
+                    </ul>
 
                     <li>How exactly does the encryption protocol work?</li>
                     <p>
