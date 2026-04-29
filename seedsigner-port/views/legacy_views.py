@@ -323,6 +323,9 @@ class LegacyEncryptingView(View):
             )
             return Destination(BackStackView)
 
+        import gc
+        gc.collect()
+
         return Destination(
             LegacyShowEncryptedQRView,
             view_args={"encrypted": encrypted},
@@ -330,6 +333,7 @@ class LegacyEncryptingView(View):
 
 
 class LegacyShowEncryptedQRView(View):
+    READY = ButtonOption("Show QR Code")
     SAVED = ButtonOption("I've saved it")
 
     def __init__(self, encrypted: str = ""):
@@ -339,16 +343,28 @@ class LegacyShowEncryptedQRView(View):
     def run(self) -> Destination:
         qr_data = encrypted_to_qr_data(self.encrypted)
         qr_encoder = GenericStaticQrEncoder(data=qr_data)
-        self.run_screen(QRDisplayScreen, qr_encoder=qr_encoder)
 
-        # Explicit save confirmation — high-stakes use, make sure they photograph it
+        # Warn before showing QR so user has camera ready
         self.run_screen(
             LargeIconStatusScreen,
-            title="Save the QR!",
-            status_headline="Important",
-            text="Photograph that QR and store it safely. You cannot recover your seed without it and BOTH keys.",
-            button_data=[self.SAVED],
+            title="Get Camera Ready",
+            status_headline="Next screen: QR code",
+            text="Get ready to photograph the encrypted QR. You cannot recover your seed without it and BOTH keys.",
+            button_data=[self.READY],
         )
+
+        # Loop: back from confirmation returns to QR so they can re-photograph
+        while True:
+            self.run_screen(QRDisplayScreen, qr_encoder=qr_encoder)
+            ret = self.run_screen(
+                LargeIconStatusScreen,
+                title="Saved?",
+                status_headline="Got the photo?",
+                text="If you need another look, press back to return to the QR.",
+                button_data=[self.SAVED],
+            )
+            if ret != RET_CODE__BACK_BUTTON:
+                break
 
         return Destination(LegacyMainMenuView, clear_history=True)
 
@@ -363,15 +379,28 @@ class LegacyDecryptScanQRView(View):
     def run(self) -> Destination:
         decoder = _RawQRDecoder()
 
-        # 320×320 instead of the default 480×480: 2.25× fewer pixels for ZBar,
-        # which prevents the OOM/hang that causes the camera freeze on Pi Zero.
-        self.run_screen(
-            ScanScreen,
-            instructions_text="Scan Legacy encrypted QR",
-            decoder=decoder,
-            resolution=(320, 320),
-            framerate=3,
-        )
+        # Use default resolution (480×480) and framerate (6) — the same settings
+        # as every other ScanScreen in SeedSigner. PiVideoStream.stop() is a
+        # busy-wait spin that can stall indefinitely on Pi Zero at non-standard
+        # resolutions. _RawQRDecoder's grayscale conversion + 3x frame skipping
+        # keep ZBar fast enough without needing to change the camera settings.
+        try:
+            self.run_screen(
+                ScanScreen,
+                instructions_text="Scan Legacy encrypted QR",
+                decoder=decoder,
+            )
+        except Exception:
+            # start_video_stream_mode() raises RuntimeError if the camera
+            # produces no frames within 5 s (MMAL stuck on second open).
+            self.run_screen(
+                WarningScreen,
+                title="Camera Error",
+                status_headline="Please Restart",
+                text="The camera failed to start. Power the device off and back on to reset it.",
+                button_data=[self.OK],
+            )
+            return Destination(LegacyMainMenuView, clear_history=True)
 
         if not decoder.complete:
             return Destination(BackStackView)
@@ -439,7 +468,7 @@ class LegacyDecryptingView(View):
         if error is not None:
             msg = str(error)
             if any(k in msg.lower() for k in ("tag", "authentication", "invalid")):
-                msg = "Both keys must match exactly what was used to encrypt. Check spelling, capitalization, and order."
+                msg = "Decryption failed. Check that both keys are correct — spelling, capitalization, and spaces all matter."
             self.run_screen(
                 WarningScreen,
                 title="Decryption Failed",
