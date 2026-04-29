@@ -60,7 +60,7 @@ class Camera(Singleton):
 
     def read_video_stream(self, as_image=False):
         if not self._video_stream:
-            raise Exception("Must call start_video_stream first.")
+            return None  # Camera stopped; callers check for None
         frame = self._video_stream.read()
         if not as_image:
             return frame
@@ -72,11 +72,33 @@ class Camera(Singleton):
 
     def stop_video_stream_mode(self):
         if self._video_stream is not None:
-            self._video_stream.stop()
+            vs = self._video_stream
+            # Clear the instance reference first so LivePreviewThread's
+            # _video_stream is None check fires and it stops rendering.
             self._video_stream = None
-            # Pi Zero MMAL layer releases asynchronously after camera.close();
-            # without this pause the next PiCamera() open conflicts with ongoing
-            # teardown and produces no frames (black screen on second camera use).
+
+            # Signal the background camera thread to stop.
+            vs.should_stop = True
+
+            # Wait up to 3 s for a clean shutdown — normal case: capture_continuous
+            # yields one more frame, thread sees should_stop, closes camera, sets
+            # is_stopped. Pathological case on Pi Zero: MMAL stalls between frames
+            # and the thread never gets to check should_stop, so is_stopped stays
+            # False forever. Without this timeout the UI thread busy-waits forever,
+            # buttons go dead, last camera frame frozen on screen.
+            deadline = time.time() + 3.0
+            while not vs.is_stopped and time.time() < deadline:
+                time.sleep(0.05)
+
+            if not vs.is_stopped:
+                # MMAL stalled — force-close the PiCamera to interrupt
+                # capture_continuous in the stuck thread so it can exit.
+                try:
+                    vs.camera.close()
+                except Exception:
+                    pass
+
+            # Give MMAL time to fully release hardware before the next open.
             time.sleep(1.0)
 
 
