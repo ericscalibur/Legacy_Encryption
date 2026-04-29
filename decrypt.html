@@ -84,6 +84,13 @@
                         style="color: #000000"
                     /><br /><br />
 
+                    <button onclick="startQrScan()">Scan QR Code</button>
+                    <div id="qr-scanner" style="display:none; margin: 10px 0;">
+                        <video id="qr-video" style="width:100%; max-width:360px; border:1px solid #555; border-radius:4px; display:block;" autoplay playsinline muted></video>
+                        <p id="qr-status" style="margin:6px 0; font-size:0.9em; color:#aaa;"></p>
+                        <button onclick="stopQrScan()">Cancel</button>
+                    </div><br />
+
                     <button id="decryptButton" onclick="decryptSeedPhrase()">
                         Decrypt</button
                     ><br /><br />
@@ -108,6 +115,7 @@
                 menu.classList.toggle("active"); // Toggle the 'active' class
             });
         </script>
+        <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
         <!-- The Javascript to Decrypt -->
         <script>
             // Function to convert string to array buffer
@@ -263,6 +271,43 @@
                     // Clear field
                     document.getElementById("encryptedSeedPhrase").value = "";
                 }
+            }
+
+            let _qrStream = null, _qrTimer = null;
+            const _qrCanvas = document.createElement('canvas');
+
+            function startQrScan() {
+                const scanner = document.getElementById('qr-scanner');
+                const status  = document.getElementById('qr-status');
+                const video   = document.getElementById('qr-video');
+                scanner.style.display = 'block';
+                status.textContent = 'Starting camera…';
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } })
+                    .then(stream => {
+                        _qrStream = stream;
+                        video.srcObject = stream;
+                        status.textContent = 'Hold the QR code steady…';
+                        _qrTimer = setInterval(() => {
+                            if (video.readyState < video.HAVE_ENOUGH_DATA) return;
+                            _qrCanvas.width  = video.videoWidth;
+                            _qrCanvas.height = video.videoHeight;
+                            const ctx = _qrCanvas.getContext('2d');
+                            ctx.drawImage(video, 0, 0);
+                            const img  = ctx.getImageData(0, 0, _qrCanvas.width, _qrCanvas.height);
+                            const code = jsQR(img.data, img.width, img.height, { inversionAttempts: 'dontInvert' });
+                            if (code) {
+                                document.getElementById('encryptedSeedPhrase').value = code.data;
+                                stopQrScan();
+                            }
+                        }, 250);
+                    })
+                    .catch(err => { status.textContent = 'Camera error: ' + err.message; });
+            }
+
+            function stopQrScan() {
+                clearInterval(_qrTimer); _qrTimer = null;
+                if (_qrStream) { _qrStream.getTracks().forEach(t => t.stop()); _qrStream = null; }
+                document.getElementById('qr-scanner').style.display = 'none';
             }
         </script>
     </body>

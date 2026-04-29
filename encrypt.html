@@ -136,6 +136,10 @@
                         id="encryptedSeedPhrase"
                         style="overflow-wrap: break-word"
                     ></p>
+                    <div id="encrypt-qr-container" style="display:none; text-align:center; margin:16px 0;">
+                        <p style="margin-bottom:8px;">Encrypted QR Code — copy or screenshot this:</p>
+                        <canvas id="encrypt-qr-canvas"></canvas>
+                    </div>
                     <div style="height: 20vh"></div>
                 </div>
             </div>
@@ -368,6 +372,12 @@
                         "Scroll Down";
                     document.getElementById("encryptedSeedPhrase").innerText =
                         base64Encoded;
+
+                    const qrCanvas = document.getElementById("encrypt-qr-canvas");
+                    const qrContainer = document.getElementById("encrypt-qr-container");
+                    QRCode.toCanvas(qrCanvas, base64Encoded, { width: 300, margin: 2 })
+                        .then(() => { qrContainer.style.display = "block"; })
+                        .catch(() => {});
                 } catch (error) {
                     console.error("Encryption error:", error);
                     alert("Encryption failed. Check console for details.");
@@ -554,5 +564,6 @@
                 }
             }
         </script>
+        <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
     </body>
 </html>
