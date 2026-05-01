@@ -15,3 +15,11 @@ node_modules/
 .idea/
 *.swp
 *.swo
+
+# SeedSigner build artifacts
+seedsigner-port/build/
+build/
+*.img
+*.tar.gz
+__pycache__/
+*.pyc

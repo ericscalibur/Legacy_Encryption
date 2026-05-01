@@ -10,6 +10,7 @@ from seedsigner.models.singleton import Singleton
 
 class Camera(Singleton):
     _video_stream = None
+    _parked_stream = None   # stream kept alive between scans; avoids second PiCamera() open
     _picamera = None
     _camera_rotation = None
 
@@ -26,32 +27,40 @@ class Camera(Singleton):
         from seedsigner.hardware.pivideostream import PiVideoStream
         if self._video_stream is not None:
             self.stop_video_stream_mode()
-            # Pi Zero MMAL layer closes asynchronously; without this pause the
-            # next PiCamera() call conflicts with ongoing teardown and produces
-            # no frames, causing the scan loop to spin at 100% CPU indefinitely.
-            time.sleep(1.0)
 
-        self._video_stream = PiVideoStream(resolution=resolution,framerate=framerate, format=format)
+        # Reuse the parked stream from the previous scan if it is still alive.
+        #
+        # On Pi Zero, opening PiCamera() a second time while MMAL is still
+        # releasing from the first session blocks the PiCamera() constructor
+        # indefinitely — this happens in the main thread, freezing the UI before
+        # the 5 s watchdog below even gets a chance to run. The only reliable fix
+        # is to never call PiCamera() a second time within a session.
+        #
+        # stop_video_stream_mode() parks rather than destroys the stream: it sets
+        # _video_stream = None (so LivePreviewThread stops drawing) but leaves the
+        # PiVideoStream background thread running at ~6 fps with nobody reading.
+        # Here we reattach to it — frames are already flowing, no MMAL re-init.
+        if self._parked_stream is not None:
+            if not self._parked_stream.is_stopped and self._parked_stream.frame is not None:
+                self._video_stream = self._parked_stream
+                self._parked_stream = None
+                return
+            # Parked stream is dead or never produced frames — clean it up.
+            self._force_close_stream(self._parked_stream)
+            self._parked_stream = None
+
+        self._video_stream = PiVideoStream(resolution=resolution, framerate=framerate, format=format)
         self._video_stream.start()
 
-        # Wait up to 5 s for the first frame. On Pi Zero, the MMAL layer can
-        # silently fail on a second PiCamera open — capture_continuous blocks
-        # forever in the background thread, self.frame stays None, and the
-        # ScanScreen loop spins with the button check unreachable. Detecting
-        # this here lets us raise before ScanScreen takes over and hangs the UI.
+        # Wait up to 5 s for the first frame. This guards against Mode 2: the rare
+        # case where PiCamera() opens but capture_continuous silently stalls, keeping
+        # self.frame = None forever so the ScanScreen button check is never reached.
         deadline = time.time() + 5.0
         while self._video_stream.read() is None and time.time() < deadline:
             time.sleep(0.05)
 
         if self._video_stream.read() is None:
-            # Force-close the PiCamera to unblock the background thread.
-            # We cannot call stop() here — it busy-waits on is_stopped, which
-            # the stuck thread will never set. Closing the camera directly
-            # causes picamera to interrupt capture_continuous in the thread.
-            try:
-                self._video_stream.camera.close()
-            except Exception:
-                pass
+            self._force_close_stream(self._video_stream)
             self._video_stream = None
             raise RuntimeError(
                 "Camera failed to start. Power the device off and back on to reset it."
@@ -59,9 +68,12 @@ class Camera(Singleton):
 
 
     def read_video_stream(self, as_image=False):
-        if not self._video_stream:
-            return None  # Camera stopped; callers check for None
-        frame = self._video_stream.read()
+        # Use a local ref so a concurrent stop_video_stream_mode() setting
+        # _video_stream = None mid-call doesn't cause an AttributeError.
+        vs = self._video_stream
+        if not vs:
+            return None
+        frame = vs.read()
         if not as_image:
             return frame
         else:
@@ -72,40 +84,44 @@ class Camera(Singleton):
 
     def stop_video_stream_mode(self):
         if self._video_stream is not None:
-            vs = self._video_stream
-            # Clear the instance reference first so LivePreviewThread's
-            # _video_stream is None check fires and it stops rendering.
+            # Park the stream instead of stopping it. The PiVideoStream background
+            # thread keeps running (capturing frames into self.frame at ~6 fps with
+            # nobody reading them). LivePreviewThread checks _video_stream and exits
+            # when it sees None. The next start_video_stream_mode() reuses the parked
+            # stream directly, so PiCamera() is never opened a second time.
+            if self._parked_stream is not None:
+                # Shouldn't happen in normal flow — a previous park was never reused.
+                # Truly stop it before replacing so we don't orphan a camera instance.
+                self._force_close_stream(self._parked_stream)
+            self._parked_stream = self._video_stream
             self._video_stream = None
 
-            # Signal the background camera thread to stop.
-            vs.should_stop = True
 
-            # Wait up to 3 s for a clean shutdown — normal case: capture_continuous
-            # yields one more frame, thread sees should_stop, closes camera, sets
-            # is_stopped. Pathological case on Pi Zero: MMAL stalls between frames
-            # and the thread never gets to check should_stop, so is_stopped stays
-            # False forever. Without this timeout the UI thread busy-waits forever,
-            # buttons go dead, last camera frame frozen on screen.
-            deadline = time.time() + 3.0
-            while not vs.is_stopped and time.time() < deadline:
-                time.sleep(0.05)
-
-            if not vs.is_stopped:
-                # MMAL stalled — force-close the PiCamera to interrupt
-                # capture_continuous in the stuck thread so it can exit.
-                try:
-                    vs.camera.close()
-                except Exception:
-                    pass
-
-            # Give MMAL time to fully release hardware before the next open.
-            time.sleep(1.0)
+    def _force_close_stream(self, vs):
+        """Signal the stream to stop, wait up to 3 s, then force-close on timeout."""
+        vs.should_stop = True
+        deadline = time.time() + 3.0
+        while not vs.is_stopped and time.time() < deadline:
+            time.sleep(0.05)
+        if not vs.is_stopped:
+            # MMAL stalled — close the PiCamera directly to unblock capture_continuous.
+            try:
+                vs.camera.close()
+            except Exception:
+                pass
+        time.sleep(1.0)  # give MMAL time to fully release hardware before the next open
 
 
     def start_single_frame_mode(self, resolution=(720, 480)):
         from picamera import PiCamera
         if self._video_stream is not None:
             self.stop_video_stream_mode()
+        # Single-frame mode opens its own PiCamera instance. A parked video stream
+        # also holds an open PiCamera — two instances can't coexist on MMAL, so
+        # truly stop the parked stream before proceeding.
+        if self._parked_stream is not None:
+            self._force_close_stream(self._parked_stream)
+            self._parked_stream = None
         if self._picamera is not None:
             self._picamera.close()
 
@@ -136,4 +152,3 @@ class Camera(Singleton):
         if self._picamera is not None:
             self._picamera.close()
             self._picamera = None
-

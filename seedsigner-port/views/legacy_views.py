@@ -9,6 +9,8 @@ Flow:
                  → DecryptingView → ShowDecryptedSeedView → ShowSeedWordsView
 """
 
+import time
+
 from seedsigner.views.view import View, Destination, BackStackView
 from seedsigner.gui.screens.screen import (
     ButtonListScreen,
@@ -31,6 +33,9 @@ from seedsigner.helpers.legacy_encryption import (
     qr_data_to_encrypted,
 )
 from seedsigner.models.encode_qr import GenericStaticQrEncoder
+
+from seedsigner.helpers.legacy_log import get_logger
+_log = get_logger("legacy.views")
 
 
 class _RawQRDecoder(DecodeQR):
@@ -80,6 +85,9 @@ class _RawQRDecoder(DecodeQR):
 
         self.complete = True
         return DecodeQRStatus.COMPLETE
+
+    def get_percent_complete(self, weight_mixed_frames: bool = False) -> int:
+        return 100 if self.complete else 0
 
     def get_raw_text(self):
         return self._raw_text
@@ -148,6 +156,7 @@ class LegacyEncryptScanSeedView(View):
     OK = ButtonOption("OK")
 
     def run(self) -> Destination:
+        _log.info("LegacyEncryptScanSeedView: starting seed QR scan")
         wordlist_lang = self.settings.get_value(SettingsConstants.SETTING__WORDLIST_LANGUAGE)
         decoder = DecodeQR(wordlist_language_code=wordlist_lang)
 
@@ -298,6 +307,10 @@ class LegacyEncryptingView(View):
         self.beneficiary_key = beneficiary_key
 
     def run(self) -> Destination:
+        _log.info("LegacyEncryptingView: begin encrypt")
+        from seedsigner.hardware.camera import Camera
+        Camera.get_instance().stop_video_stream_mode()
+
         loading = LoadingScreenThread(text="Encrypting...  (15-30 sec)")
         loading.start()
 
@@ -377,6 +390,7 @@ class LegacyDecryptScanQRView(View):
     OK = ButtonOption("OK")
 
     def run(self) -> Destination:
+        _log.info("LegacyDecryptScanQRView: starting encrypted QR scan")
         decoder = _RawQRDecoder()
 
         # Use default resolution (480×480) and framerate (6) — the same settings
@@ -450,8 +464,13 @@ class LegacyDecryptingView(View):
         self.beneficiary_key = beneficiary_key
 
     def run(self) -> Destination:
+        _log.info("LegacyDecryptingView: begin decrypt")
+        from seedsigner.hardware.camera import Camera
+        Camera.get_instance().stop_video_stream_mode()
+
         loading = LoadingScreenThread(text="Decrypting...  (15-30 sec)")
         loading.start()
+        time.sleep(0.3)  # give LoadingScreenThread a frame before PBKDF2 holds the CPU
 
         error = None
         try:
@@ -512,10 +531,8 @@ class LegacyShowDecryptedSeedView(View):
             title=f"Decrypted  ({word_count} words)",
             button_data=button_data,
             is_button_text_centered=True,
+            show_back_button=False,
         )
-
-        if selected == RET_CODE__BACK_BUTTON:
-            return Destination(BackStackView)
 
         if button_data[selected] == self.SHOW_WORDS:
             return Destination(
