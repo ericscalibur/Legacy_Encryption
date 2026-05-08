@@ -134,7 +134,7 @@ Success Rate: 100.00%
 - `strToArrayBuffer()` - String to ArrayBuffer conversion
 - `arrayBufferToStr()` - ArrayBuffer to string conversion  
 - `generateSalt()` - Cryptographic salt generation
-- `deriveKey()` - PBKDF2 key derivation (10,000 iterations)
+- `deriveKey()` - PBKDF2 key derivation (600,000 iterations)
 - `encryptData()` - AES-GCM encryption with random padding
 - `decryptData()` - AES-GCM decryption with padding removal
 
@@ -172,7 +172,7 @@ Tests use a subset of the BIP39 English wordlist (100 words) for seed phrase gen
 Expected performance on modern hardware:
 - **Encryption**: ~15-25ms per operation
 - **Decryption**: ~10-20ms per operation  
-- **Key Derivation**: ~8-15ms (10,000 PBKDF2 iterations)
+- **Key Derivation**: ~8-15ms (600,000 PBKDF2 iterations)
 - **Round-trip**: ~25-45ms total
 
 ## Troubleshooting
@@ -226,7 +226,7 @@ node run-tests.js --quick || exit 1
 - Tests validate cryptographic security properties
 - Salt uniqueness prevents rainbow table attacks
 - Authentication tag verification prevents tampering
-- Key derivation uses industry-standard PBKDF2 with 10,000 iterations
+- Key derivation uses industry-standard PBKDF2 with 600,000 iterations
 - AES-GCM provides both confidentiality and authenticity
 
 ## Contributing

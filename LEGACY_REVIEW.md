@@ -22,7 +22,7 @@ The Legacy Encryption project is a **well-engineered, production-ready solution*
 
 ### **Excellent Cryptographic Implementation**
 - **AES-GCM Encryption**: Industry-standard authenticated encryption
-- **PBKDF2 Key Derivation**: 10,000 iterations for proper key stretching
+- **PBKDF2 Key Derivation**: 600,000 iterations for proper key stretching
 - **Secure Random Generation**: Cryptographically secure salts and IVs
 - **BIP39 Compliance**: Proper cryptocurrency ecosystem integration
 

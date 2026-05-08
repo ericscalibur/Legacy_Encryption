@@ -33,7 +33,7 @@ The primary deliverable is **`Legacy-offline.html`** — a single self-contained
 **`index.html`** is the marketing landing page; the other HTML files (`mission.html`, `how-it-works.html`, `benefits.html`, `FAQ.html`, `protocol.html`, `contact.html`) are informational pages.
 
 ### Cryptographic Design
-- **Key derivation:** PBKDF2 (SHA-256, 10,000 iterations, 16-byte random salt)
+- **Key derivation:** PBKDF2 (SHA-256, 600,000 iterations, 16-byte random salt)
 - **Encryption:** AES-256-GCM with a 12-byte random IV
 - **Dual-key scheme:** Seed phrase is encrypted first with the benefactor key, then with the beneficiary key — decryption requires both keys in the correct order
 - **Obfuscation:** 0–4 bytes of random padding added to plaintext before encryption

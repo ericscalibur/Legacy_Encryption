@@ -112,10 +112,10 @@ Based on the performance test (100 round-trips in 448ms):
 - **Throughput:** ~223 operations per second
 
 ### Key Derivation Performance
-PBKDF2 with 10,000 iterations:
+PBKDF2 with 600,000 iterations:
 - **Key Derivation Time:** ~8-15ms per operation
 - **Memory Usage:** Minimal (streaming operations)
-- **CPU Usage:** Moderate (expected for 10K iterations)
+- **CPU Usage:** High (expected for 600K iterations)
 
 ---
 
@@ -124,7 +124,7 @@ PBKDF2 with 10,000 iterations:
 ### Encryption Algorithm Verification
 - **Algorithm:** AES-GCM (256-bit keys)
 - **Mode:** Authenticated encryption with additional data
-- **Key Derivation:** PBKDF2-SHA256 (10,000 iterations)
+- **Key Derivation:** PBKDF2-SHA256 (600,000 iterations)
 - **Salt Generation:** Cryptographically secure random (16 bytes)
 - **IV Generation:** Cryptographically secure random (12 bytes)
 
