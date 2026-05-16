@@ -5,7 +5,10 @@ from PIL import Image
 from seedsigner.hardware.pivideostream import PiVideoStream
 from seedsigner.models.settings import Settings, SettingsConstants
 from seedsigner.models.singleton import Singleton
+from seedsigner.helpers.legacy_log import get_logger
 
+_log = get_logger("legacy.camera")
+_log.info("camera.py loaded — v3 (500ms flush, framerate=1 park)")
 
 
 class Camera(Singleton):
@@ -23,7 +26,7 @@ class Camera(Singleton):
         return cls._instance
 
 
-    def start_video_stream_mode(self, resolution=(512, 384), framerate=12, format="bgr"):
+    def start_video_stream_mode(self, resolution=(320, 240), framerate=12, format="bgr"):
         from seedsigner.hardware.pivideostream import PiVideoStream
         if self._video_stream is not None:
             self.stop_video_stream_mode()
@@ -40,15 +43,52 @@ class Camera(Singleton):
         # _video_stream = None (so LivePreviewThread stops drawing) but leaves the
         # PiVideoStream background thread running at ~6 fps with nobody reading.
         # Here we reattach to it — frames are already flowing, no MMAL re-init.
+        _WATCHDOG = 10.0  # seconds without a frame → treat stream as dead
         if self._parked_stream is not None:
-            if not self._parked_stream.is_stopped and self._parked_stream.frame is not None:
-                self._video_stream = self._parked_stream
+            ps = self._parked_stream
+            stale = (time.time() - ps.last_capture_time) > _WATCHDOG
+            if stale or ps.is_stopped:
+                _log.warning(
+                    "start_video_stream_mode: parked stream %s (last_frame=%.1fs ago), rebuilding",
+                    "stopped" if ps.is_stopped else "stale",
+                    time.time() - ps.last_capture_time,
+                )
+                self._force_close_stream(ps)
                 self._parked_stream = None
-                return
-            # Parked stream is dead or never produced frames — clean it up.
+        if self._parked_stream is not None:
+            if not self._parked_stream.is_stopped:
+                _log.info("start_video_stream_mode: reusing parked stream, flushing 500ms")
+                # Restore scan framerate — parked stream was throttled to 1 fps.
+                try:
+                    self._parked_stream.camera.framerate = framerate
+                except Exception:
+                    pass
+                # Flush stale frames from the hardware pipeline. PiCamera's internal
+                # ring buffer holds 3-4 frames; after a framerate transition the
+                # sensor takes several cycles to deliver genuinely new pixels. We
+                # keep discarding frames for 500 ms (6 frames at 12 fps) so the
+                # full pipeline depth is drained before ScanScreen gets control.
+                flush_end = time.time() + 0.5
+                self._parked_stream.frame = None
+                while time.time() < flush_end:
+                    if self._parked_stream.frame is not None:
+                        self._parked_stream.frame = None
+                    time.sleep(0.05)
+                # Final wait: get one clean post-flush frame.
+                deadline = time.time() + 2.0
+                while self._parked_stream.frame is None and time.time() < deadline:
+                    time.sleep(0.05)
+                if self._parked_stream.frame is not None:
+                    _log.info("start_video_stream_mode: flush done, stream ready")
+                    self._video_stream = self._parked_stream
+                    self._parked_stream = None
+                    return
+            # Parked stream is dead or stalled — clean it up and open fresh.
+            _log.warning("start_video_stream_mode: parked stream dead, opening fresh")
             self._force_close_stream(self._parked_stream)
             self._parked_stream = None
 
+        _log.info("start_video_stream_mode: opening fresh PiVideoStream")
         self._video_stream = PiVideoStream(resolution=resolution, framerate=framerate, format=format)
         self._video_stream.start()
 
@@ -60,11 +100,13 @@ class Camera(Singleton):
             time.sleep(0.05)
 
         if self._video_stream.read() is None:
+            _log.error("start_video_stream_mode: no frames in 5s, camera failed")
             self._force_close_stream(self._video_stream)
             self._video_stream = None
             raise RuntimeError(
                 "Camera failed to start. Power the device off and back on to reset it."
             )
+        _log.info("start_video_stream_mode: fresh stream ready")
 
 
     def read_video_stream(self, as_image=False):
@@ -82,6 +124,29 @@ class Camera(Singleton):
         return None
 
 
+    def stop_for_pbkdf2(self):
+        """Kill all camera DMA activity before a long PBKDF2 operation.
+
+        ScanScreen parks (not stops) the camera when a scan completes, so
+        stop_video_stream_mode() called from the encrypt/decrypt views is a
+        no-op — the parked 1fps stream keeps firing MMAL DMA.  On a single-
+        core Pi Zero, MMAL DMA + PBKDF2 at 100% CPU + the unthrottled
+        LoadingScreenThread SPI loop causes a kernel-level deadlock 8/10 runs.
+
+        Calling this instead fully kills both streams.  With 30+ s of MMAL
+        settle time before the next scan is initiated, the MMAL re-init
+        deadlock cannot occur.
+        """
+        vs = self._video_stream
+        if vs is not None:
+            self._video_stream = None
+            self._force_close_stream(vs)
+        ps = self._parked_stream
+        if ps is not None:
+            self._parked_stream = None
+            self._force_close_stream(ps)
+
+
     def stop_video_stream_mode(self):
         if self._video_stream is not None:
             # Park the stream instead of stopping it. The PiVideoStream background
@@ -95,6 +160,16 @@ class Camera(Singleton):
                 self._force_close_stream(self._parked_stream)
             self._parked_stream = self._video_stream
             self._video_stream = None
+            _log.info("stop_video_stream_mode: stream parked, dropping to 1fps")
+            # Drop to 1 fps. The parked thread keeps the camera sensor running at
+            # whatever framerate was configured, firing that many DMA interrupts/sec.
+            # On Pi Zero's single core, 12 interrupts/sec during PBKDF2 or UI
+            # navigation starves the main thread and causes random UI freezes on
+            # any screen — menu, confirm, seed words. 1 fps cuts that to negligible.
+            try:
+                self._parked_stream.camera.framerate = 1
+            except Exception:
+                pass
 
 
     def _force_close_stream(self, vs):

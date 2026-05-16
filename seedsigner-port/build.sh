@@ -50,22 +50,29 @@ error() { echo -e "${RED}[ERROR]${NC} $*" >&2; }
 # ============================================================================
 PATCH_ONLY=false
 BUILD_ONLY=false
+INJECT_ONLY=false
+GITHUB_USER="${GITHUB_USER:-}"
 
-for arg in "$@"; do
-    case "$arg" in
-        --patch-only)  PATCH_ONLY=true ;;
-        --build-only)  BUILD_ONLY=true ;;
-        --board)       shift; BOARD="$1" ;;
-        --board=*)     BOARD="${arg#*=}" ;;
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --patch-only)      PATCH_ONLY=true ;;
+        --build-only)      BUILD_ONLY=true ;;
+        --inject)          INJECT_ONLY=true ;;
+        --board)           shift; BOARD="$1" ;;
+        --board=*)         BOARD="${1#*=}" ;;
+        --github-user)     shift; GITHUB_USER="$1" ;;
+        --github-user=*)   GITHUB_USER="${1#*=}" ;;
         --help|-h)
-            echo "Usage: $0 [--patch-only] [--build-only] [--board pi0|pi02w|pi2|pi4]"
+            echo "Usage: $0 [--patch-only] [--build-only] [--inject] [--board pi0|pi02w|pi2|pi4] [--github-user USERNAME]"
+            echo "  --inject  Fast path: patch Python files directly into the .img (no Docker needed)"
             exit 0
             ;;
         *)
-            error "Unknown argument: $arg"
+            error "Unknown argument: $1"
             exit 1
             ;;
     esac
+    shift
 done
 
 # ============================================================================
@@ -79,7 +86,8 @@ clone_seedsigner() {
         warn "SeedSigner directory already exists at $SEEDSIGNER_DIR"
         warn "Pulling latest and resetting branch..."
         cd "$SEEDSIGNER_DIR"
-        git checkout dev 2>/dev/null || git checkout main
+        git checkout -f dev 2>/dev/null || git checkout -f main
+        git reset --hard HEAD
         git pull --ff-only
         git branch -D "$BRANCH_NAME" 2>/dev/null || true
     else
@@ -112,6 +120,10 @@ patch_seedsigner() {
     # --- 2a. Copy the crypto module into helpers/ ---
     cp "$SCRIPT_DIR/legacy_encryption.py" src/seedsigner/helpers/legacy_encryption.py
     ok "Copied legacy_encryption.py → src/seedsigner/helpers/"
+
+    # --- 2a2. Copy the debug logger ---
+    cp "$SCRIPT_DIR/helpers/legacy_log.py" src/seedsigner/helpers/legacy_log.py
+    ok "Copied legacy_log.py → src/seedsigner/helpers/"
 
     # --- 2b. Copy the views into views/ ---
     cp "$SCRIPT_DIR/views/legacy_views.py" src/seedsigner/views/legacy_views.py
@@ -162,38 +174,39 @@ with Legacy-offline.html (browser version).
 
 Files added:
   - src/seedsigner/helpers/legacy_encryption.py (crypto core)
+  - src/seedsigner/helpers/legacy_log.py (debug logger → /mnt/boot/legacy.log)
   - src/seedsigner/views/legacy_views.py (UI views)
+  - src/seedsigner/hardware/camera.py (persistent stream + 500ms flush + 1fps park)
   - Main menu patched to include Legacy Encryption entry"
 
     ok "Changes committed to branch '$BRANCH_NAME'"
 }
 
 # ============================================================================
-# Step 2d: Patch the main menu
+# Step 2d: Patch the Tools menu to add Legacy Encryption
 # ============================================================================
 patch_main_menu() {
-    info "Patching main menu..."
+    info "Patching Tools menu..."
 
-    # Find the main menu view file — location varies by SeedSigner version
+    # Find tools_views.py — location varies by SeedSigner version
     MENU_FILE=""
     for candidate in \
-        src/seedsigner/views/view.py \
-        src/seedsigner/views/main_views.py \
-        src/seedsigner/views/menu_views.py; do
-        if [ -f "$candidate" ] && grep -q "MainMenuView\|main_menu\|Tools\|TOOLS" "$candidate"; then
+        src/seedsigner/views/tools_views.py \
+        src/seedsigner/views/tools_menu_views.py; do
+        if [ -f "$candidate" ] && grep -q "ToolsMenuView\|VERIFY_ADDRESS\|Address Explorer" "$candidate"; then
             MENU_FILE="$candidate"
             break
         fi
     done
 
     if [ -z "$MENU_FILE" ]; then
-        warn "Could not auto-detect main menu file"
+        warn "Could not auto-detect tools_views.py"
         warn "You'll need to manually add the Legacy Encryption menu entry"
         warn "See INTEGRATION.md for instructions"
         return
     fi
 
-    info "Found main menu in: $MENU_FILE"
+    info "Found Tools menu in: $MENU_FILE"
 
     # Run the standalone Python patch script
     python3 "$SCRIPT_DIR/patch_menu.py" "$MENU_FILE" || \
@@ -214,6 +227,32 @@ clone_and_build_os() {
         git clone https://github.com/SeedSigner/seedsigner-os.git "$SEEDSIGNER_OS_DIR"
         cd "$SEEDSIGNER_OS_DIR"
     fi
+
+    # Patch opt/build.sh to guard the font-subsetting block so builds succeed
+    # when the seedsigner-translations submodule doesn't include a fonts/ dir
+    # (this is the case for seedsigner 0.8.6 and later).
+    info "Patching seedsigner-os font guard..."
+    python3 - <<'PYEOF'
+import re, sys
+path = "opt/build.sh"
+try:
+    with open(path) as f:
+        text = f.read()
+    if 'if [ -d "${ss_translations_repo}/fonts"' in text:
+        print("  Font guard already present — skipping")
+        sys.exit(0)
+    old_marker = '  # rename source NotoSans*ttf files to include "Original" in the name'
+    new_marker = '  # rename source NotoSans*ttf files (skip if fonts/ dir absent)\n  if [ -d "${ss_translations_repo}/fonts" ]; then'
+    text = text.replace(old_marker, new_marker, 1)
+    old_cleanup = '  rm -f ${ss_translations_repo}/fonts/NotoSans*Regular-Original*ttf'
+    new_cleanup = '  rm -f ${ss_translations_repo}/fonts/NotoSans*Regular-Original*ttf\n  fi'
+    text = text.replace(old_cleanup, new_cleanup, 1)
+    with open(path, "w") as f:
+        f.write(text)
+    print("  Font guard patched into opt/build.sh")
+except Exception as e:
+    print(f"  Warning: could not patch font guard: {e}", file=sys.stderr)
+PYEOF
 
     ok "seedsigner-os ready"
 }
@@ -247,7 +286,7 @@ push_and_build() {
     echo "  Two repos are involved — read carefully:"
     echo ""
     echo "  ┌──────────────────────────────────────────────────────┐"
-    echo "  │ YOUR Legacy repo (Deploy-Deadman-Switch)             │"
+    echo "  │ YOUR Legacy Encryption repo                          │"
     echo "  │   → Your original HTML/JS encryption code            │"
     echo "  │   → Has seedsigner-port/ with the Python source      │"
     echo "  │   → NOT used for building the SeedSigner image       │"
@@ -261,14 +300,18 @@ push_and_build() {
     echo "  └──────────────────────────────────────────────────────┘"
     echo ""
 
-    # Ask for GitHub username
-    echo -n "  Your GitHub username (e.g. ericscalibur): "
-    read -r GITHUB_USER
+    # Use --github-user arg / GITHUB_USER env var; only prompt if still unset
+    if [ -z "$GITHUB_USER" ]; then
+        echo -n "  Your GitHub username (e.g. ericscalibur): "
+        read -r GITHUB_USER
+    fi
 
     if [ -z "$GITHUB_USER" ]; then
-        error "GitHub username is required"
+        error "GitHub username is required — pass it with: ./build.sh --github-user YOUR_USERNAME"
         exit 1
     fi
+
+    info "Using GitHub username: $GITHUB_USER"
 
     FORK_URL="https://github.com/${GITHUB_USER}/seedsigner.git"
 
@@ -316,6 +359,13 @@ push_and_build() {
 
     docker compose up --force-recreate --build
 
+    IMG="${SEEDSIGNER_OS_DIR}/images/seedsigner_os.${BRANCH_NAME}.${BOARD}.img"
+    if [ ! -f "$IMG" ] || [ "$IMG" -ot "${SEEDSIGNER_OS_DIR}/opt/build.sh" ]; then
+        error "Docker build did not produce a new image — check the Docker output above"
+        error "Expected: $IMG"
+        exit 1
+    fi
+
     echo ""
     echo "============================================================"
     echo "  BUILD COMPLETE"
@@ -344,6 +394,120 @@ push_and_build() {
 }
 
 # ============================================================================
+# Fast inject: patch Python files directly into .img via overlay initramfs
+# No Docker required — takes ~5 seconds instead of 30+ minutes.
+#
+# How it works:
+#   The SeedSigner rootfs is a CPIO initramfs baked into the kernel (zImage).
+#   The Pi bootloader supports loading a SECOND initramfs overlay from the
+#   FAT partition ("followkernel" in config.txt). Linux unpacks it on top of
+#   the built-in rootfs, so our files win on any path conflict.
+# ============================================================================
+inject_files() {
+    IMG="${SEEDSIGNER_OS_DIR}/images/seedsigner_os.${BRANCH_NAME}.${BOARD}.img"
+
+    if [ ! -f "$IMG" ]; then
+        error "No image found at: $IMG"
+        error "Run a full build first: ./build.sh --github-user YOUR_USERNAME"
+        exit 1
+    fi
+
+    info "Injecting updated Python files into $IMG ..."
+
+    # Mount the FAT partition (macOS uses hdiutil + mount)
+    DISK=$(hdiutil attach -imagekey diskimage-class=CRawDiskImage -nomount "$IMG" 2>/dev/null \
+        | head -1 | awk '{print $1}')
+    if [ -z "$DISK" ]; then
+        error "Could not attach image — is another process using it?"
+        exit 1
+    fi
+
+    MOUNT_POINT=$(mktemp -d)
+    if ! mount -t msdos "${DISK}s1" "$MOUNT_POINT" 2>/dev/null; then
+        hdiutil detach "$DISK" 2>/dev/null || true
+        error "Could not mount FAT partition"
+        exit 1
+    fi
+
+    # Build a minimal CPIO overlay containing our Python files
+    OVERLAY_DIR=$(mktemp -d)
+    OVERLAY_CPIO="$MOUNT_POINT/legacy_patch.cpio.gz"
+
+    # Paths inside the rootfs: /opt/ is where the SeedSigner app lives
+    python3 - "$SCRIPT_DIR" "$OVERLAY_DIR" "$SEEDSIGNER_DIR" <<'PYEOF'
+import sys, os, shutil
+
+script_dir  = sys.argv[1]   # Legacy_Encryption/seedsigner-port/
+overlay_dir = sys.argv[2]   # temp dir we populate
+seedsigner_dir = sys.argv[3]  # build/seedsigner (has patched tools_views.py)
+
+# Each entry: (source_path_relative_to_script_dir, dest_path_in_rootfs)
+files = [
+    ("legacy_encryption.py",          "opt/src/seedsigner/helpers/legacy_encryption.py"),
+    ("helpers/legacy_log.py",         "opt/src/seedsigner/helpers/legacy_log.py"),
+    ("views/legacy_views.py",         "opt/src/seedsigner/views/legacy_views.py"),
+    ("views/camera.py",               "opt/src/seedsigner/hardware/camera.py"),
+    ("views/pivideostream.py",        "opt/src/seedsigner/hardware/pivideostream.py"),
+]
+
+# The patched tools_views.py (with Legacy Encryption in the Tools menu)
+# lives in the seedsigner build dir after the patch step runs
+extra_files = [
+    (os.path.join(seedsigner_dir, "src/seedsigner/views/tools_views.py"),
+     "opt/src/seedsigner/views/tools_views.py"),
+]
+
+injected = []
+for rel_src, dest_path in files:
+    src = os.path.join(script_dir, rel_src)
+    if not os.path.exists(src):
+        print(f"  [WARN] Not found, skipping: {src}")
+        continue
+    dst = os.path.join(overlay_dir, dest_path)
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    shutil.copy2(src, dst)
+    injected.append(dest_path)
+
+for src, dest_path in extra_files:
+    if not os.path.exists(src):
+        print(f"  [WARN] Not found, skipping: {src}")
+        continue
+    dst = os.path.join(overlay_dir, dest_path)
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    shutil.copy2(src, dst)
+    injected.append(dest_path)
+
+for p in injected:
+    print(f"  + {p}")
+PYEOF
+
+    # Pack the overlay into a gzip-compressed CPIO archive
+    (cd "$OVERLAY_DIR" && find . | cpio -o -H newc 2>/dev/null | gzip -9 > "$OVERLAY_CPIO")
+    rm -rf "$OVERLAY_DIR"
+
+    OVERLAY_KB=$(du -k "$OVERLAY_CPIO" | awk '{print $1}')
+    ok "Overlay CPIO created (${OVERLAY_KB} KB)"
+
+    # Patch config.txt — add initramfs overlay directive if not already there
+    # Use printf to guarantee a leading newline (file may lack a trailing one)
+    CONFIG="$MOUNT_POINT/config.txt"
+    if grep -q "legacy_patch" "$CONFIG" 2>/dev/null; then
+        info "config.txt already has legacy_patch initramfs line"
+    else
+        printf '\ninitramfs legacy_patch.cpio.gz followkernel\n' >> "$CONFIG"
+        ok "Patched config.txt to load overlay initramfs"
+    fi
+
+    # Unmount cleanly
+    umount "$MOUNT_POINT"
+    hdiutil detach "$DISK" 2>/dev/null || true
+    rm -rf "$MOUNT_POINT"
+
+    echo ""
+    ok "Inject complete — image is ready to flash."
+}
+
+# ============================================================================
 # Main
 # ============================================================================
 main() {
@@ -366,6 +530,13 @@ main() {
     if ! command -v python3 &>/dev/null; then
         error "python3 is required but not installed"
         exit 1
+    fi
+
+    if [ "$INJECT_ONLY" = true ]; then
+        inject_files
+        echo ""
+        ok "All done!"
+        exit 0
     fi
 
     if [ "$BUILD_ONLY" = false ]; then

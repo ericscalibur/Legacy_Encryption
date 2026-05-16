@@ -35,7 +35,15 @@ def _load_wordlist() -> list[str]:
     if _BIP39_WORDLIST is not None:
         return _BIP39_WORDLIST
 
-    # Try SeedSigner's bundled wordlist location first
+    # Try embit first — that's how SeedSigner itself carries the wordlist
+    try:
+        from embit.bip39 import WORDLIST
+        _BIP39_WORDLIST = list(WORDLIST)
+        return _BIP39_WORDLIST
+    except Exception:
+        pass
+
+    # Fall back to english.txt file (useful for local dev / testing)
     search_paths = [
         os.path.join(os.path.dirname(__file__), "english.txt"),
         os.path.join(os.path.dirname(__file__), "..", "seedsigner", "resources", "english.txt"),
@@ -52,8 +60,8 @@ def _load_wordlist() -> list[str]:
             continue
 
     raise FileNotFoundError(
-        "BIP-39 english.txt not found. Place it next to this module or "
-        "ensure SeedSigner's wordlist is accessible."
+        "BIP-39 wordlist not found. Ensure embit is installed or place english.txt "
+        "next to this module."
     )
 
 
