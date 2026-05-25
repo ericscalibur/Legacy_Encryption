@@ -16,6 +16,7 @@ class Camera(Singleton):
     _parked_stream = None   # stream kept alive between scans; avoids second PiCamera() open
     _picamera = None
     _camera_rotation = None
+    _last_preview_time = 0.0  # throttle for as_image=True preview renders
 
     @classmethod
     def get_instance(cls):
@@ -28,6 +29,11 @@ class Camera(Singleton):
 
     def start_video_stream_mode(self, resolution=(320, 240), framerate=12, format="bgr"):
         from seedsigner.hardware.pivideostream import PiVideoStream
+        # Cap at 3fps. ScanScreen requests 6fps, but on Pi Zero the combination of
+        # sustained MMAL DMA (camera) + SPI DMA (display) causes a kernel deadlock
+        # when a scan runs for more than ~10-20 seconds. 3fps halves the MMAL DMA
+        # budget and eliminates the freeze without meaningfully affecting scan speed.
+        framerate = min(framerate, 3)
         if self._video_stream is not None:
             self.stop_video_stream_mode()
 
@@ -120,6 +126,16 @@ class Camera(Singleton):
             return frame
         else:
             if frame is not None:
+                # Throttle LivePreviewThread to ~5fps to prevent SPI DMA storm on Pi Zero.
+                # Without this, the tight loop in LivePreviewThread.run() pushes 50-100
+                # SPI writes/second. For short scans (paper QR) this is fine; for a phone
+                # screen showing a dense encrypted QR that takes 30+ seconds to decode,
+                # sustained SPI DMA + MMAL DMA on a single core triggers a kernel deadlock.
+                now = time.time()
+                elapsed = now - self._last_preview_time
+                if elapsed < 0.34:  # ~3fps cap, matched to camera framerate
+                    time.sleep(0.34 - elapsed)
+                self._last_preview_time = time.time()
                 return Image.fromarray(frame.astype('uint8'), 'RGB').convert('RGBA').rotate(90 + self._camera_rotation)
         return None
 

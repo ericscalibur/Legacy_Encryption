@@ -117,17 +117,38 @@ class _RawQRDecoder(DecodeQR):
         if image is None:
             return DecodeQRStatus.FALSE
 
-        # Downsample 2x + green channel only: 12x less data than 480×480 RGB
-        small = image[::2, ::2, 1].copy()
+        # Full-resolution green channel. Encrypted QRs are denser than seed QRs
+        # (Version 10+ vs Version 4-5), so the 2x downsample we used for seed QRs
+        # leaves only ~4 pixels per module on a phone screen — right at pyzbar's
+        # floor. Full res doubles that margin.
+        full_green = image[:, :, 1].copy()
 
         def _decode():
             try:
-                data = DecodeQR.extract_qr_data(small, is_binary=True)
+                # Attempt 1: full-res green channel
+                data = DecodeQR.extract_qr_data(full_green, is_binary=True)
                 if data is not None:
                     try:
                         self._worker_result = data.decode("utf-8").strip()
                     except Exception:
                         self._worker_result = data.decode("latin-1").strip()
+                    return
+
+                # Attempt 2: contrast-stretch the same image.
+                # Phone screens expose the camera to a bright white field; auto-exposure
+                # may compress the dynamic range so QR modules land in a narrow grey band
+                # rather than full black-to-white. Stretching to the full 0-255 range
+                # gives pyzbar sharper module edges.
+                mn = int(full_green.min())
+                mx = int(full_green.max())
+                if mx > mn:
+                    stretched = ((full_green.astype('float32') - mn) * (255.0 / (mx - mn))).astype('uint8')
+                    data = DecodeQR.extract_qr_data(stretched, is_binary=True)
+                    if data is not None:
+                        try:
+                            self._worker_result = data.decode("utf-8").strip()
+                        except Exception:
+                            self._worker_result = data.decode("latin-1").strip()
             except Exception:
                 pass
 
@@ -382,6 +403,8 @@ class LegacyEncryptScanSeedView(View):
     def run(self) -> Destination:
         _log.info("LegacyEncryptScanSeedView: starting seed QR scan")
         import gc; gc.collect()
+        from seedsigner.hardware.camera import Camera
+        Camera.get_instance().stop_for_pbkdf2()  # kill any stale parked stream before fresh open
         wordlist_lang = self.settings.get_value(SettingsConstants.SETTING__WORDLIST_LANGUAGE)
         decoder = _ThreadedDecodeQR(wordlist_language_code=wordlist_lang)
 
@@ -536,7 +559,7 @@ class LegacyEncryptingView(View):
         from seedsigner.hardware.camera import Camera
 
         _sync_loading_frame("Encrypting...  (15-30 sec)")
-        Camera.get_instance().stop_video_stream_mode()
+        Camera.get_instance().stop_for_pbkdf2()  # was stop_video_stream_mode (no-op when already parked)
 
         # PBKDF2 runs in a background thread; main thread does 1fps display updates.
         result_box = [None]
@@ -637,6 +660,8 @@ class LegacyDecryptScanQRView(View):
     def run(self) -> Destination:
         _log.info("LegacyDecryptScanQRView: starting encrypted QR scan")
         import gc; gc.collect()
+        from seedsigner.hardware.camera import Camera
+        Camera.get_instance().stop_for_pbkdf2()  # kill any stale parked stream before fresh open
         decoder = _RawQRDecoder()
 
         # Use default resolution (480×480) and framerate (6) — the same settings
@@ -714,7 +739,7 @@ class LegacyDecryptingView(View):
         from seedsigner.hardware.camera import Camera
 
         _sync_loading_frame("Decrypting...  (15-30 sec)")
-        Camera.get_instance().stop_video_stream_mode()
+        Camera.get_instance().stop_for_pbkdf2()  # was stop_video_stream_mode (no-op when already parked)
 
         result_box = [None]
         error_box = [None]
