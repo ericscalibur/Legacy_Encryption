@@ -7,27 +7,137 @@
         <link rel="icon" type="image/png" href="favicon.png" />
         <link rel="stylesheet" href="styles.css" />
         <style>
-            header {
+            .ds-hero {
                 background-image: url("background.png");
+                background-position: center;
+                background-repeat: no-repeat;
+                background-size: cover;
+                padding: 180px 2rem 80px;
+                text-align: center;
+            }
+            .ds-hero h1 {
+                font-family: "Georgia", serif;
+                font-size: clamp(2rem, 5vw, 3rem);
+                color: #e8e8e8;
+                letter-spacing: 2px;
+                text-shadow: 0 2px 12px rgba(0,0,0,0.8);
+            }
+            .ds-hero p {
+                color: #aac4e0;
+                margin-top: 0.75rem;
+                font-size: 1rem;
+                max-width: 600px;
+                margin-left: auto;
+                margin-right: auto;
+                line-height: 1.7;
             }
 
-            ol li {
-                margin-top: 20px;
+            .ds-section {
+                background: #000102;
+                padding: 4rem 1.5rem 6rem;
+            }
+            .ds-inner {
+                max-width: 800px;
+                margin: 0 auto;
             }
 
-            .option-title {
-                font-weight: bold;
-                margin-top: 30px;
-                margin-bottom: 5px;
+            .ds-intro {
+                color: #aac4d8;
+                font-size: 0.95rem;
+                line-height: 1.8;
+                margin-bottom: 3rem;
+                padding: 1.5rem;
+                background: #0a1628;
+                border: 1px solid #0f2444;
+                border-left: 3px solid #0296ff;
+                border-radius: 8px;
+            }
+
+            .ds-section-title {
+                color: #e8e8e8;
+                font-size: 1.2rem;
+                font-weight: 700;
+                margin-bottom: 1.25rem;
+                letter-spacing: 1px;
+                text-transform: uppercase;
+                font-size: 0.85rem;
+                color: #0296ff;
+            }
+
+            .options-grid {
+                display: flex;
+                flex-direction: column;
+                gap: 1rem;
+                margin-bottom: 3rem;
+            }
+            .option-card {
+                background: #0a1628;
+                border: 1px solid #0f2444;
+                border-radius: 10px;
+                padding: 1.5rem;
+            }
+            .option-card h3 {
+                color: #e8e8e8;
+                font-size: 1rem;
+                font-weight: 700;
+                margin-bottom: 0.75rem;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+            .option-badge {
+                font-size: 0.7rem;
+                font-weight: 700;
+                padding: 0.2rem 0.55rem;
+                border-radius: 20px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+            .badge-self { background: rgba(2,150,255,0.15); color: #0296ff; border: 1px solid rgba(2,150,255,0.3); }
+            .badge-third { background: rgba(170,170,170,0.1); color: #aaa; border: 1px solid rgba(170,170,170,0.2); }
+            .option-card p {
+                color: #aac4d8;
+                font-size: 0.9rem;
+                line-height: 1.75;
+                margin-bottom: 0.75rem;
+            }
+            .option-card a {
+                font-size: 0.85rem;
+            }
+
+            .consulting-card {
+                background: #0a1628;
+                border: 1px solid #0f2444;
+                border-radius: 10px;
+                padding: 2rem;
+                text-align: center;
+            }
+            .consulting-card h2 {
+                color: #e8e8e8;
+                font-size: 1.2rem;
+                margin-bottom: 0.75rem;
+            }
+            .consulting-card p {
+                color: #aac4d8;
+                font-size: 0.9rem;
+                line-height: 1.75;
+                max-width: 500px;
+                margin: 0 auto 1.5rem;
+            }
+
+            .ds-footer {
+                text-align: center;
+                color: #3a5a7a;
+                font-size: 0.8rem;
+                padding: 2rem;
+                border-top: 1px solid #0f2444;
             }
         </style>
     </head>
     <body>
         <header>
             <nav id="navbar" class="navbar">
-                <div class="navbar-toggle" id="navbar-toggle">
-                    &#9776;
-                </div>
+                <div class="navbar-toggle" id="navbar-toggle">&#9776;</div>
                 <ul class="navbar-menu">
                     <li><a href="index.html">Home</a></li>
                     <li><a href="mission.html">Mission</a></li>
@@ -40,99 +150,65 @@
                     <li><a href="contact.html">Contact</a></li>
                 </ul>
             </nav>
-            <div style="height: 200px"></div>
-            <h1>Deadman Switch</h1>
-            <div class="container">
-                <p>
-                    A Deadman Switch is a service that monitors whether you are
-                    still alive or active and, if you stop responding, sends a
-                    pre-written email to your Beneficiary containing the
-                    Benefactor Key and Encrypted Seed Phrase.
-                </p>
-                <p>
-                    Legacy does not provide a Deadman Switch — it is a separate
-                    system you configure yourself. Several options exist. Choose
-                    the one you trust most.
-                </p>
-
-                <h2 style="margin-top: 50px">Options</h2>
-
-                <p class="option-title">Google Inactive Account Manager (Gmail Digital Legacy)</p>
-                <p>
-                    Google allows you to designate what happens to your account
-                    and its data after a period of inactivity. You can configure
-                    it to send an email to a trusted contact if your account
-                    goes inactive for a set period (3–18 months). This requires
-                    a Gmail account and trust in Google.
-                </p>
-                <p>
-                    Set up at:
-                    <a href="https://myaccount.google.com/inactive-account-manager" target="_blank">
-                        myaccount.google.com/inactive-account-manager
-                    </a>
-                </p>
-
-                <p class="option-title">Apple Digital Legacy</p>
-                <p>
-                    Apple's Digital Legacy program allows you to designate Legacy
-                    Contacts who receive access to your Apple account data after
-                    your death. This is certificate-based and tied to your Apple
-                    ID. It requires trust in Apple.
-                </p>
-                <p>
-                    Set up at:
-                    <a href="https://support.apple.com/en-us/HT212360" target="_blank">
-                        support.apple.com/en-us/HT212360
-                    </a>
-                </p>
-
-                <p class="option-title">Deploy — Self-Hosted Deadman Switch</p>
-                <p>
-                    Deploy is an open-source Deadman Switch you run on your own
-                    private server. It sends a check-in email on a schedule; if
-                    you fail to respond, it sends the pre-written message to your
-                    Beneficiary. Because you control the server, no third party
-                    holds your data.
-                </p>
-                <p>
-                    Source code and setup instructions:
-                    <a href="https://github.com/ericscalibur/Deploy-Deadman-Switch" target="_blank">
-                        github.com/ericscalibur/Deploy-Deadman-Switch
-                    </a>
-                </p>
-
-                <p class="option-title">Other Services</p>
-                <p>
-                    Various third-party Deadman Switch services exist. Research
-                    any service carefully before trusting it with a key — consider
-                    how long the service has operated, whether it is open source,
-                    and what happens to your data if the service shuts down.
-                </p>
-
-                <h2 style="margin-top: 50px">Need Help Setting This Up?</h2>
-                <p>
-                    Configuring Legacy and a Deadman Switch correctly requires
-                    attention to detail. If you would like hands-on assistance,
-                    consulting is available.
-                </p>
-                <div class="button-container" style="margin-top: 20px">
-                    <a href="contact.html" class="learn-more-button">
-                        Contact for Consulting
-                    </a>
-                </div>
-            </div>
-            <div style="height: 200px"></div>
-            <footer>
-                Legacy - Encryption and Consulting. <br />All Rights Reserved
-                2025.
-            </footer>
         </header>
 
-        <!-- JavaScript for toggling navbar -->
+        <div class="ds-hero">
+            <h1>Deadman Switch</h1>
+            <p>A service that monitors your activity and delivers your Benefactor Key if you stop responding.</p>
+        </div>
+
+        <div class="ds-section">
+            <div class="ds-inner">
+
+                <div class="ds-intro">
+                    A Deadman Switch monitors whether you are still alive or active and, if you stop responding, sends a pre-written email to your Beneficiary containing the Benefactor Key and Encrypted Seed Phrase.<br /><br />
+                    Legacy does not provide a Deadman Switch — it is a separate system you configure yourself. Several options exist. Choose the one you trust most.
+                </div>
+
+                <div class="ds-section-title">Options</div>
+                <div class="options-grid">
+
+                    <div class="option-card">
+                        <h3>⏱ Deploy — Self-Hosted Deadman Switch <span class="option-badge badge-self">Recommended</span></h3>
+                        <p>Deploy is an open-source Deadman Switch you run on your own private server. It sends a check-in email on a schedule; if you fail to respond, it sends the pre-written message to your Beneficiary. Because you control the server, no third party holds your data.</p>
+                        <a href="https://github.com/ericscalibur/Deploy-Deadman-Switch" target="_blank">github.com/ericscalibur/Deploy-Deadman-Switch</a>
+                    </div>
+
+                    <div class="option-card">
+                        <h3>Google Inactive Account Manager <span class="option-badge badge-third">Third Party</span></h3>
+                        <p>Google allows you to designate what happens to your account after a period of inactivity. You can configure it to send an email to a trusted contact if your account goes inactive for a set period (3–18 months). Requires a Gmail account and trust in Google.</p>
+                        <a href="https://myaccount.google.com/inactive-account-manager" target="_blank">myaccount.google.com/inactive-account-manager</a>
+                    </div>
+
+                    <div class="option-card">
+                        <h3>Apple Digital Legacy <span class="option-badge badge-third">Third Party</span></h3>
+                        <p>Apple's Digital Legacy program allows you to designate Legacy Contacts who receive access to your Apple account data after your death. Certificate-based and tied to your Apple ID. Requires trust in Apple.</p>
+                        <a href="https://support.apple.com/en-us/HT212360" target="_blank">support.apple.com/en-us/HT212360</a>
+                    </div>
+
+                    <div class="option-card">
+                        <h3>Other Services <span class="option-badge badge-third">Third Party</span></h3>
+                        <p>Various third-party Deadman Switch services exist. Research any service carefully before trusting it with a key — consider how long it has operated, whether it is open source, and what happens to your data if the service shuts down.</p>
+                    </div>
+
+                </div>
+
+                <div class="consulting-card">
+                    <h2>Need help setting this up?</h2>
+                    <p>Configuring Legacy and a Deadman Switch correctly requires attention to detail. If you would like hands-on assistance, consulting is available.</p>
+                    <a href="contact.html" class="learn-more-button">Contact for Consulting</a>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="ds-footer">
+            Legacy — Encryption and Consulting. All Rights Reserved 2025.
+        </div>
+
         <script>
             const toggle = document.getElementById("navbar-toggle");
             const menu = document.querySelector(".navbar-menu");
-
             toggle.addEventListener("click", function () {
                 menu.classList.toggle("active");
             });
