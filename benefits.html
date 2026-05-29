@@ -8,17 +8,97 @@
         <link rel="stylesheet" href="styles.css" />
         <style>
             header {
-                background-image: url("background.png");
+                background-image: url("legacy-background.png");
+                background-position: center;
+                background-repeat: no-repeat;
+                background-size: cover;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+                text-align: center;
+                padding-bottom: 4rem;
+            }
+            .page-hero { padding: 0 2rem; }
+            .page-hero h1 {
+                font-family: "Georgia", serif;
+                font-size: clamp(2rem, 5vw, 3rem);
+                color: #e8e8e8;
+                letter-spacing: 2px;
+                text-shadow: 0 0 5px #0289cb, 0 0 10px #0289cb, 0 0 15px #0289cb;
+            }
+            .page-hero p {
+                color: #aac4e0;
+                margin-top: 0.75rem;
+                font-size: 1rem;
+            }
+
+            .page-section {
+                background: #000102;
+                padding: 4rem 1.5rem 6rem;
+            }
+            .page-inner {
+                max-width: 800px;
+                margin: 0 auto;
+                display: flex;
+                flex-direction: column;
+                gap: 1.25rem;
+            }
+
+            .section-label {
+                font-size: 0.75rem;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 1.5px;
+                color: #0296ff;
+                margin-bottom: 0.75rem;
+            }
+
+            .item-list {
+                background: #0a1628;
+                border: 1px solid #0f2444;
+                border-radius: 10px;
+                overflow: hidden;
+            }
+            .item-list li {
+                display: flex;
+                align-items: flex-start;
+                gap: 0.75rem;
+                padding: 1rem 1.25rem;
+                border-bottom: 1px solid #0f2444;
+                color: #aac4d8;
+                font-size: 0.925rem;
+                line-height: 1.7;
+                list-style: none;
+            }
+            .item-list li:last-child { border-bottom: none; }
+            .item-list li::before {
+                content: "✓";
+                color: #0296ff;
+                font-weight: 700;
+                flex-shrink: 0;
+                margin-top: 0.1rem;
+            }
+
+            .warn-list .item-list li::before {
+                content: "⚠";
+                color: #f7931a;
+            }
+
+            .page-footer {
+                text-align: center;
+                color: #3a5a7a;
+                font-size: 0.8rem;
+                padding: 2rem;
+                border-top: 1px solid #0f2444;
             }
         </style>
     </head>
     <body>
         <header>
             <nav id="navbar" class="navbar">
-                <div class="navbar-toggle" id="navbar-toggle">
-                    &#9776;
-                    <!-- Hamburger icon -->
-                </div>
+                <div class="navbar-toggle" id="navbar-toggle">&#9776;</div>
                 <ul class="navbar-menu">
                     <li><a href="index.html">Home</a></li>
                     <li><a href="mission.html">Mission</a></li>
@@ -31,69 +111,53 @@
                     <li><a href="contact.html">Contact</a></li>
                 </ul>
             </nav>
-            <div style="height: 200px"></div>
-            <h1 style="margin-bottom: 30px">Benefits</h1>
-            <div class="container">
-                <ol>
-                    <li>Encrypt and decrypt without internet connection.</li>
-                    <li>
-                        Excludes lawyers, executors, and other trusted
-                        third-parties.
-                    </li>
-                    <li>Consistent with the Bitcoin P2P ethos.</li>
-                    <li>Choose your own encryption keys.</li>
-                    <li>Can be used completely anonymously.</li>
-                    <li>Create as many two-part passwords as you like.</li>
-                    <li>Opensource. Transparent.</li>
-                </ol>
+            <div class="page-hero">
+                <h1>Benefits</h1>
+                <p>Why Legacy is the right tool for Bitcoin inheritance.</p>
             </div>
-            <div style="height: 50px"></div>
-            <h2 style="margin-bottom: 20px">Things to consider...</h2>
-            <div class="container">
-                <ol>
-                    <li>Legacy does NOT store any data.</li>
-                    <li>
-                        You need BOTH keys and the encrypted seed phrase to
-                        decrypt.
-                    </li>
-                    <li>
-                        If any one of these pieces of information are lost, the
-                        Bitcoin is irretrievable.
-                    </li>
-                    <li>
-                        You have sole responsibility for maintaining your keys
-                        and encrypted seed phrase.
-                    </li>
-                    <li>
-                        Keeping a working copy of "Legacy-offline" is also
-                        recommended to decrypt the seed phrase.
-                    </li>
-                    <li>
-                        This tool is intended to be used in conjunction with a
-                        Deadman Switch to deliver the Benefactor Key and
-                        Encrypted Seed Phrase.
-                    </li>
-                    <li>
-                        The security of this protocol depends entirely on the
-                        strength of your keys. Use long, random, unpredictable
-                        strings — not memorable passphrases.
-                    </li>
-                </ol>
-            </div>
-            <div style="height: 50px"></div>
-            <footer>
-                Legacy - Encryption and Consulting. <br />All Rights Reserved
-                2025.
-            </footer>
         </header>
 
-        <!-- JavaScript for toggling navbar -->
+        <div class="page-section">
+            <div class="page-inner">
+
+                <div>
+                    <div class="section-label">Benefits</div>
+                    <ul class="item-list">
+                        <li>Encrypt and decrypt without internet connection.</li>
+                        <li>Excludes lawyers, executors, and other trusted third-parties.</li>
+                        <li>Consistent with the Bitcoin P2P ethos.</li>
+                        <li>Choose your own encryption keys.</li>
+                        <li>Can be used completely anonymously.</li>
+                        <li>Create as many two-part passwords as you like.</li>
+                        <li>Opensource. Transparent.</li>
+                    </ul>
+                </div>
+
+                <div class="warn-list">
+                    <div class="section-label">Things to consider</div>
+                    <ul class="item-list">
+                        <li>Legacy does NOT store any data.</li>
+                        <li>You need BOTH keys and the encrypted seed phrase to decrypt.</li>
+                        <li>If any one of these pieces of information are lost, the Bitcoin is irretrievable.</li>
+                        <li>You have sole responsibility for maintaining your keys and encrypted seed phrase.</li>
+                        <li>Keeping a working copy of "Legacy-offline" is also recommended to decrypt the seed phrase.</li>
+                        <li>This tool is intended to be used in conjunction with a Deadman Switch to deliver the Benefactor Key and Encrypted Seed Phrase.</li>
+                        <li>The security of this protocol depends entirely on the strength of your keys. Use long, random, unpredictable strings — not memorable passphrases.</li>
+                    </ul>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="page-footer">
+            Legacy — Encryption and Consulting. All Rights Reserved 2025.
+        </div>
+
         <script>
             const toggle = document.getElementById("navbar-toggle");
             const menu = document.querySelector(".navbar-menu");
-
             toggle.addEventListener("click", function () {
-                menu.classList.toggle("active"); // Toggle the 'active' class
+                menu.classList.toggle("active");
             });
         </script>
     </body>

@@ -8,27 +8,117 @@
         <link rel="stylesheet" href="styles.css" />
         <style>
             header {
-                background-image: url("background.png");
+                background-image: url("legacy-background.png");
+                background-position: center;
+                background-repeat: no-repeat;
+                background-size: cover;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+                text-align: center;
+                padding-bottom: 4rem;
+            }
+            .page-hero { padding: 0 2rem; }
+            .page-hero h1 {
+                font-family: "Georgia", serif;
+                font-size: clamp(2rem, 5vw, 3rem);
+                color: #e8e8e8;
+                letter-spacing: 2px;
+                text-shadow: 0 0 5px #0289cb, 0 0 10px #0289cb, 0 0 15px #0289cb;
+            }
+            .page-hero p {
+                color: #aac4e0;
+                margin-top: 0.75rem;
+                font-size: 1rem;
             }
 
-            footer {
-                margin-top: 180px;
+            .page-section {
+                background: #000102;
+                padding: 4rem 1.5rem 6rem;
+            }
+            .page-inner {
+                max-width: 800px;
+                margin: 0 auto;
+                display: flex;
+                flex-direction: column;
+                gap: 1.25rem;
             }
 
-            @media (max-width: 768px) {
-                footer {
-                    margin-top: auto;
-                }
+            .content-card {
+                background: #0a1628;
+                border: 1px solid #0f2444;
+                border-radius: 10px;
+                padding: 1.75rem;
+                color: #aac4d8;
+                font-size: 0.95rem;
+                line-height: 1.8;
+            }
+            .content-card h2 {
+                color: #e8e8e8;
+                font-size: 1.1rem;
+                font-weight: 700;
+                margin-bottom: 1rem;
+            }
+            .content-card p + p { margin-top: 0.75rem; }
+
+            .donation-card {
+                background: #0a1628;
+                border: 1px solid #0f2444;
+                border-radius: 10px;
+                padding: 1.75rem;
+                text-align: center;
+            }
+            .donation-card h2 {
+                color: #e8e8e8;
+                font-size: 1.1rem;
+                font-weight: 700;
+                margin-bottom: 0.5rem;
+            }
+            .donation-card > p {
+                color: #aac4d8;
+                font-size: 0.9rem;
+                margin-bottom: 1.25rem;
+            }
+            .donation-card img {
+                width: 160px;
+                height: auto;
+                display: block;
+                margin: 0 auto 1.25rem;
+                border-radius: 8px;
+            }
+            .donation-address {
+                background: #0f2444;
+                border-radius: 8px;
+                padding: 0.75rem 1rem;
+                margin-top: 0.75rem;
+                font-size: 0.8rem;
+                color: #aac4d8;
+                word-break: break-all;
+            }
+            .donation-address strong {
+                display: block;
+                color: #0296ff;
+                margin-bottom: 0.25rem;
+                font-size: 0.75rem;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+            }
+
+            .page-footer {
+                text-align: center;
+                color: #3a5a7a;
+                font-size: 0.8rem;
+                padding: 2rem;
+                border-top: 1px solid #0f2444;
             }
         </style>
     </head>
     <body>
         <header>
             <nav id="navbar" class="navbar">
-                <div class="navbar-toggle" id="navbar-toggle">
-                    &#9776;
-                    <!-- Hamburger icon -->
-                </div>
+                <div class="navbar-toggle" id="navbar-toggle">&#9776;</div>
                 <ul class="navbar-menu">
                     <li><a href="index.html">Home</a></li>
                     <li><a href="mission.html">Mission</a></li>
@@ -41,49 +131,46 @@
                     <li><a href="contact.html">Contact</a></li>
                 </ul>
             </nav>
-            <div style="height: 200px"></div>
-            <h1>Mission</h1>
-            <div class="container">
-                <p>
-                    Our mission is to make Bitcoin inheritance simple, secure
-                    and P2P.
-                </p>
-                <p>
-                    We believe encryption can eliminate the need for the
-                    involvment of lawyers, executors and other trusted third
-                    parties.
-                </p>
+            <div class="page-hero">
+                <h1>Mission</h1>
+                <p>Bitcoin inheritance — simple, secure, and P2P.</p>
             </div>
-            <div class="container">
-                <h2>Donations</h2>
-                <p>Legacy is free and open source. Please consider donating.</p>
-                <div class="image-container">
-                    <img
-                        src="blinkQR.png"
-                        alt="qr-code"
-                        style="display: block; margin: auto"
-                    />
-                </div>
-                <p>Lightning: <br />ericscalibur@blink.sv</p>
-                <p>
-                    On-Chain: <br />bc1qe54q0yce4q6stekudywul527jlgjw7vukjqdsy
-                </p>
-            </div>
-
-            <div style="height: 150px"></div>
-            <footer>
-                Legacy - Encryption and Consulting. <br />All Rights Reserved
-                2025.
-            </footer>
         </header>
 
-        <!-- JavaScript for toggling navbar -->
+        <div class="page-section">
+            <div class="page-inner">
+
+                <div class="content-card">
+                    <p>Our mission is to make Bitcoin inheritance simple, secure and P2P.</p>
+                    <p>We believe encryption can eliminate the need for the involvement of lawyers, executors and other trusted third parties.</p>
+                </div>
+
+                <div class="donation-card">
+                    <h2>Donations</h2>
+                    <p>Legacy is free and open source. Please consider donating.</p>
+                    <img src="blinkQR.png" alt="Lightning QR code" />
+                    <div class="donation-address">
+                        <strong>Lightning</strong>
+                        ericscalibur@blink.sv
+                    </div>
+                    <div class="donation-address">
+                        <strong>On-Chain</strong>
+                        bc1qe54q0yce4q6stekudywul527jlgjw7vukjqdsy
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="page-footer">
+            Legacy — Encryption and Consulting. All Rights Reserved 2025.
+        </div>
+
         <script>
             const toggle = document.getElementById("navbar-toggle");
             const menu = document.querySelector(".navbar-menu");
-
             toggle.addEventListener("click", function () {
-                menu.classList.toggle("active"); // Toggle the 'active' class
+                menu.classList.toggle("active");
             });
         </script>
     </body>
