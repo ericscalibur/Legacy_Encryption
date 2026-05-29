@@ -8,14 +8,20 @@
         <link rel="stylesheet" href="styles.css" />
         <style>
             /* ── Hero ── */
-            .faq-hero {
-                background-image: url("background.png");
+            header {
+                background-image: url("legacy-background.png");
                 background-position: center;
                 background-repeat: no-repeat;
                 background-size: cover;
-                padding: 180px 2rem 80px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
                 text-align: center;
+                padding-bottom: 4rem;
             }
+            .faq-hero { padding: 0 2rem; }
             .faq-hero h1 {
                 font-family: "Georgia", serif;
                 font-size: clamp(2rem, 5vw, 3rem);
@@ -141,13 +147,11 @@
                     <li><a href="contact.html">Contact</a></li>
                 </ul>
             </nav>
+            <div class="faq-hero">
+                <h1>Frequently Asked Questions</h1>
+                <p>Everything you need to know about Legacy Encryption</p>
+            </div>
         </header>
-
-        <!-- Hero -->
-        <div class="faq-hero">
-            <h1>Frequently Asked Questions</h1>
-            <p>Everything you need to know about Legacy Encryption</p>
-        </div>
 
         <!-- FAQ -->
         <div class="faq-section">
