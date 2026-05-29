@@ -7,22 +7,128 @@
         <link rel="icon" type="image/png" href="favicon.png" />
         <link rel="stylesheet" href="styles.css" />
         <style>
-            header {
+            /* ── Hero ── */
+            .faq-hero {
                 background-image: url("background.png");
+                background-position: center;
+                background-repeat: no-repeat;
+                background-size: cover;
+                padding: 180px 2rem 80px;
+                text-align: center;
+            }
+            .faq-hero h1 {
+                font-family: "Georgia", serif;
+                font-size: clamp(2rem, 5vw, 3rem);
+                color: #e8e8e8;
+                letter-spacing: 2px;
+                text-shadow: 0 2px 12px rgba(0,0,0,0.8);
+            }
+            .faq-hero p {
+                color: #aac4e0;
+                margin-top: 0.75rem;
+                font-size: 1rem;
             }
 
-            ol li {
-                margin-top: 20px;
+            /* ── FAQ section ── */
+            .faq-section {
+                background: #000102;
+                padding: 4rem 1.5rem 6rem;
+            }
+            .faq-inner {
+                max-width: 800px;
+                margin: 0 auto;
+                display: flex;
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            /* ── FAQ card ── */
+            .faq-card {
+                background: #0a1628;
+                border: 1px solid #0f2444;
+                border-radius: 10px;
+                overflow: hidden;
+            }
+            .faq-question {
+                width: 100%;
+                background: none;
+                border: none;
+                padding: 1.25rem 1.5rem;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 1rem;
+                cursor: pointer;
+                text-align: left;
+                color: #e8e8e8;
+                font-size: 1rem;
+                font-weight: 600;
+                font-family: Arial, sans-serif;
+                transition: background 0.2s;
+            }
+            .faq-question:hover {
+                background: rgba(2, 150, 255, 0.06);
+            }
+            .faq-question .q-num {
+                color: #0296ff;
+                font-weight: 700;
+                font-size: 0.9rem;
+                min-width: 24px;
+            }
+            .faq-question .q-text { flex: 1; }
+            .faq-question .q-arrow {
+                color: #0296ff;
+                font-size: 1.1rem;
+                transition: transform 0.25s;
+                flex-shrink: 0;
+            }
+            .faq-card.open .q-arrow { transform: rotate(180deg); }
+            .faq-answer {
+                display: none;
+                padding: 0 1.5rem 1.5rem 1.5rem;
+                color: #aac4d8;
+                font-size: 0.95rem;
+                line-height: 1.75;
+                border-top: 1px solid #0f2444;
+            }
+            .faq-card.open .faq-answer { display: block; }
+            .faq-answer p { margin-top: 0.75rem; }
+            .faq-answer p:first-child { margin-top: 0.5rem; }
+            .faq-answer ul, .faq-answer ol {
+                margin: 0.75rem 0 0.5rem 1.5rem;
+            }
+            .faq-answer li { margin-top: 0.5rem; }
+            .faq-answer code {
+                background: #0f2444;
+                color: #0296ff;
+                padding: 0.15rem 0.4rem;
+                border-radius: 4px;
+                font-size: 0.875rem;
+            }
+            .faq-answer strong { color: #e8e8e8; }
+            .faq-answer em { color: #aac4d8; }
+
+            /* ── CTA ── */
+            .faq-cta {
+                text-align: center;
+                margin-top: 3rem;
+            }
+
+            /* ── Footer ── */
+            .faq-footer {
+                text-align: center;
+                color: #3a5a7a;
+                font-size: 0.8rem;
+                padding: 2rem;
+                border-top: 1px solid #0f2444;
             }
         </style>
     </head>
     <body>
+        <!-- Nav -->
         <header>
             <nav id="navbar" class="navbar">
-                <div class="navbar-toggle" id="navbar-toggle">
-                    &#9776;
-                    <!-- Hamburger icon -->
-                </div>
+                <div class="navbar-toggle" id="navbar-toggle">&#9776;</div>
                 <ul class="navbar-menu">
                     <li><a href="index.html">Home</a></li>
                     <li><a href="mission.html">Mission</a></li>
@@ -32,123 +138,170 @@
                     <li><a href="contact.html">Contact</a></li>
                 </ul>
             </nav>
-            <div style="height: 200px"></div>
-            <h1>Frequently Asked Questions</h1>
-            <div class="container" style="margin-bottom: 0">
-                <ol style="margin-top: 100px">
-                    <li>If the Beneficiary Key is lost, what do I do?</li>
-                    <p>
-                        If either key is lost, the seed phrase CANNOT be
-                        decrypted. This is the risk of self custody. Unless
-                        there are other means of retrieval, the Bitcoin is gone.
-                        Legacy does not save any data.
-                    </p>
-                    <li>Can I create multiple two-part passwords?</li>
-                    <p>
-                        Yes. You can create as many Benefactor/Beneficiary key
-                        combinations as you like, each associated with a
-                        different seed phrase.
-                    </p>
-                    <li>How do I use the Legacy software offline?</li>
-                    <p>
-                        Download "Legacy-offline.html" from
-                        <a
-                            href="https://github.com/ericscalibur/Legacy_Encryption"
-                            >github</a
-                        >. Disconnect from wifi. Open the file in a web browser.
-                    </p>
-                    <li>
-                        Are there any restrictions on allowable characters for
-                        the keys?
-                    </li>
-                    <p>
-                        No. Beneficiary Key and Benefactor Key may contain all
-                        uppercase, lowercase, numbers, and special characters.
-                    </p>
-                    <li>
-                        What information needs to be included in the Deadman
-                        Switch Email?
-                    </li>
-                    <p>The Beneficiary needs to receive:</p>
-                    <p>1. Benefactor Key</p>
-                    <p>2. Encrypted Seed Phrase</p>
-                    <p>3. <a href="Legacy-offline.html">Legacy-offline.html</a></p>
-                    <p>See <a href="deadman-switch.html">Deadman Switch options</a> for setup guidance.</p>
-
-                    <li>What makes a good key?</li>
-                    <p>
-                        The best keys are <strong>4–5 random, unrelated words separated by spaces</strong> — for example, <em>cloud mango river tuesday</em>. This approach gives you high entropy while remaining memorable enough to carry in your head or communicate verbally to your Beneficiary. You should never need to write both keys down together or store them with the encrypted QR.
-                    </p>
-                    <p>
-                        Legacy uses PBKDF2 with 600,000 iterations of SHA-256, which makes even a modest passphrase extremely resistant to brute force. The dual-key design means an attacker who obtains one key still cannot decrypt anything — they need both.
-                    </p>
-                    <p>
-                        Keep the Benefactor Key and Beneficiary Key stored separately. Never store either key alongside the encrypted QR.
-                    </p>
-
-                    <li>Key dos and don'ts — with examples</li>
-                    <p><strong>✓ Good keys</strong> — random, unrelated words with no personal connection:</p>
-                    <ul>
-                        <li><code>cloud mango river tuesday</code></li>
-                        <li><code>lamp orbit forest eleven quiet</code></li>
-                        <li><code>thunder anchor velvet parade</code></li>
-                        <li><code>seven bridge harbor silk moon</code></li>
-                        <li><code>arctic bench window plum escape</code></li>
-                    </ul>
-                    <p><strong>✗ Bad keys</strong> — guessable by anyone who knows you, or by anyone in the Bitcoin space:</p>
-                    <ul>
-                        <li><code>bitcoin</code> — single obvious word</li>
-                        <li><code>satoshi2009</code> — predictable Bitcoin reference</li>
-                        <li><code>john1985</code> — name + birth year, trivially guessable</li>
-                        <li><code>password123</code> — among the most common passwords in existence</li>
-                        <li><code>iloveyou</code> — common and emotionally predictable for an inheritance tool</li>
-                    </ul>
-                    <p>
-                        Note: the examples above are illustrations only — do not use them. Choose your own words at random.
-                    </p>
-
-                    <li>Tips for scanning QR codes on SeedSigner</li>
-                    <p>For best results when scanning an encrypted QR:</p>
-                    <ul>
-                        <li><strong>Printed QR codes scan most reliably</strong> — printing eliminates screen glare, pixel grid artifacts, and double-digitization blur. If you can, print the encrypted QR and store it with your estate documents.</li>
-                        <li><strong>Laptop or desktop screen</strong> is the next best option — larger display means larger QR modules and better contrast.</li>
-                        <li><strong>Phone screen:</strong> set brightness to maximum and display the QR full-screen (not as a thumbnail). Hold the phone steady, parallel to the SeedSigner camera, at roughly 10–15 cm distance.</li>
-                        <li><strong>Back button:</strong> during active scanning, hold the back button for 1–2 seconds — it only registers between decode attempts.</li>
-                    </ul>
-
-                    <li>How exactly does the encryption protocol work?</li>
-                    <p>
-                        Visit the
-                        <a
-                            href="https://ericscalibur.github.io/Legacy_Encryption/protocol.html"
-                            >Protocol</a
-                        >
-                        page for detail summary.
-                    </p>
-                </ol>
-            </div>
-            <div class="content">
-                <div style="height: 30px"></div>
-                <div class="button-container">
-                    <a href="encrypt.html" class="learn-more-button">
-                        Try the Demo
-                    </a>
-                </div>
-                <div style="height: 200px"></div>
-                <footer>
-                    Legacy - Encryption and Consulting. <br />All Rights
-                    Reserved 2025.
-                </footer>
-            </div>
         </header>
 
-        <!-- JavaScript for toggling navbar -->
+        <!-- Hero -->
+        <div class="faq-hero">
+            <h1>Frequently Asked Questions</h1>
+            <p>Everything you need to know about Legacy Encryption</p>
+        </div>
+
+        <!-- FAQ -->
+        <div class="faq-section">
+            <div class="faq-inner">
+
+                <div class="faq-card">
+                    <button class="faq-question">
+                        <span class="q-num">01</span>
+                        <span class="q-text">If the Beneficiary Key is lost, what do I do?</span>
+                        <span class="q-arrow">▾</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>If either key is lost, the seed phrase <strong>cannot</strong> be decrypted. This is the risk of self custody. Unless there are other means of retrieval, the Bitcoin is gone. Legacy does not save any data.</p>
+                    </div>
+                </div>
+
+                <div class="faq-card">
+                    <button class="faq-question">
+                        <span class="q-num">02</span>
+                        <span class="q-text">Can I create multiple two-part passwords?</span>
+                        <span class="q-arrow">▾</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Yes. You can create as many Benefactor/Beneficiary key combinations as you like, each associated with a different seed phrase.</p>
+                    </div>
+                </div>
+
+                <div class="faq-card">
+                    <button class="faq-question">
+                        <span class="q-num">03</span>
+                        <span class="q-text">How do I use Legacy offline?</span>
+                        <span class="q-arrow">▾</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Download <a href="Legacy-offline.html">Legacy-offline.html</a> from <a href="https://github.com/ericscalibur/Legacy_Encryption">GitHub</a>. Disconnect from wifi. Open the file in a web browser.</p>
+                    </div>
+                </div>
+
+                <div class="faq-card">
+                    <button class="faq-question">
+                        <span class="q-num">04</span>
+                        <span class="q-text">Are there any restrictions on allowable characters for the keys?</span>
+                        <span class="q-arrow">▾</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>No. Beneficiary Key and Benefactor Key may contain all uppercase, lowercase, numbers, and special characters.</p>
+                    </div>
+                </div>
+
+                <div class="faq-card">
+                    <button class="faq-question">
+                        <span class="q-num">05</span>
+                        <span class="q-text">What information needs to be included in the Deadman Switch email?</span>
+                        <span class="q-arrow">▾</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>The Beneficiary needs to receive:</p>
+                        <ol>
+                            <li>Benefactor Key</li>
+                            <li>Encrypted Seed Phrase</li>
+                            <li><a href="Legacy-offline.html">Legacy-offline.html</a></li>
+                        </ol>
+                        <p>See <a href="deadman-switch.html">Deadman Switch options</a> for setup guidance.</p>
+                    </div>
+                </div>
+
+                <div class="faq-card">
+                    <button class="faq-question">
+                        <span class="q-num">06</span>
+                        <span class="q-text">What makes a good key?</span>
+                        <span class="q-arrow">▾</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>The best keys are <strong>4–5 random, unrelated words separated by spaces</strong> — for example, <em>cloud mango river tuesday</em>. This gives you high entropy while remaining memorable enough to carry in your head or communicate verbally to your Beneficiary. Never write both keys down together or store them with the encrypted QR.</p>
+                        <p>Legacy uses PBKDF2 with 600,000 iterations of SHA-256, making even a modest passphrase extremely resistant to brute force. The dual-key design means an attacker who obtains one key still cannot decrypt anything — they need both.</p>
+                        <p>Keep the Benefactor Key and Beneficiary Key stored separately. Never store either key alongside the encrypted QR.</p>
+                    </div>
+                </div>
+
+                <div class="faq-card">
+                    <button class="faq-question">
+                        <span class="q-num">07</span>
+                        <span class="q-text">Key dos and don'ts — with examples</span>
+                        <span class="q-arrow">▾</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p><strong>✓ Good keys</strong> — random, unrelated words with no personal connection:</p>
+                        <ul>
+                            <li><code>cloud mango river tuesday</code></li>
+                            <li><code>lamp orbit forest eleven quiet</code></li>
+                            <li><code>thunder anchor velvet parade</code></li>
+                            <li><code>seven bridge harbor silk moon</code></li>
+                            <li><code>arctic bench window plum escape</code></li>
+                        </ul>
+                        <p><strong>✗ Bad keys</strong> — guessable by anyone who knows you:</p>
+                        <ul>
+                            <li><code>bitcoin</code> — single obvious word</li>
+                            <li><code>satoshi2009</code> — predictable Bitcoin reference</li>
+                            <li><code>john1985</code> — name + birth year, trivially guessable</li>
+                            <li><code>password123</code> — among the most common passwords in existence</li>
+                            <li><code>iloveyou</code> — common and emotionally predictable for an inheritance tool</li>
+                        </ul>
+                        <p>Note: the examples above are illustrations only — do not use them. Choose your own words at random.</p>
+                    </div>
+                </div>
+
+                <div class="faq-card">
+                    <button class="faq-question">
+                        <span class="q-num">08</span>
+                        <span class="q-text">Tips for scanning QR codes on SeedSigner</span>
+                        <span class="q-arrow">▾</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>For best results when scanning an encrypted QR:</p>
+                        <ul>
+                            <li><strong>Printed QR codes scan most reliably</strong> — printing eliminates screen glare, pixel grid artifacts, and double-digitization blur. If you can, print the encrypted QR and store it with your estate documents.</li>
+                            <li><strong>Laptop or desktop screen</strong> is the next best option — larger display means larger QR modules and better contrast.</li>
+                            <li><strong>Phone screen:</strong> set brightness to maximum and display the QR full-screen. Hold the phone steady, parallel to the SeedSigner camera, at roughly 10–15 cm distance.</li>
+                            <li><strong>Back button:</strong> during active scanning, hold the back button for 1–2 seconds — it only registers between decode attempts.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="faq-card">
+                    <button class="faq-question">
+                        <span class="q-num">09</span>
+                        <span class="q-text">How exactly does the encryption protocol work?</span>
+                        <span class="q-arrow">▾</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Visit the <a href="https://ericscalibur.github.io/Legacy_Encryption/protocol.html">Protocol</a> page for a detailed summary.</p>
+                    </div>
+                </div>
+
+                <div class="faq-cta">
+                    <a href="encrypt.html" class="learn-more-button">Try the Demo</a>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="faq-footer">
+            Legacy — Encryption and Consulting. All Rights Reserved 2025.
+        </div>
+
         <script>
             const toggle = document.getElementById("navbar-toggle");
             const menu = document.querySelector(".navbar-menu");
-
             toggle.addEventListener("click", function () {
-                menu.classList.toggle("active"); // Toggle the 'active' class
+                menu.classList.toggle("active");
+            });
+
+            document.querySelectorAll(".faq-question").forEach(function(btn) {
+                btn.addEventListener("click", function() {
+                    var card = btn.closest(".faq-card");
+                    card.classList.toggle("open");
+                });
             });
         </script>
     </body>
