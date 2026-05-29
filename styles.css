@@ -14,6 +14,14 @@ body {
     background-color: #000102;
 }
 
+a {
+    color: #0296ff;
+}
+
+a:hover {
+    color: #00aaff;
+}
+
 header {
     background-image: url("legacy-background.png"); /* Replace with your image URL */
     background-position: center;
