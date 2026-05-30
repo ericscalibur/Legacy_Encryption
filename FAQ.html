@@ -187,11 +187,13 @@
                 <div class="faq-card">
                     <button class="faq-question">
                         <span class="q-num">03</span>
-                        <span class="q-text">How do I use Legacy offline?</span>
+                        <span class="q-text">How do I use Legacy offline / air-gapped?</span>
                         <span class="q-arrow">▾</span>
                     </button>
                     <div class="faq-answer">
-                        <p>Download <a href="Legacy-offline.html">Legacy-offline.html</a> from <a href="https://github.com/ericscalibur/Legacy_Encryption">GitHub</a>. Disconnect from wifi. Open the file in a web browser.</p>
+                        <p>Download <a href="Legacy-offline.html">Legacy-offline.html</a> from <a href="https://github.com/ericscalibur/Legacy_Encryption">GitHub</a>.</p>
+                        <p><strong>Recommended — fully air-gapped on SeedSigner:</strong> Load the file onto your SeedSigner. Your seed phrase never touches an internet-connected device at any point in the process.</p>
+                        <p><strong>Alternative:</strong> Disconnect from wifi and open the file in any web browser on your computer.</p>
                     </div>
                 </div>
 
@@ -270,7 +272,8 @@
                         <span class="q-arrow">▾</span>
                     </button>
                     <div class="faq-answer">
-                        <p>For best results when scanning an encrypted QR:</p>
+                        <p>SeedSigner is the recommended way to use Legacy — the entire workflow runs air-gapped. Encrypt on SeedSigner, scan the QR into your Deploy email, and your seed phrase never touches the internet.</p>
+                        <p>For best results when scanning an encrypted QR into SeedSigner:</p>
                         <ul>
                             <li><strong>Printed QR codes scan most reliably</strong> — printing eliminates screen glare, pixel grid artifacts, and double-digitization blur. If you can, print the encrypted QR and store it with your estate documents.</li>
                             <li><strong>Laptop or desktop screen</strong> is the next best option — larger display means larger QR modules and better contrast.</li>
