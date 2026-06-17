@@ -35,7 +35,7 @@ The primary deliverable is **`Legacy-offline.html`** — a single self-contained
 ### Cryptographic Design
 - **Key derivation:** PBKDF2 (SHA-256, 600,000 iterations, 16-byte random salt)
 - **Encryption:** AES-256-GCM with a 12-byte random IV
-- **Dual-key scheme:** Seed phrase is encrypted first with the benefactor key, then with the beneficiary key — decryption requires both keys in the correct order
+- **Dual-key scheme:** The benefactor and beneficiary keys are concatenated (`benefactorKey + beneficiaryKey`) into a single combined password, which PBKDF2 stretches into one AES-256 key; the seed is encrypted in a single AES-256-GCM pass. Decryption requires both keys, and the concatenation order must match (it is not nested/double encryption — see `protocol.html` and `encryptSeedPhrase()`)
 - **Obfuscation:** 0–4 bytes of random padding added to plaintext before encryption
 
 ### Test Suite (`test-legacy-encryption.js`)
