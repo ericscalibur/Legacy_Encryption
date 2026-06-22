@@ -233,7 +233,7 @@
                     </button>
                     <div class="faq-answer">
                         <p>The best keys are <strong>4–5 random, unrelated words separated by spaces</strong> — for example, <em>cloud mango river tuesday</em>. This gives you high entropy while remaining memorable enough to carry in your head or communicate verbally to your Beneficiary. Never write both keys down together or store them with the encrypted QR.</p>
-                        <p>Legacy uses PBKDF2 with 600,000 iterations of SHA-256, making even a modest passphrase extremely resistant to brute force. The dual-key design means an attacker who obtains one key still cannot decrypt anything — they need both.</p>
+                        <p>Legacy uses PBKDF2 with 600,000 iterations of SHA-256, making even a modest passphrase extremely resistant to brute force. The two keys are the two halves of one combined password (joined by an untypeable separator), so an attacker who obtains only one half still has to brute-force the other — they need both to decrypt. Note this is a single split password, not threshold cryptography.</p>
                         <p>Keep the Benefactor Key and Beneficiary Key stored separately. Never store either key alongside the encrypted QR.</p>
                     </div>
                 </div>

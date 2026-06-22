@@ -35,6 +35,7 @@ from seedsigner.helpers.legacy_encryption import (
     encrypt_seed_phrase,
     decrypt_seed_phrase,
     validate_seed_phrase,
+    seed_phrase_error,
     encrypted_to_qr_data,
     qr_data_to_encrypted,
 )
@@ -377,12 +378,13 @@ class LegacyEnterSeedWordView(View):
         seed_phrase = " ".join(words)
         self.controller.storage.discard_pending_mnemonic()
 
-        if not validate_seed_phrase(seed_phrase):
+        err = seed_phrase_error(seed_phrase)
+        if err is not None:
             self.run_screen(
                 WarningScreen,
                 title="Invalid Seed",
-                status_headline="Bad Checksum",
-                text="The last word doesn't match the checksum. Check all words carefully and try again.",
+                status_headline="Invalid Seed",
+                text=err + " Check all words carefully and try again.",
                 button_data=[self.OK],
             )
             return Destination(LegacyManualSeedWordCountView)

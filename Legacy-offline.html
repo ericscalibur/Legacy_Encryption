@@ -2225,7 +2225,7 @@
             }
             // salts the combined key, then iteritively hashes with sha256
             // returns the cipherkey used to encrypt
-            async function deriveKey(password, salt) {
+            async function deriveKey(password, salt, iterations = 600000) {
                 const encoder = new TextEncoder();
                 const keyMaterial = await window.crypto.subtle.importKey(
                     "raw",
@@ -2241,7 +2241,7 @@
                     {
                         name: "PBKDF2",
                         salt: salt,
-                        iterations: 600000,
+                        iterations: iterations,
                         hash: "SHA-256",
                     },
                     keyMaterial,
@@ -2254,8 +2254,164 @@
                 );
                 return key;
             }
+
+            // ===========================================================
+            // Protocol v2 envelope  (see PROTOCOL-V2-SPEC.md)
+            //   "LE2." + base64url( header(35) || ciphertext )
+            //   header = version(1) kdf_id(1) iterations(4,BE) padLen(1)
+            //            salt(16) iv(12)
+            // ===========================================================
+            const LE_V2_PREFIX = "LE2.";
+            const LE_V2_VERSION = 0x02;
+            const LE_KDF_PBKDF2_SHA256 = 0x01;
+            const LE_V2_HEADER_LEN = 35;
+            // Unit Separator (0x1F) — untypeable, so the benefactor/beneficiary
+            // boundary is unambiguous: "ab"+"c" no longer derives the same key
+            // as "a"+"bc".
+            const LE_KEY_SEPARATOR = "\u001f";
+
+            function bytesToBase64Url(bytes) {
+                let bin = "";
+                for (let i = 0; i < bytes.length; i++)
+                    bin += String.fromCharCode(bytes[i]);
+                return btoa(bin)
+                    .replace(/\+/g, "-")
+                    .replace(/\//g, "_")
+                    .replace(/=+$/, "");
+            }
+
+            function base64UrlToBytes(str) {
+                let b64 = str.replace(/-/g, "+").replace(/_/g, "/");
+                while (b64.length % 4 !== 0) b64 += "=";
+                const bin = atob(b64);
+                const bytes = new Uint8Array(bin.length);
+                for (let i = 0; i < bin.length; i++)
+                    bytes[i] = bin.charCodeAt(i);
+                return bytes;
+            }
+
+            // Real BIP-39 checksum validation: word indices -> entropy bits,
+            // SHA-256 the entropy, compare the leading checksum bits.
+            async function validateBip39Checksum(seedPhrase) {
+                const words = seedPhrase.trim().split(/\s+/);
+                if (words.length !== 12 && words.length !== 24) return false;
+                let bits = "";
+                for (const w of words) {
+                    const idx = BIP39_WORDLIST.indexOf(w);
+                    if (idx === -1) return false;
+                    bits += idx.toString(2).padStart(11, "0");
+                }
+                const totalBits = words.length * 11;
+                const checksumBits = totalBits / 33; // 4 (12w) or 8 (24w)
+                const entropyBits = totalBits - checksumBits;
+                const entropy = new Uint8Array(entropyBits / 8);
+                for (let i = 0; i < entropy.length; i++) {
+                    entropy[i] = parseInt(bits.slice(i * 8, i * 8 + 8), 2);
+                }
+                const digest = new Uint8Array(
+                    await window.crypto.subtle.digest("SHA-256", entropy),
+                );
+                let digestBits = "";
+                for (const b of digest)
+                    digestBits += b.toString(2).padStart(8, "0");
+                return (
+                    digestBits.slice(0, checksumBits) === bits.slice(entropyBits)
+                );
+            }
+
+            // Encrypt a seed phrase into a v2 "LE2." payload.
+            async function encryptSeedPhraseV2(
+                seedPhrase,
+                benefactorKey,
+                beneficiaryKey,
+            ) {
+                const salt = window.crypto.getRandomValues(new Uint8Array(16));
+                const iv = window.crypto.getRandomValues(new Uint8Array(12));
+                const padLen = Math.floor(Math.random() * 5); // 0..4
+                const iterations = 600000;
+
+                const header = new Uint8Array(LE_V2_HEADER_LEN);
+                header[0] = LE_V2_VERSION;
+                header[1] = LE_KDF_PBKDF2_SHA256;
+                new DataView(header.buffer).setUint32(2, iterations, false);
+                header[6] = padLen;
+                header.set(salt, 7);
+                header.set(iv, 23);
+
+                // Pad on the byte array so high bytes can't desync padLen.
+                const seedBytes = new TextEncoder().encode(seedPhrase);
+                const plaintext = new Uint8Array(seedBytes.length + padLen);
+                plaintext.set(seedBytes, 0);
+                if (padLen > 0) {
+                    plaintext.set(
+                        window.crypto.getRandomValues(new Uint8Array(padLen)),
+                        seedBytes.length,
+                    );
+                }
+
+                const key = await deriveKey(
+                    benefactorKey + LE_KEY_SEPARATOR + beneficiaryKey,
+                    salt,
+                    iterations,
+                );
+                // Header bound as GCM AAD -> tampering with version/params fails.
+                const ct = new Uint8Array(
+                    await window.crypto.subtle.encrypt(
+                        { name: "AES-GCM", iv: iv, additionalData: header },
+                        key,
+                        plaintext,
+                    ),
+                );
+
+                const body = new Uint8Array(LE_V2_HEADER_LEN + ct.length);
+                body.set(header, 0);
+                body.set(ct, LE_V2_HEADER_LEN);
+                return LE_V2_PREFIX + bytesToBase64Url(body);
+            }
+
+            // Decrypt a v2 body. `password` is the combined key (with separator).
+            async function decryptSeedPhraseV2(body, password) {
+                const kdfId = body[1];
+                if (kdfId !== LE_KDF_PBKDF2_SHA256)
+                    throw new Error("Unsupported KDF id: " + kdfId);
+                const iterations = new DataView(
+                    body.buffer,
+                    body.byteOffset,
+                ).getUint32(2, false);
+                const padLen = body[6];
+                const salt = body.slice(7, 23);
+                const iv = body.slice(23, 35);
+                const header = body.slice(0, LE_V2_HEADER_LEN);
+                const ciphertext = body.slice(LE_V2_HEADER_LEN);
+
+                const key = await deriveKey(password, salt, iterations);
+                let decrypted;
+                try {
+                    decrypted = new Uint8Array(
+                        await window.crypto.subtle.decrypt(
+                            { name: "AES-GCM", iv: iv, additionalData: header },
+                            key,
+                            ciphertext,
+                        ),
+                    );
+                } catch (error) {
+                    if (error.name === "OperationError") {
+                        throw new Error(
+                            "Decryption failed due to authentication tag mismatch. This may indicate an incorrect key or corrupted data.",
+                        );
+                    }
+                    throw error;
+                }
+                const unpadded =
+                    padLen > 0
+                        ? decrypted.slice(0, decrypted.length - padLen)
+                        : decrypted;
+                return new TextDecoder().decode(unpadded);
+            }
+
             // Takes seedphrase and combinedkey to generate salt, IV and ciphertext
             // Everything is converted to Base64 and returned in JSON format
+            // (v1 — retained so old "LE2."-less blobs can still be decrypted)
             async function encryptData(plaintext, password) {
                 const salt = generateSalt();
                 const key = await deriveKey(password, salt);
@@ -2374,7 +2530,7 @@
                 const words = BIP39_WORDLIST;
 
                 // Validate Seed Phrase
-                const seedWords = seedPhrase.split(" ");
+                const seedWords = seedPhrase.trim().split(/\s+/);
                 if (seedWords.length !== 12 && seedWords.length !== 24) {
                     alert("Seed phrase must contain 12 or 24 words.");
                     return;
@@ -2388,30 +2544,20 @@
                     return;
                 }
 
-                // Combine keys
-                var combinedKey = benefactorKey + beneficiaryKey;
-
-                // Encryption function is called passing in seedphrase and combinedkey
-                try {
-                    const encryptedData = await encryptData(
-                        seedPhrase,
-                        combinedKey,
+                if (!(await validateBip39Checksum(seedPhrase))) {
+                    alert(
+                        "Invalid seed phrase: the words are valid but the BIP39 checksum doesn't match. Double-check the word order and the final word.",
                     );
-                    const paddingStr = String(
-                        encryptedData.paddingLength,
-                    ).padStart(2, "0"); //format padding
-                    const combinedString =
-                        encryptedData.salt +
-                        "." +
-                        encryptedData.iv +
-                        "." +
-                        encryptedData.ciphertext +
-                        "." +
-                        paddingStr; // Added padding length to string
+                    return;
+                }
 
-                    // Base64 encode the entire string (this is not part of the encryption)
-                    let base64Encoded = btoa(combinedString);
-                    base64Encoded = base64Encoded.replace(/=+$/, "");
+                // Encryption (Protocol v2 — emits an "LE2." payload)
+                try {
+                    let base64Encoded = await encryptSeedPhraseV2(
+                        seedWords.join(" "),
+                        benefactorKey,
+                        beneficiaryKey,
+                    );
 
                     document.getElementById("encrypted-SeedPhrase").innerText =
                         base64Encoded;
@@ -2461,32 +2607,52 @@
                     document.getElementById("benefactorKey").value;
                 var beneficiaryKey =
                     document.getElementById("beneficiaryKey").value;
-                var combinedKey = benefactorKey + beneficiaryKey;
                 const encryptedSeedPhrase = document.getElementById(
                     "encryptedSeedPhrase",
                 ).value;
 
                 try {
-                    const base64Decoded = atob(encryptedSeedPhrase);
-                    const components = base64Decoded.split(".");
+                    const payload = encryptedSeedPhrase.trim();
+                    let decryptedSeedPhrase;
 
-                    if (components.length !== 4) {
-                        throw new Error(
-                            "Invalid encrypted seed phrase format.",
+                    const versionMatch = payload.match(/^LE(\d+)\./);
+                    if (versionMatch) {
+                        // Versioned (v2+) payload
+                        const body = base64UrlToBytes(
+                            payload.slice(versionMatch[0].length),
+                        );
+                        if (body[0] === LE_V2_VERSION) {
+                            decryptedSeedPhrase = await decryptSeedPhraseV2(
+                                body,
+                                benefactorKey + LE_KEY_SEPARATOR + beneficiaryKey,
+                            );
+                        } else {
+                            throw new Error(
+                                "Unsupported Legacy Encryption version.",
+                            );
+                        }
+                    } else {
+                        // Legacy v1 (no version marker, keys concatenated, no separator)
+                        const combinedKey = benefactorKey + beneficiaryKey;
+                        const base64Decoded = atob(payload);
+                        const components = base64Decoded.split(".");
+                        if (components.length !== 4) {
+                            throw new Error(
+                                "Invalid encrypted seed phrase format.",
+                            );
+                        }
+                        const data = {
+                            salt: components[0],
+                            iv: components[1],
+                            ciphertext: components[2],
+                            paddingLength: parseInt(components[3], 10),
+                        };
+                        decryptedSeedPhrase = await decryptData(
+                            data,
+                            combinedKey,
                         );
                     }
 
-                    const data = {
-                        salt: components[0],
-                        iv: components[1],
-                        ciphertext: components[2],
-                        paddingLength: parseInt(components[3], 10),
-                    };
-
-                    const decryptedSeedPhrase = await decryptData(
-                        data,
-                        combinedKey,
-                    );
                     document.getElementById("decryptedSeedPhrase").innerText =
                         decryptedSeedPhrase;
                 } catch (error) {

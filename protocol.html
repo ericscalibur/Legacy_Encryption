@@ -62,9 +62,17 @@
                         beneficiary key.
                     </li>
                     <li>
-                        The benefactor and beneficiary keys are concatenated to
-                        form a single combined password. Neither party can decrypt
-                        alone — both halves are required.
+                        The benefactor and beneficiary keys are joined — with an
+                        untypeable <code>0x1F</code> separator between them — to
+                        form a single combined password, which PBKDF2 stretches
+                        into one AES-256 key. Both halves are required to decrypt,
+                        and the order must match. To be clear about what this is:
+                        it is one password split into two parts, not threshold
+                        cryptography or secret-sharing — "neither key alone
+                        decrypts" is a property of any split password. The
+                        separator removes the old ambiguity where
+                        <code>"ab" + "c"</code> and <code>"a" + "bc"</code> would
+                        derive the same key.
                     </li>
                 </ul>
                 <div style="height: 10vh"></div>
@@ -114,27 +122,46 @@
                     </ul>
                 </ul>
                 <div style="height: 10vh"></div>
-                <h2>Data Formatting:</h2>
+                <h2>Data Formatting (Protocol v2):</h2>
                 <div style="height: 5vh"></div>
                 <ul>
                     <li>
-                        The IV, ciphertext, and salt are converted to strings
-                        using arrayBufferToStr().
+                        Output is a self-describing, versioned binary envelope.
+                        A fixed 35-byte header is packed as:
                     </li>
-                    <li>These strings are then Base64 encoded using btoa().</li>
+                    <ul style="padding-left: 20px">
+                        <li>version (1 byte) = 0x02</li>
+                        <li>kdf_id (1 byte) = 0x01 (PBKDF2-HMAC-SHA256)</li>
+                        <li>iterations (4 bytes, big-endian) — stored so the count can change without a new format</li>
+                        <li>padLen (1 byte) — 0–4 random padding bytes</li>
+                        <li>salt (16 bytes)</li>
+                        <li>iv (12 bytes)</li>
+                    </ul>
+                    <li>
+                        The header is followed by the AES-GCM ciphertext (which
+                        includes the 16-byte auth tag). The header is also passed
+                        as GCM <em>associated data (AAD)</em>, so tampering with
+                        the version or stored parameters fails the auth tag.
+                    </li>
+                    <li>
+                        The whole <code>header || ciphertext</code> blob is
+                        <strong>base64url</strong>-encoded (URL/filename-safe,
+                        trailing <code>=</code> stripped).
+                    </li>
                 </ul>
                 <div style="height: 10vh"></div>
                 <h2>Output:</h2>
                 <div style="height: 5vh"></div>
                 <ul>
                     <li>
-                        The Base64-encoded salt, IV, and ciphertext are returned
-                        as a JSON object:
+                        A single string, prefixed for version detection:
                     </li>
-                    <code>
-                        json { "salt": saltBase64, "iv": ivBase64, "ciphertext":
-                        ciphertextBase64 }</code
-                    >
+                    <code>"LE2." + base64url(header || ciphertext)</code>
+                    <li>
+                        Decryptors detect the <code>LE2.</code> prefix to read v2;
+                        payloads with no prefix are treated as legacy v1 and stay
+                        decryptable forever.
+                    </li>
                 </ul>
                 <div style="height: 10vh"></div>
                 <h2>Summary of Functions:</h2>
@@ -150,8 +177,9 @@
                     </li>
                     <li>generateSalt(): Generates a 16-byte random salt.</li>
                     <li>
-                        deriveKey(password, salt): Derives a 256-bit AES key
-                        from a password (combined key) and salt using PBKDF2.
+                        deriveKey(password, salt, iterations): Derives a 256-bit
+                        AES key from a password (the combined key) and salt using
+                        PBKDF2; the iteration count is read from the v2 header.
                     </li>
                     <li>
                         encryptData(plaintext, password): Encrypts the plaintext
@@ -191,6 +219,17 @@
                         Key Management: The security of this system relies
                         heavily on the secrecy and strength of the benefactor
                         and beneficiary keys.
+                    </li>
+                    <li>
+                        Honest framing of the "dual key": the two keys are simply
+                        the two halves of one password. This is not Shamir secret
+                        sharing, a 2-of-2 multisig, or threshold cryptography —
+                        it provides no cryptographic guarantee beyond "you need
+                        the whole password." Its value is operational (two people
+                        each hold a part, neither can act alone), not a stronger
+                        cipher. If you want on-chain, enforced inheritance,
+                        Bitcoin multisig and timelocks are the right tools; this
+                        is a simpler, offline, off-chain alternative.
                     </li>
                 </ul>
             </div>

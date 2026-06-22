@@ -30,6 +30,21 @@ const BIP39_WORDLIST = [
 
 // Core encryption functions extracted from the HTML file
 class LegacyEncryption {
+    // --- Protocol v2 envelope constants (see PROTOCOL-V2-SPEC.md) ---
+    static V2_PREFIX = "LE2.";
+    static V2_VERSION = 0x02;
+    static KDF_PBKDF2_SHA256 = 0x01;
+    static V2_HEADER_LEN = 35;
+    // Unit Separator (0x1F) — untypeable, removes the key-boundary ambiguity.
+    static KEY_SEPARATOR = "\u001f";
+
+    static toB64url(bytes) {
+        return Buffer.from(bytes).toString("base64url");
+    }
+    static fromB64url(str) {
+        return new Uint8Array(Buffer.from(str, "base64url"));
+    }
+
     static strToArrayBuffer(str) {
         const buf = new ArrayBuffer(str.length);
         const bufView = new Uint8Array(buf);
@@ -47,7 +62,7 @@ class LegacyEncryption {
         return globalThis.crypto.getRandomValues(new Uint8Array(16));
     }
 
-    static async deriveKey(password, salt) {
+    static async deriveKey(password, salt, iterations = 600000) {
         const encoder = new TextEncoder();
         const keyMaterial = await globalThis.crypto.subtle.importKey(
             "raw",
@@ -61,7 +76,7 @@ class LegacyEncryption {
             {
                 name: "PBKDF2",
                 salt: salt,
-                iterations: 600000,
+                iterations: iterations,
                 hash: "SHA-256"
             },
             keyMaterial,
@@ -173,38 +188,131 @@ class LegacyEncryption {
         return words.every(word => BIP39_WORDLIST.includes(word));
     }
 
+    // Real BIP-39 checksum validation (membership + count + checksum bits).
+    // NOTE: the embedded wordlist here is the first 100 words only, so this is
+    // exercised with mnemonics composed of those words (e.g. the canonical
+    // all-"abandon"/"about" vector). The browser/port carry the full 2048.
+    static validateBip39Checksum(seedPhrase) {
+        const words = seedPhrase.trim().split(/\s+/);
+        if (words.length !== 12 && words.length !== 24) return false;
+        let bits = "";
+        for (const w of words) {
+            const idx = BIP39_WORDLIST.indexOf(w);
+            if (idx === -1) return false;
+            bits += idx.toString(2).padStart(11, "0");
+        }
+        const totalBits = words.length * 11;
+        const checksumBits = totalBits / 33;          // 4 (12w) or 8 (24w)
+        const entropyBits = totalBits - checksumBits;
+        const entropy = Buffer.alloc(entropyBits / 8);
+        for (let i = 0; i < entropy.length; i++) {
+            entropy[i] = parseInt(bits.slice(i * 8, i * 8 + 8), 2);
+        }
+        const digest = crypto.createHash("sha256").update(entropy).digest();
+        let digestBits = "";
+        for (const b of digest) digestBits += b.toString(2).padStart(8, "0");
+        return digestBits.slice(0, checksumBits) === bits.slice(entropyBits);
+    }
+
+    // Protocol v2 encrypt: "LE2." + base64url(header(35) || ciphertext).
     static async encryptSeedPhrase(seedPhrase, benefactorKey, beneficiaryKey) {
         if (!this.validateSeedPhrase(seedPhrase)) {
             throw new Error("Invalid seed phrase");
         }
 
-        const combinedKey = benefactorKey + beneficiaryKey;
-        const encryptedData = await this.encryptData(seedPhrase, combinedKey);
-        const paddingStr = String(encryptedData.paddingLength).padStart(2, "0");
-        const combinedString = encryptedData.salt + "." + encryptedData.iv + "." + encryptedData.ciphertext + "." + paddingStr;
+        const salt = globalThis.crypto.getRandomValues(new Uint8Array(16));
+        const iv = globalThis.crypto.getRandomValues(new Uint8Array(12));
+        const padLen = Math.floor(Math.random() * 5);   // 0..4
+        const iterations = 600000;
 
-        let base64Encoded = Buffer.from(combinedString).toString('base64');
-        base64Encoded = base64Encoded.replace(/=+$/, "");
+        const header = new Uint8Array(this.V2_HEADER_LEN);
+        header[0] = this.V2_VERSION;
+        header[1] = this.KDF_PBKDF2_SHA256;
+        new DataView(header.buffer).setUint32(2, iterations, false); // big-endian
+        header[6] = padLen;
+        header.set(salt, 7);
+        header.set(iv, 23);
 
-        return base64Encoded;
+        // Pad on the byte array so high bytes can't desync padLen.
+        const seedBytes = new TextEncoder().encode(seedPhrase);
+        const plaintext = new Uint8Array(seedBytes.length + padLen);
+        plaintext.set(seedBytes, 0);
+        if (padLen > 0) {
+            plaintext.set(globalThis.crypto.getRandomValues(new Uint8Array(padLen)), seedBytes.length);
+        }
+
+        const key = await this.deriveKey(
+            benefactorKey + this.KEY_SEPARATOR + beneficiaryKey, salt, iterations);
+        const ct = new Uint8Array(await globalThis.crypto.subtle.encrypt(
+            { name: "AES-GCM", iv: iv, additionalData: header }, key, plaintext));
+
+        const body = new Uint8Array(this.V2_HEADER_LEN + ct.length);
+        body.set(header, 0);
+        body.set(ct, this.V2_HEADER_LEN);
+        return this.V2_PREFIX + this.toB64url(body);
+    }
+
+    // v1 encrypt — retained ONLY so tests can prove v1 blobs still decrypt.
+    static async encryptSeedPhraseV1(seedPhrase, benefactorKey, beneficiaryKey) {
+        const combinedKey = benefactorKey + beneficiaryKey;   // no separator
+        const enc = await this.encryptData(seedPhrase, combinedKey);
+        const paddingStr = String(enc.paddingLength).padStart(2, "0");
+        const combinedString = enc.salt + "." + enc.iv + "." + enc.ciphertext + "." + paddingStr;
+        return Buffer.from(combinedString).toString("base64").replace(/=+$/, "");
     }
 
     static async decryptSeedPhrase(encryptedSeedPhrase, benefactorKey, beneficiaryKey) {
-        const combinedKey = benefactorKey + beneficiaryKey;
-        const base64Decoded = Buffer.from(encryptedSeedPhrase, 'base64').toString();
-        const components = base64Decoded.split(".");
+        const payload = encryptedSeedPhrase.trim();
+        const m = payload.match(/^LE(\d+)\./);
+        if (m) {
+            const body = this.fromB64url(payload.slice(m[0].length));
+            if (body[0] === this.V2_VERSION) {
+                return await this.decryptV2(body, benefactorKey, beneficiaryKey);
+            }
+            throw new Error(`Unsupported Legacy Encryption version: ${body[0]}`);
+        }
+        return await this.decryptV1(payload, benefactorKey, beneficiaryKey);
+    }
 
+    static async decryptV2(body, benefactorKey, beneficiaryKey) {
+        const kdfId = body[1];
+        if (kdfId !== this.KDF_PBKDF2_SHA256) throw new Error(`Unsupported KDF id: ${kdfId}`);
+        const iterations = new DataView(body.buffer, body.byteOffset).getUint32(2, false);
+        const padLen = body[6];
+        const salt = body.slice(7, 23);
+        const iv = body.slice(23, 35);
+        const header = body.slice(0, this.V2_HEADER_LEN);
+        const ciphertext = body.slice(this.V2_HEADER_LEN);
+
+        const key = await this.deriveKey(
+            benefactorKey + this.KEY_SEPARATOR + beneficiaryKey, salt, iterations);
+        let decrypted;
+        try {
+            decrypted = new Uint8Array(await globalThis.crypto.subtle.decrypt(
+                { name: "AES-GCM", iv: iv, additionalData: header }, key, ciphertext));
+        } catch (error) {
+            if (error.name === "OperationError") {
+                throw new Error("Decryption failed due to authentication tag mismatch. This may indicate an incorrect key or corrupted data.");
+            }
+            throw error;
+        }
+        const unpadded = padLen > 0 ? decrypted.slice(0, decrypted.length - padLen) : decrypted;
+        return new TextDecoder().decode(unpadded);
+    }
+
+    static async decryptV1(payload, benefactorKey, beneficiaryKey) {
+        const combinedKey = benefactorKey + beneficiaryKey;   // no separator
+        const base64Decoded = Buffer.from(payload, "base64").toString();
+        const components = base64Decoded.split(".");
         if (components.length !== 4) {
             throw new Error("Invalid encrypted seed phrase format.");
         }
-
         const data = {
             salt: components[0],
             iv: components[1],
             ciphertext: components[2],
             paddingLength: parseInt(components[3], 10)
         };
-
         return await this.decryptData(data, combinedKey);
     }
 }
@@ -440,6 +548,77 @@ class TestSuite {
         console.log(`Performance: ${iterations} round-trips in ${totalTime}ms (avg: ${avgTime.toFixed(2)}ms per round-trip)`);
     }
 
+    // --- Protocol v2 specific tests ---
+
+    // Encrypt output must be a versioned v2 payload.
+    async testProtocolV2Format() {
+        const seed = "abandon ".repeat(11) + "about";   // canonical valid 12-word
+        const encrypted = await LegacyEncryption.encryptSeedPhrase(seed, "alice", "bob");
+        if (!encrypted.startsWith("LE2.")) {
+            throw new Error(`Expected an LE2. payload, got "${encrypted.slice(0, 8)}…"`);
+        }
+        const decrypted = await LegacyEncryption.decryptSeedPhrase(encrypted, "alice", "bob");
+        if (decrypted !== seed) {
+            throw new Error(`v2 round-trip failed: got "${decrypted}"`);
+        }
+    }
+
+    // The 0x1F separator must make "ab"+"c" and "a"+"bc" derive different keys.
+    async testKeySeparatorDisambiguation() {
+        const seed = "abandon ".repeat(11) + "about";
+        const encrypted = await LegacyEncryption.encryptSeedPhrase(seed, "ab", "c");
+
+        // Correct split decrypts.
+        const ok = await LegacyEncryption.decryptSeedPhrase(encrypted, "ab", "c");
+        if (ok !== seed) throw new Error("Correct key split failed to decrypt");
+
+        // Ambiguous split ("a","bc") must NOT decrypt (this was the v1 collision).
+        try {
+            await LegacyEncryption.decryptSeedPhrase(encrypted, "a", "bc");
+            throw new Error("Ambiguous key split wrongly decrypted — separator not working");
+        } catch (error) {
+            if (!error.message.includes("authentication tag mismatch")) {
+                throw error;
+            }
+        }
+    }
+
+    // Real BIP-39 checksum is enforced; a tampered last word is rejected.
+    async testBip39ChecksumValidation() {
+        const valid = "abandon ".repeat(11) + "about";
+        if (!LegacyEncryption.validateBip39Checksum(valid)) {
+            throw new Error("Canonical valid mnemonic was rejected");
+        }
+        // Swap the checksum word for another in-list word -> bad checksum.
+        const invalid = "abandon ".repeat(11) + "abandon";
+        if (LegacyEncryption.validateBip39Checksum(invalid)) {
+            throw new Error("Invalid-checksum mnemonic was accepted");
+        }
+    }
+
+    // Old v1 blobs must still decrypt under the v2-aware reader.
+    async testV1BackwardCompatibility() {
+        const seed = "abandon ".repeat(11) + "about";
+        const v1 = await LegacyEncryption.encryptSeedPhraseV1(seed, "alice", "bob");
+        if (v1.startsWith("LE2.")) throw new Error("v1 helper unexpectedly produced a v2 payload");
+        const decrypted = await LegacyEncryption.decryptSeedPhrase(v1, "alice", "bob");
+        if (decrypted !== seed) {
+            throw new Error(`v1 backward-decrypt failed: got "${decrypted}"`);
+        }
+    }
+
+    // Byte-correct padding: round-trip survives all padLen values & high bytes.
+    async testHighBytePaddingRoundTrip() {
+        const seed = "abandon ".repeat(11) + "about";
+        for (let i = 0; i < 50; i++) {
+            const encrypted = await LegacyEncryption.encryptSeedPhrase(seed, "k1-" + i, "k2-" + i);
+            const decrypted = await LegacyEncryption.decryptSeedPhrase(encrypted, "k1-" + i, "k2-" + i);
+            if (decrypted !== seed) {
+                throw new Error(`Padding round-trip failed on iteration ${i}: got "${decrypted}"`);
+            }
+        }
+    }
+
     async runAllTests() {
         console.log("🔐 Starting Legacy Encryption Test Suite\n");
 
@@ -447,6 +626,13 @@ class TestSuite {
         await this.runTest("Basic Encryption/Decryption", () => this.testBasicEncryptionDecryption());
         await this.runTest("Seed Phrase Generation", () => this.testSeedPhraseGeneration());
         await this.runTest("Seed Phrase Encryption/Decryption", () => this.testSeedPhraseEncryptionDecryption());
+
+        // Protocol v2 tests
+        await this.runTest("Protocol v2 Format", () => this.testProtocolV2Format());
+        await this.runTest("Key Separator Disambiguation", () => this.testKeySeparatorDisambiguation());
+        await this.runTest("BIP-39 Checksum Validation", () => this.testBip39ChecksumValidation());
+        await this.runTest("v1 Backward Compatibility", () => this.testV1BackwardCompatibility());
+        await this.runTest("High-Byte Padding Round-trip", () => this.testHighBytePaddingRoundTrip());
 
         // Security tests
         await this.runTest("Salt Uniqueness", () => this.testSaltUniqueness());

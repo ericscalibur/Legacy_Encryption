@@ -144,7 +144,7 @@
 
             // salts the combined key, then iteratively hashes with SHA-256
             // returns the cipherkey used to encrypt
-            async function deriveKey(password, salt) {
+            async function deriveKey(password, salt, iterations = 600000) {
                 const encoder = new TextEncoder();
                 const keyMaterial = await window.crypto.subtle.importKey(
                     "raw",
@@ -160,7 +160,7 @@
                     {
                         name: "PBKDF2",
                         salt: salt,
-                        iterations: 600000,
+                        iterations: iterations,
                         hash: "SHA-256",
                     },
                     keyMaterial,
@@ -172,6 +172,63 @@
                     ["encrypt", "decrypt"],
                 );
                 return key;
+            }
+
+            // ---- Protocol v2 envelope (see PROTOCOL-V2-SPEC.md) ----
+            const LE_V2_VERSION = 0x02;
+            const LE_KDF_PBKDF2_SHA256 = 0x01;
+            const LE_V2_HEADER_LEN = 35;
+            // Unit Separator (0x1F) — untypeable, removes key-boundary ambiguity.
+            const LE_KEY_SEPARATOR = "\u001f";
+
+            function base64UrlToBytes(str) {
+                let b64 = str.replace(/-/g, "+").replace(/_/g, "/");
+                while (b64.length % 4 !== 0) b64 += "=";
+                const bin = atob(b64);
+                const bytes = new Uint8Array(bin.length);
+                for (let i = 0; i < bin.length; i++)
+                    bytes[i] = bin.charCodeAt(i);
+                return bytes;
+            }
+
+            // Decrypt a v2 body. `password` is the combined key (with separator).
+            async function decryptSeedPhraseV2(body, password) {
+                const kdfId = body[1];
+                if (kdfId !== LE_KDF_PBKDF2_SHA256)
+                    throw new Error("Unsupported KDF id: " + kdfId);
+                const iterations = new DataView(
+                    body.buffer,
+                    body.byteOffset,
+                ).getUint32(2, false);
+                const padLen = body[6];
+                const salt = body.slice(7, 23);
+                const iv = body.slice(23, 35);
+                const header = body.slice(0, LE_V2_HEADER_LEN);
+                const ciphertext = body.slice(LE_V2_HEADER_LEN);
+
+                const key = await deriveKey(password, salt, iterations);
+                let decrypted;
+                try {
+                    decrypted = new Uint8Array(
+                        await window.crypto.subtle.decrypt(
+                            { name: "AES-GCM", iv: iv, additionalData: header },
+                            key,
+                            ciphertext,
+                        ),
+                    );
+                } catch (error) {
+                    if (error.name === "OperationError") {
+                        throw new Error(
+                            "Decryption failed due to authentication tag mismatch. This may indicate an incorrect key or corrupted data.",
+                        );
+                    }
+                    throw error;
+                }
+                const unpadded =
+                    padLen > 0
+                        ? decrypted.slice(0, decrypted.length - padLen)
+                        : decrypted;
+                return new TextDecoder().decode(unpadded);
             }
 
             async function decryptData(data, password) {
@@ -225,32 +282,52 @@
                     document.getElementById("benefactorKey").value;
                 var beneficiaryKey =
                     document.getElementById("beneficiaryKey").value;
-                var combinedKey = benefactorKey + beneficiaryKey;
                 const encryptedSeedPhrase = document.getElementById(
                     "encryptedSeedPhrase",
                 ).value;
 
                 try {
-                    const base64Decoded = atob(encryptedSeedPhrase);
-                    const components = base64Decoded.split(".");
+                    const payload = encryptedSeedPhrase.trim();
+                    let decryptedSeedPhrase;
 
-                    if (components.length !== 4) {
-                        throw new Error(
-                            "Invalid encrypted seed phrase format.",
+                    const versionMatch = payload.match(/^LE(\d+)\./);
+                    if (versionMatch) {
+                        // Versioned (v2+) payload
+                        const body = base64UrlToBytes(
+                            payload.slice(versionMatch[0].length),
+                        );
+                        if (body[0] === LE_V2_VERSION) {
+                            decryptedSeedPhrase = await decryptSeedPhraseV2(
+                                body,
+                                benefactorKey + LE_KEY_SEPARATOR + beneficiaryKey,
+                            );
+                        } else {
+                            throw new Error(
+                                "Unsupported Legacy Encryption version.",
+                            );
+                        }
+                    } else {
+                        // Legacy v1 (no version marker, keys concatenated, no separator)
+                        const combinedKey = benefactorKey + beneficiaryKey;
+                        const base64Decoded = atob(payload);
+                        const components = base64Decoded.split(".");
+                        if (components.length !== 4) {
+                            throw new Error(
+                                "Invalid encrypted seed phrase format.",
+                            );
+                        }
+                        const data = {
+                            salt: components[0],
+                            iv: components[1],
+                            ciphertext: components[2],
+                            paddingLength: parseInt(components[3], 10),
+                        };
+                        decryptedSeedPhrase = await decryptData(
+                            data,
+                            combinedKey,
                         );
                     }
 
-                    const data = {
-                        salt: components[0],
-                        iv: components[1],
-                        ciphertext: components[2],
-                        paddingLength: parseInt(components[3], 10),
-                    };
-
-                    const decryptedSeedPhrase = await decryptData(
-                        data,
-                        combinedKey,
-                    );
                     document.getElementById("decryptedSeedPhrase").innerText =
                         decryptedSeedPhrase;
                 } catch (error) {

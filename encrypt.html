@@ -180,7 +180,7 @@
             }
             // salts the combined key, then iteritively hashes with sha256
             // returns the cipherkey used to encrypt
-            async function deriveKey(password, salt) {
+            async function deriveKey(password, salt, iterations = 600000) {
                 const encoder = new TextEncoder();
                 const keyMaterial = await window.crypto.subtle.importKey(
                     "raw",
@@ -196,7 +196,7 @@
                     {
                         name: "PBKDF2",
                         salt: salt,
-                        iterations: 600000,
+                        iterations: iterations,
                         hash: "SHA-256",
                     },
                     keyMaterial,
@@ -208,6 +208,71 @@
                     ["encrypt", "decrypt"],
                 );
                 return key;
+            }
+
+            // ---- Protocol v2 envelope (see PROTOCOL-V2-SPEC.md) ----
+            const LE_V2_PREFIX = "LE2.";
+            const LE_V2_VERSION = 0x02;
+            const LE_KDF_PBKDF2_SHA256 = 0x01;
+            const LE_V2_HEADER_LEN = 35;
+            // Unit Separator (0x1F) — untypeable, removes key-boundary ambiguity.
+            const LE_KEY_SEPARATOR = "\u001f";
+
+            function bytesToBase64Url(bytes) {
+                let bin = "";
+                for (let i = 0; i < bytes.length; i++)
+                    bin += String.fromCharCode(bytes[i]);
+                return btoa(bin)
+                    .replace(/\+/g, "-")
+                    .replace(/\//g, "_")
+                    .replace(/=+$/, "");
+            }
+
+            async function encryptSeedPhraseV2(
+                seedPhrase,
+                benefactorKey,
+                beneficiaryKey,
+            ) {
+                const salt = window.crypto.getRandomValues(new Uint8Array(16));
+                const iv = window.crypto.getRandomValues(new Uint8Array(12));
+                const padLen = Math.floor(Math.random() * 5);
+                const iterations = 600000;
+
+                const header = new Uint8Array(LE_V2_HEADER_LEN);
+                header[0] = LE_V2_VERSION;
+                header[1] = LE_KDF_PBKDF2_SHA256;
+                new DataView(header.buffer).setUint32(2, iterations, false);
+                header[6] = padLen;
+                header.set(salt, 7);
+                header.set(iv, 23);
+
+                const seedBytes = new TextEncoder().encode(seedPhrase);
+                const plaintext = new Uint8Array(seedBytes.length + padLen);
+                plaintext.set(seedBytes, 0);
+                if (padLen > 0) {
+                    plaintext.set(
+                        window.crypto.getRandomValues(new Uint8Array(padLen)),
+                        seedBytes.length,
+                    );
+                }
+
+                const key = await deriveKey(
+                    benefactorKey + LE_KEY_SEPARATOR + beneficiaryKey,
+                    salt,
+                    iterations,
+                );
+                const ct = new Uint8Array(
+                    await window.crypto.subtle.encrypt(
+                        { name: "AES-GCM", iv: iv, additionalData: header },
+                        key,
+                        plaintext,
+                    ),
+                );
+
+                const body = new Uint8Array(LE_V2_HEADER_LEN + ct.length);
+                body.set(header, 0);
+                body.set(ct, LE_V2_HEADER_LEN);
+                return LE_V2_PREFIX + bytesToBase64Url(body);
             }
             // Takes seedphrase and combinedkey to generate salt, IV and ciphertext
             // Everything is converted to Base64 and returned in JSON format
@@ -347,30 +412,14 @@
                     return;
                 }
 
-                // Combine keys
-                var combinedKey = benefactorKey + beneficiaryKey;
-
-                // Encryption function is called passing in seedphrase and combinedkey
+                // Encryption (Protocol v2 — emits an "LE2." payload)
+                let base64Encoded;
                 try {
-                    const encryptedData = await encryptData(
-                        seedPhrase,
-                        combinedKey,
+                    base64Encoded = await encryptSeedPhraseV2(
+                        seedPhrase.trim(),
+                        benefactorKey,
+                        beneficiaryKey,
                     );
-                    const paddingStr = String(
-                        encryptedData.paddingLength,
-                    ).padStart(2, "0"); //format padding
-                    const combinedString =
-                        encryptedData.salt +
-                        "." +
-                        encryptedData.iv +
-                        "." +
-                        encryptedData.ciphertext +
-                        "." +
-                        paddingStr; // Added padding length to string
-
-                    // Base64 encode the entire string (this is not part of the encryption)
-                    let base64Encoded = btoa(combinedString);
-                    base64Encoded = base64Encoded.replace(/=+$/, "");
 
                     document.getElementById("encryptButton").innerText =
                         "Scroll Down";

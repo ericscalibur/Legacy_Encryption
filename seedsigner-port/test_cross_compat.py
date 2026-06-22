@@ -29,7 +29,10 @@ le._BIP39_WORDLIST = [
     "absorb", "abstract", "absurd", "abuse", "access", "accident",
 ]
 
-SEED_12 = "abandon ability able about above absent absorb abstract absurd abuse access accident"
+# Canonical all-zero-entropy mnemonic (checksum word "about") — a VALID BIP-39
+# phrase, required now that encrypt enforces the checksum. Uses only words that
+# exist in the minimal wordlist above (indices 0 and 3, matching real BIP-39).
+SEED_12 = "abandon " * 11 + "about"
 BK = "benefactor-test-key"
 BYK = "beneficiary-test-key"
 
@@ -95,7 +98,30 @@ class TestPythonRoundTrip:
     def test_validate_seed_phrase(self):
         assert le.validate_seed_phrase(SEED_12) is True
         assert le.validate_seed_phrase("abandon ability able") is False  # too short
-        assert le.validate_seed_phrase("abandon ability able about above absent absorb abstract absurd abuse access zzzzz") is False  # bad word
+        assert le.validate_seed_phrase("abandon " * 11 + "zzzzz") is False  # bad word
+        # Valid words + valid count but WRONG checksum is now rejected (v1 bug).
+        assert le.validate_seed_phrase("abandon " * 11 + "abandon") is False
+
+    def test_v1_backward_decrypt(self):
+        """A legacy v1 payload (no LE2. prefix, no separator) still decrypts."""
+        enc = le.encrypt_data(SEED_12, BK + BYK)        # v1: keys concatenated, no sep
+        padding_str = str(enc["paddingLength"]).zfill(2)
+        combined = f'{enc["salt"]}.{enc["iv"]}.{enc["ciphertext"]}.{padding_str}'
+        v1_payload = le.base64.b64encode(combined.encode()).decode().rstrip("=")
+        assert not v1_payload.startswith("LE2.")
+        assert le.decrypt_seed_phrase(v1_payload, BK, BYK) == SEED_12
+
+    def test_v2_format_and_separator(self):
+        """Encrypt emits an LE2. payload; the 0x1F separator disambiguates keys."""
+        enc = le.encrypt_seed_phrase(SEED_12, "ab", "c")
+        assert enc.startswith("LE2.")
+        assert le.decrypt_seed_phrase(enc, "ab", "c") == SEED_12
+        # "a"+"bc" must NOT decrypt what "ab"+"c" encrypted (the v1 collision).
+        try:
+            le.decrypt_seed_phrase(enc, "a", "bc")
+            assert False, "Ambiguous key split wrongly decrypted"
+        except Exception:
+            pass
 
     def test_qr_helpers(self):
         enc = le.encrypt_seed_phrase(SEED_12, BK, BYK)
@@ -109,7 +135,7 @@ class TestPythonRoundTrip:
 # 2. Cross-compatibility: Python encrypts → Node decrypts
 # ===========================================================================
 
-# Node.js script that decrypts a Legacy-format ciphertext
+# Node.js script that decrypts a Legacy payload (v2, with v1 fallback)
 NODE_DECRYPT_SCRIPT = r"""
 const crypto = require('crypto');
 const { webcrypto } = require('crypto');
@@ -119,44 +145,53 @@ const input = JSON.parse(process.argv[2]);
 const encrypted = input.encrypted;
 const bk = input.benefactorKey;
 const byk = input.beneficiaryKey;
+const SEP = "\u001f";
 
-class LE {
-    static strToArrayBuffer(str) {
-        const buf = new ArrayBuffer(str.length);
-        const v = new Uint8Array(buf);
-        for (let i = 0; i < str.length; i++) v[i] = str.charCodeAt(i);
-        return buf;
+async function deriveKey(password, salt, iterations) {
+    const enc = new TextEncoder();
+    const km = await globalThis.crypto.subtle.importKey("raw", enc.encode(password), {name:"PBKDF2"}, false, ["deriveKey"]);
+    return globalThis.crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations,hash:"SHA-256"}, km, {name:"AES-GCM",length:256}, true, ["encrypt","decrypt"]);
+}
+async function decryptV2(body, bk, byk) {
+    const iterations = new DataView(body.buffer, body.byteOffset).getUint32(2, false);
+    const padLen = body[6];
+    const salt = body.slice(7,23), iv = body.slice(23,35), header = body.slice(0,35), ct = body.slice(35);
+    const key = await deriveKey(bk + SEP + byk, salt, iterations);
+    const dec = new Uint8Array(await globalThis.crypto.subtle.decrypt({name:"AES-GCM",iv,additionalData:header}, key, ct));
+    const out = padLen > 0 ? dec.slice(0, dec.length - padLen) : dec;
+    return new TextDecoder().decode(out);
+}
+async function decryptV1(payload, bk, byk) {
+    const ck = bk + byk;
+    let padded = payload;
+    while (padded.length % 4 !== 0) padded += "=";
+    const decoded = Buffer.from(padded, 'base64').toString();
+    const parts = decoded.split(".");
+    if (parts.length !== 4) throw new Error("bad format");
+    const toU8 = s => new Uint8Array(Buffer.from(s, 'base64'));
+    const salt = toU8(parts[0]), iv = toU8(parts[1]), ct = toU8(parts[2]), pl = parseInt(parts[3], 10);
+    const key = await deriveKey(ck, salt, 600000);
+    const dec = await globalThis.crypto.subtle.decrypt({name:"AES-GCM",iv}, key, ct);
+    let text = new TextDecoder().decode(dec);
+    if (pl > 0 && pl <= text.length) text = text.slice(0, -pl);
+    return text;
+}
+async function decrypt(payload, bk, byk) {
+    const m = payload.match(/^LE(\d+)\./);
+    if (m) {
+        const body = new Uint8Array(Buffer.from(payload.slice(m[0].length), 'base64url'));
+        if (body[0] === 0x02) return decryptV2(body, bk, byk);
+        throw new Error("unsupported version " + body[0]);
     }
-    static async deriveKey(password, salt) {
-        const enc = new TextEncoder();
-        const km = await globalThis.crypto.subtle.importKey("raw", enc.encode(password), {name:"PBKDF2"}, false, ["deriveKey"]);
-        return globalThis.crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:600000,hash:"SHA-256"}, km, {name:"AES-GCM",length:256}, true, ["encrypt","decrypt"]);
-    }
-    static async decryptSeedPhrase(enc, bk, byk) {
-        const ck = bk + byk;
-        let padded = enc;
-        while (padded.length % 4 !== 0) padded += "=";
-        const decoded = Buffer.from(padded, 'base64').toString();
-        const parts = decoded.split(".");
-        if (parts.length !== 4) throw new Error("bad format");
-        const salt = new Uint8Array(LE.strToArrayBuffer(Buffer.from(parts[0],'base64').toString('binary')));
-        const iv   = new Uint8Array(LE.strToArrayBuffer(Buffer.from(parts[1],'base64').toString('binary')));
-        const ct   = new Uint8Array(LE.strToArrayBuffer(Buffer.from(parts[2],'base64').toString('binary')));
-        const pl   = parseInt(parts[3], 10);
-        const key  = await LE.deriveKey(ck, salt);
-        const dec  = await globalThis.crypto.subtle.decrypt({name:"AES-GCM",iv}, key, ct);
-        let text = new TextDecoder().decode(dec);
-        if (pl > 0 && pl <= text.length) text = text.slice(0, -pl);
-        return text;
-    }
+    return decryptV1(payload, bk, byk);
 }
 
-LE.decryptSeedPhrase(encrypted, bk, byk)
+decrypt(encrypted, bk, byk)
     .then(r => { console.log(JSON.stringify({ok: true, result: r})); })
     .catch(e => { console.log(JSON.stringify({ok: false, error: e.message})); process.exit(1); });
 """
 
-# Node.js script that encrypts a seed phrase
+# Node.js script that encrypts a seed phrase (Protocol v2)
 NODE_ENCRYPT_SCRIPT = r"""
 const crypto = require('crypto');
 const { webcrypto } = require('crypto');
@@ -166,44 +201,34 @@ const input = JSON.parse(process.argv[2]);
 const seed = input.seedPhrase;
 const bk = input.benefactorKey;
 const byk = input.beneficiaryKey;
+const SEP = "\u001f";
 
-class LE {
-    static strToArrayBuffer(str) {
-        const buf = new ArrayBuffer(str.length);
-        const v = new Uint8Array(buf);
-        for (let i = 0; i < str.length; i++) v[i] = str.charCodeAt(i);
-        return buf;
-    }
-    static arrayBufferToStr(buf) {
-        return String.fromCharCode.apply(null, new Uint8Array(buf));
-    }
-    static async deriveKey(password, salt) {
-        const enc = new TextEncoder();
-        const km = await globalThis.crypto.subtle.importKey("raw", enc.encode(password), {name:"PBKDF2"}, false, ["deriveKey"]);
-        return globalThis.crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:600000,hash:"SHA-256"}, km, {name:"AES-GCM",length:256}, true, ["encrypt","decrypt"]);
-    }
-    static async encryptSeedPhrase(seed, bk, byk) {
-        const ck = bk + byk;
-        const salt = globalThis.crypto.getRandomValues(new Uint8Array(16));
-        const key = await LE.deriveKey(ck, salt);
-        const iv = globalThis.crypto.getRandomValues(new Uint8Array(12));
-        const pl = Math.floor(Math.random() * 5);
-        let padded = seed;
-        for (let i = 0; i < pl; i++) padded += String.fromCharCode(Math.floor(Math.random()*256));
-        const enc = new TextEncoder();
-        const ct = await globalThis.crypto.subtle.encrypt({name:"AES-GCM",iv}, key, enc.encode(padded));
-        const saltB64 = Buffer.from(LE.arrayBufferToStr(salt),'binary').toString('base64');
-        const ivB64   = Buffer.from(LE.arrayBufferToStr(iv),'binary').toString('base64');
-        const ctB64   = Buffer.from(LE.arrayBufferToStr(ct),'binary').toString('base64');
-        const ps = String(pl).padStart(2,"0");
-        const combined = saltB64+"."+ivB64+"."+ctB64+"."+ps;
-        let b64 = Buffer.from(combined).toString('base64');
-        b64 = b64.replace(/=+$/, "");
-        return b64;
-    }
+async function deriveKey(password, salt, iterations) {
+    const enc = new TextEncoder();
+    const km = await globalThis.crypto.subtle.importKey("raw", enc.encode(password), {name:"PBKDF2"}, false, ["deriveKey"]);
+    return globalThis.crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations,hash:"SHA-256"}, km, {name:"AES-GCM",length:256}, true, ["encrypt","decrypt"]);
+}
+async function encryptSeedPhrase(seed, bk, byk) {
+    const salt = globalThis.crypto.getRandomValues(new Uint8Array(16));
+    const iv = globalThis.crypto.getRandomValues(new Uint8Array(12));
+    const padLen = Math.floor(Math.random() * 5);
+    const iterations = 600000;
+    const header = new Uint8Array(35);
+    header[0] = 0x02; header[1] = 0x01;
+    new DataView(header.buffer).setUint32(2, iterations, false);
+    header[6] = padLen; header.set(salt, 7); header.set(iv, 23);
+    const seedBytes = new TextEncoder().encode(seed);
+    const pt = new Uint8Array(seedBytes.length + padLen);
+    pt.set(seedBytes, 0);
+    if (padLen > 0) pt.set(globalThis.crypto.getRandomValues(new Uint8Array(padLen)), seedBytes.length);
+    const key = await deriveKey(bk + SEP + byk, salt, iterations);
+    const ct = new Uint8Array(await globalThis.crypto.subtle.encrypt({name:"AES-GCM",iv,additionalData:header}, key, pt));
+    const body = new Uint8Array(35 + ct.length);
+    body.set(header, 0); body.set(ct, 35);
+    return "LE2." + Buffer.from(body).toString('base64url');
 }
 
-LE.encryptSeedPhrase(seed, bk, byk)
+encryptSeedPhrase(seed, bk, byk)
     .then(r => { console.log(JSON.stringify({ok: true, result: r})); })
     .catch(e => { console.log(JSON.stringify({ok: false, error: e.message})); process.exit(1); });
 """
