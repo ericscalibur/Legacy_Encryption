@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Legacy - Who Is This For?</title>
+        <link rel="icon" type="image/png" href="favicon.png" />
+        <link rel="stylesheet" href="styles.css" />
+        <style>
+            header {
+                background-image: url("legacy-background.png");
+                background-position: center;
+                background-repeat: no-repeat;
+                background-size: cover;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: flex-start;
+                min-height: 100vh;
+                text-align: center;
+            }
+            .page-hero { padding: 0 2rem; }
+            .page-hero h1 {
+                font-family: "Georgia", serif;
+                font-size: clamp(2rem, 5vw, 3rem);
+                color: #e8e8e8;
+                letter-spacing: 2px;
+                text-shadow: 0 0 5px #0289cb, 0 0 10px #0289cb, 0 0 15px #0289cb;
+            }
+            .page-hero p {
+                color: #aac4e0;
+                margin-top: 0.75rem;
+                font-size: 1rem;
+            }
+
+            .page-section {
+                background: linear-gradient(to bottom, transparent 0px, #000102 120px);
+                margin-top: -80px;
+                position: relative;
+                z-index: 1;
+                border-radius: 16px 16px 0 0;
+                padding: 4rem 1.5rem 6rem;
+            }
+            .page-inner {
+                max-width: 800px;
+                margin: 0 auto;
+                display: flex;
+                flex-direction: column;
+                gap: 1.75rem;
+            }
+
+            .section-label {
+                font-size: 0.75rem;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 1.5px;
+                color: #0296ff;
+                margin-bottom: 0.75rem;
+            }
+
+            .lede {
+                color: #aac4d8;
+                font-size: 1rem;
+                line-height: 1.85;
+            }
+            .lede strong { color: #d6e6f5; }
+
+            .item-list {
+                background: #0a1628;
+                border: 1px solid #0f2444;
+                border-radius: 10px;
+                overflow: hidden;
+            }
+            .item-list li {
+                display: block;
+                position: relative;
+                padding: 1rem 1.25rem 1rem 2.75rem;
+                border-bottom: 1px solid #0f2444;
+                color: #aac4d8;
+                font-size: 0.925rem;
+                line-height: 1.7;
+                list-style: none;
+            }
+            .item-list li:last-child { border-bottom: none; }
+            .item-list li::before {
+                content: "✓";
+                color: #0296ff;
+                font-weight: 700;
+                position: absolute;
+                left: 1.25rem;
+                top: 1rem;
+            }
+            .item-list li strong { color: #d6e6f5; }
+
+            .warn-list .item-list li::before {
+                content: "⚠";
+                color: #f7931a;
+            }
+
+            /* honest tradeoff callout */
+            .callout {
+                background: #1a1206;
+                border: 1px solid #4a3410;
+                border-left: 3px solid #f7931a;
+                border-radius: 10px;
+                padding: 1.25rem 1.4rem;
+                color: #d8c4a8;
+                font-size: 0.925rem;
+                line-height: 1.75;
+            }
+            .callout strong { color: #f7c873; }
+
+            /* comparison rows */
+            .compare {
+                background: #0a1628;
+                border: 1px solid #0f2444;
+                border-radius: 10px;
+                overflow: hidden;
+            }
+            .compare-row {
+                padding: 1rem 1.25rem;
+                border-bottom: 1px solid #0f2444;
+            }
+            .compare-row:last-child { border-bottom: none; }
+            .compare-row.is-legacy { background: #0d1d33; }
+            .compare-name {
+                color: #d6e6f5;
+                font-weight: 700;
+                font-size: 0.95rem;
+            }
+            .compare-name .tag {
+                font-size: 0.7rem;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                color: #0296ff;
+                margin-left: 0.5rem;
+            }
+            .compare-row p {
+                color: #8fb0cc;
+                font-size: 0.875rem;
+                line-height: 1.65;
+                margin: 0.35rem 0 0;
+            }
+
+            .steps { counter-reset: step; }
+            .steps .item-list li::before {
+                counter-increment: step;
+                content: counter(step);
+                background: #0296ff;
+                color: #00111f;
+                width: 1.4rem;
+                height: 1.4rem;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 0.8rem;
+                position: absolute;
+                left: 1rem;
+                top: 0.8rem;
+            }
+
+            /* security <-> memorability scale */
+            .scale-bar {
+                height: 12px;
+                border-radius: 6px;
+                background: linear-gradient(to right, #e5484d 0%, #f7931a 45%, #46a758 100%);
+                margin: 0.25rem 0 0.4rem;
+            }
+            .scale-ends {
+                display: flex;
+                justify-content: space-between;
+                color: #6f8aa6;
+                font-size: 0.78rem;
+                margin-bottom: 1rem;
+            }
+            .tier {
+                display: flex;
+                gap: 0.75rem;
+                align-items: flex-start;
+                padding: 0.7rem 0;
+                border-bottom: 1px solid #0f2444;
+            }
+            .tier:last-of-type { border-bottom: none; }
+            .tier .dot {
+                width: 0.7rem; height: 0.7rem; border-radius: 50%;
+                flex-shrink: 0; margin-top: 0.35rem;
+            }
+            .tier .body { font-size: 0.9rem; line-height: 1.55; color: #aac4d8; }
+            .tier .body b { color: #d6e6f5; }
+            .tier .body code {
+                background: #0f2444; color: #6fd0ff;
+                padding: 0.1rem 0.35rem; border-radius: 4px; font-size: 0.85rem;
+            }
+            .tier .verdict { font-weight: 700; }
+
+            .estimator {
+                background: #0a1628;
+                border: 1px solid #0f2444;
+                border-radius: 10px;
+                padding: 1.25rem 1.4rem;
+                margin-top: 1rem;
+            }
+            .estimator .controls {
+                display: flex; flex-wrap: wrap; gap: 1.25rem; align-items: flex-end;
+            }
+            .estimator label {
+                display: flex; flex-direction: column; gap: 0.3rem;
+                color: #8fb0cc; font-size: 0.82rem;
+            }
+            .estimator input[type="number"] {
+                width: 5rem; background: #00111f; border: 1px solid #1d3a5f;
+                color: #e8e8e8; border-radius: 6px; padding: 0.45rem 0.6rem;
+                font-size: 1rem;
+            }
+            .estimator .result {
+                margin-top: 1.1rem; padding-top: 1rem;
+                border-top: 1px solid #0f2444;
+                color: #aac4d8; font-size: 0.95rem; line-height: 1.7;
+            }
+            .estimator .result .verdict-big { font-weight: 700; font-size: 1.05rem; }
+            .estimator .fine {
+                color: #5d7894; font-size: 0.78rem; line-height: 1.55;
+                margin-top: 0.7rem;
+            }
+
+            .page-footer {
+                text-align: center;
+                color: #3a5a7a;
+                font-size: 0.8rem;
+                padding: 2rem;
+                border-top: 1px solid #0f2444;
+            }
+        </style>
+    </head>
+    <body>
+        <header>
+            <nav id="navbar" class="navbar">
+                <div class="navbar-toggle" id="navbar-toggle">&#9776;</div>
+                <ul class="navbar-menu">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="mission.html">Mission</a></li>
+                    <li><a href="how-it-works.html">How It Works</a></li>
+                    <li><a href="who-is-this-for.html">Who It's For</a></li>
+                    <li><a href="benefits.html">Benefits</a></li>
+                    <li><a href="FAQ.html">FAQ</a></li>
+                    <li><a href="deadman-switch.html">Deadman Switch</a></li>
+                    <li><a href="encrypt.html">Encrypt</a></li>
+                    <li><a href="decrypt.html">Decrypt</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                </ul>
+            </nav>
+            <div style="height:65vh"></div>
+            <div class="page-hero">
+                <h1>Who Is This For?</h1>
+                <p>Legacy isn't for everyone — and that's the point.</p>
+            </div>
+        </header>
+
+        <div class="page-section">
+            <div class="page-inner">
+
+                <p class="lede">
+                    Legacy fills a specific gap. On one end is a single seed phrase
+                    in a safe — simple, but anyone who finds it gets everything, and
+                    you can't safely make copies. On the other is Bitcoin
+                    <strong>multisig</strong> — powerful and enforced on-chain, but
+                    complex enough that most people never set it up, and most heirs
+                    can't operate it. Legacy is the middle ground:
+                    <strong>split-custody inheritance with memorable keys, fully
+                    offline, no third parties, no subscriptions, and nothing that has
+                    to outlive you.</strong> It is not the most powerful option — it's
+                    the simplest one that still protects against a single point of
+                    compromise.
+                </p>
+
+                <div>
+                    <div class="section-label">Legacy is a good fit if you…</div>
+                    <ul class="item-list">
+                        <li>Already keep a <strong>physical seed phrase backup</strong> (steel or paper). Legacy is your inheritance and transfer layer — not a replacement for your primary backup.</li>
+                        <li>Are <strong>comfortable with self-custody</strong>: you can enter a passphrase and scan a QR, and you expect your beneficiary to manage the same.</li>
+                        <li>Want to <strong>avoid third parties</strong> — no lawyers, executors, custodians, or collaborative-custody services holding your keys.</li>
+                        <li>Want <strong>zero ongoing cost</strong> — no subscriptions, no accounts, no service that has to still exist when you're gone.</li>
+                        <li>Want it <strong>fully offline / air-gapped</strong> — encrypt and decrypt on a SeedSigner with no internet, ever.</li>
+                        <li>Prefer <strong>memorable keys</strong> — a handful of random, unrelated words you can hold in your head or pass along verbally — over share files you have to store.</li>
+                        <li>Plan to deliver the <strong>Benefactor Key</strong> through a <a href="deadman-switch.html">deadman switch</a>, a will, or sealed instructions — so the beneficiary receives it only when intended.</li>
+                        <li>Want to store the encrypted backup <strong>openly and redundantly</strong> — the ciphertext is useless without both keys, so you can copy it freely.</li>
+                    </ul>
+                </div>
+
+                <div class="warn-list">
+                    <div class="section-label">It's probably NOT for you if…</div>
+                    <ul class="item-list">
+                        <li>You need <strong>k-of-n redundancy</strong> where losing a single key isn't catastrophic. Legacy is strictly <strong>two-of-two</strong> — both keys are required. Look at SLIP-39 (Shamir) or multisig.</li>
+                        <li>You <strong>can't reliably ensure both keys survive</strong> to your beneficiary, and won't keep a fallback. Without one, a single lost key means the Bitcoin is gone (see below).</li>
+                        <li>You want <strong>on-chain, enforced, auditable</strong> inheritance with spending policies and signing thresholds — that's Bitcoin multisig with timelocks, not Legacy.</li>
+                        <li>You're protecting <strong>institutional or nation-state-level value</strong>. Use enforced on-chain schemes.</li>
+                        <li>You aren't comfortable being your <strong>own custodian</strong>. Legacy gives you no one to call — that's by design, but it isn't for everyone.</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <div class="section-label">The honest tradeoff</div>
+                    <div class="callout">
+                        Legacy is <strong>two-of-two</strong>: both the Benefactor and
+                        Beneficiary keys are required, with no built-in backup. That
+                        keeps it simple — but it means a single lost key is fatal. We
+                        don't hide this; we mitigate it with discipline, not added
+                        complexity:
+                        <ul style="margin:0.6rem 0 0; padding-left:1.1rem; list-style:disc;">
+                            <li style="margin-bottom:0.35rem;">Keep <strong>many copies of the encrypted QR</strong>. It's inert without the keys, so spread it across locations.</li>
+                            <li>Keep a <strong>sealed break-glass fallback</strong> — both keys, or the seed itself — with a lawyer, in a home safe, or in a deposit box, opened only if the normal path fails.</li>
+                        </ul>
+                        <div style="margin-top:0.7rem;">The split gives you the security. The fallback gives you the reliability. Used together, no single failure loses your Bitcoin.</div>
+                    </div>
+                </div>
+
+                <div id="choosing-keys">
+                    <div class="section-label">Choosing your keys — secure vs. memorable</div>
+                    <p class="lede" style="font-size:0.95rem; margin-bottom:1rem;">
+                        You choose your own keys, so <strong>you choose your own
+                        security.</strong> There's an unavoidable tradeoff: longer,
+                        more random keys are harder to brute-force but harder to
+                        remember. Legacy doesn't pick a point on that scale for you —
+                        it lets you decide where to sit. Here's how to find your spot.
+                    </p>
+
+                    <div class="scale-bar"></div>
+                    <div class="scale-ends">
+                        <span>← more memorable, weaker</span>
+                        <span>more random, stronger →</span>
+                    </div>
+
+                    <div>
+                        <div class="tier">
+                            <span class="dot" style="background:#e5484d;"></span>
+                            <div class="body"><b>A name or common word</b> — e.g. <code>bitcoin</code>. <span class="verdict" style="color:#e5484d;">Don't.</span> Trivial to guess or crack in seconds.</div>
+                        </div>
+                        <div class="tier">
+                            <span class="dot" style="background:#f7931a;"></span>
+                            <div class="body"><b>Two related words</b> — e.g. <code>bitcoinbeach</code>. <span class="verdict" style="color:#f7931a;">Weak.</span> Predictable; within reach of a targeted attacker.</div>
+                        </div>
+                        <div class="tier">
+                            <span class="dot" style="background:#d9b400;"></span>
+                            <div class="body"><b>3 random, unrelated words</b> — e.g. <code>mango stapler vault</code>. <span class="verdict" style="color:#d9b400;">The floor.</span> Acceptable, especially across two keys.</div>
+                        </div>
+                        <div class="tier">
+                            <span class="dot" style="background:#46a758;"></span>
+                            <div class="body"><b>4–5 random, unrelated words</b> — e.g. <code>cloud mango river tuesday</code>. <span class="verdict" style="color:#46a758;">Recommended.</span> The sweet spot — strong and still memorable.</div>
+                        </div>
+                        <div class="tier">
+                            <span class="dot" style="background:#30a46c;"></span>
+                            <div class="body"><b>6+ random words / a full passphrase</b>. <span class="verdict" style="color:#30a46c;">Overkill.</span> Maximum resistance, but hard to memorize — you may end up writing it down, which changes your threat model.</div>
+                        </div>
+                    </div>
+
+                    <div class="callout" style="background:#0a1a14; border-color:#16432f; border-left-color:#46a758; color:#bfe0cc; margin-top:1rem;">
+                        Two things work in your favor: Legacy combines <strong>both
+                        keys</strong>, so a 4-word + 4-word setup has the strength of
+                        eight random words — and PBKDF2's <strong>600,000 iterations</strong>
+                        add roughly 19 bits of brute-force resistance on top. A modest
+                        passphrase here is far stronger than the same passphrase would be
+                        almost anywhere else.
+                    </div>
+
+                    <div class="estimator">
+                        <div style="color:#d6e6f5; font-weight:700; margin-bottom:0.9rem;">Find your spot</div>
+                        <div class="controls">
+                            <label>Benefactor key — random words
+                                <input type="number" id="bWords" min="0" max="24" value="4" oninput="leEstimate()" />
+                            </label>
+                            <label>Beneficiary key — random words
+                                <input type="number" id="yWords" min="0" max="24" value="4" oninput="leEstimate()" />
+                            </label>
+                        </div>
+                        <div class="result" id="leResult"></div>
+                        <div class="fine">
+                            Rough guide only. Assumes each word is genuinely random and
+                            unrelated (~11 bits/word), and an attacker with ~10¹²
+                            SHA-256/second — about 1.7 million Legacy guesses/second once
+                            PBKDF2's 600,000 iterations are paid. Reused, related, or
+                            non-random words are worth far less than this estimate.
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="section-label">How Legacy compares</div>
+                    <div class="compare">
+                        <div class="compare-row">
+                            <div class="compare-name">Seed in a safe</div>
+                            <p>Simplest of all. But no protection if it's found, and no safe way to make redundant copies.</p>
+                        </div>
+                        <div class="compare-row is-legacy">
+                            <div class="compare-name">Legacy <span class="tag">you are here</span></div>
+                            <p>Simple, offline, memorable keys, split custody, freely-copyable backup. Strict 2-of-2 — pair it with a sealed fallback for reliability.</p>
+                        </div>
+                        <div class="compare-row">
+                            <div class="compare-name">SLIP-39 / Shamir</div>
+                            <p>Any k-of-n, so no single point of failure. But the shares aren't memorable, and wallet support is thinner.</p>
+                        </div>
+                        <div class="compare-row">
+                            <div class="compare-name">Multisig + timelocks</div>
+                            <p>The gold standard: enforced on-chain, auditable, survivable. But complex to set up — and for an heir to operate.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="steps">
+                    <div class="section-label">A recommended setup</div>
+                    <ul class="item-list">
+                        <li>Keep your normal seed backup (e.g. a steel plate), exactly as you do today.</li>
+                        <li>Encrypt a copy of the seed with a Benefactor Key and a Beneficiary Key.</li>
+                        <li>Store the encrypted QR redundantly — multiple locations, even semi-public.</li>
+                        <li>Your beneficiary holds (or memorizes) their key.</li>
+                        <li>Deliver the Benefactor Key via a <a href="deadman-switch.html">deadman switch</a>, will, or sealed instructions.</li>
+                        <li>Keep a sealed fallback (both keys, or the seed) as break-glass insurance.</li>
+                    </ul>
+                </div>
+
+                <p class="lede" style="text-align:center;">
+                    If that sounds like you, see <a href="how-it-works.html">How It Works</a>
+                    or try the <a href="encrypt.html">encryption demo</a>. If it doesn't,
+                    we'd genuinely rather you used the right tool — multisig or SLIP-39 —
+                    than the simple one.
+                </p>
+
+            </div>
+        </div>
+
+        <div class="page-footer">
+            Legacy — Encryption and Consulting. All Rights Reserved 2025.
+        </div>
+
+        <script>
+            const toggle = document.getElementById("navbar-toggle");
+            const menu = document.querySelector(".navbar-menu");
+            toggle.addEventListener("click", function () {
+                menu.classList.toggle("active");
+            });
+
+            // --- Key strength estimator (honest, word-count based) ---
+            function leHumanTime(s) {
+                if (!isFinite(s)) return "trillions of years";
+                if (s < 1) return "under a second";
+                if (s < 60) return Math.round(s) + " seconds";
+                if (s < 3600) return Math.round(s / 60) + " minutes";
+                if (s < 86400) return Math.round(s / 3600) + " hours";
+                const yr = s / (60 * 60 * 24 * 365);
+                if (yr < 1) return Math.round(s / 86400) + " days";
+                if (yr < 1e3) return Math.round(yr) + " years";
+                if (yr < 1e6) return Math.round(yr / 1e3) + " thousand years";
+                if (yr < 1e9) return Math.round(yr / 1e6) + " million years";
+                if (yr < 1e12) return Math.round(yr / 1e9) + " billion years";
+                return "trillions of years";
+            }
+            function leEstimate() {
+                const b = Math.max(0, parseInt(document.getElementById("bWords").value) || 0);
+                const y = Math.max(0, parseInt(document.getElementById("yWords").value) || 0);
+                const total = b + y;
+                const bits = total * 11; // ~11 bits per genuinely random, unrelated word
+                let band, color;
+                if (bits < 33) { band = "Weak"; color = "#e5484d"; }
+                else if (bits < 55) { band = "Moderate"; color = "#f7931a"; }
+                else if (bits < 77) { band = "Strong"; color = "#46a758"; }
+                else { band = "Very strong"; color = "#30a46c"; }
+                // ~10^12 SHA-256/sec ÷ PBKDF2's 600,000 iterations ≈ 1.67M guesses/sec
+                const seconds = Math.pow(2, bits) / (1e12 / 600000);
+                const el = document.getElementById("leResult");
+                if (total === 0) {
+                    el.innerHTML = "Enter how many random words each key will have.";
+                    return;
+                }
+                let mem;
+                if (total <= 6) mem = "easy to memorize";
+                else if (total <= 10) mem = "memorable with practice";
+                else mem = "hard to memorize — you may need to write it down";
+                el.innerHTML =
+                    '<span class="verdict-big" style="color:' + color + '">≈ ' + bits + " bits — " + band + ".</span> " +
+                    "Against a well-funded attacker, brute-forcing both keys would take about <b>" + leHumanTime(seconds) + "</b>. " +
+                    "Your combined " + total + "-word key is <b>" + mem + "</b>.";
+            }
+            leEstimate();
+        </script>
+    </body>
+</html>

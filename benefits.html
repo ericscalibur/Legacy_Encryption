@@ -66,10 +66,9 @@
                 overflow: hidden;
             }
             .item-list li {
-                display: flex;
-                align-items: flex-start;
-                gap: 0.75rem;
-                padding: 1rem 1.25rem;
+                display: block;
+                position: relative;
+                padding: 1rem 1.25rem 1rem 2.75rem;
                 border-bottom: 1px solid #0f2444;
                 color: #aac4d8;
                 font-size: 0.925rem;
@@ -81,8 +80,9 @@
                 content: "✓";
                 color: #0296ff;
                 font-weight: 700;
-                flex-shrink: 0;
-                margin-top: 0.1rem;
+                position: absolute;
+                left: 1.25rem;
+                top: 1rem;
             }
 
             .warn-list .item-list li::before {
@@ -107,6 +107,7 @@
                     <li><a href="index.html">Home</a></li>
                     <li><a href="mission.html">Mission</a></li>
                     <li><a href="how-it-works.html">How It Works</a></li>
+                    <li><a href="who-is-this-for.html">Who It's For</a></li>
                     <li><a href="benefits.html">Benefits</a></li>
                     <li><a href="FAQ.html">FAQ</a></li>
                     <li><a href="deadman-switch.html">Deadman Switch</a></li>
@@ -148,7 +149,7 @@
                         <li>You have sole responsibility for maintaining your keys and encrypted seed phrase.</li>
                         <li>Keeping a working copy of "Legacy-offline" is also recommended to decrypt the seed phrase.</li>
                         <li>This tool is intended to be used in conjunction with a Deadman Switch to deliver the Benefactor Key and Encrypted Seed Phrase.</li>
-                        <li>The security of this protocol depends entirely on the strength of your keys. Use long, random, unpredictable strings — not memorable passphrases.</li>
+                        <li>The security of this protocol depends entirely on the strength of your keys — and that's yours to define. There's a tradeoff between brute-force resistance and memorability, and Legacy lets you choose where on that scale you sit. See <a href="who-is-this-for.html#choosing-keys">Choosing Your Keys</a> to find your spot.</li>
                     </ul>
                 </div>
 
