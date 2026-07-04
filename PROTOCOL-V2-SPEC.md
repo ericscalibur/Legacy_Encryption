@@ -71,6 +71,7 @@ PAYLOAD (string, goes into the QR):
 
 - Header is **35 bytes** fixed + ciphertext. Salt/iv are positional — no delimiters needed.
 - `kdf_id` + `iterations` in the header are the durability hooks: raising iterations to, say, 1,000,000 later is a *parameter* change, not a format break — decryptors already read both from the header.
+- **Decryptors MUST reject `iterations` outside [100,000 … 10,000,000] before deriving the key.** The header is only authenticated by the GCM tag, which can't be checked until *after* PBKDF2 runs — so without this bound a forged payload with `iterations = 0xFFFFFFFF` stalls the decryptor for days (DoS), and an absurdly low count flags a downgrade forgery early. The bound is a decrypt-side sanity check, not a format field; widening it later is a parameter change, not a version bump.
 - The `LE2.` prefix is human-glanceable and uses `.` (outside the base64url alphabet) so it can't be confused with body bytes; the authoritative version is still the internal `version` byte (defense in depth).
 
 ### GCM associated data (AAD)

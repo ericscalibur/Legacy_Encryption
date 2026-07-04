@@ -123,6 +123,31 @@ class TestPythonRoundTrip:
         except Exception:
             pass
 
+    def test_forged_iteration_count_rejected(self):
+        """A forged header with a huge iteration count must be rejected BEFORE
+        key derivation runs — otherwise a malicious QR is a DoS (the header is
+        only authenticated by the GCM tag, which is checked after PBKDF2)."""
+        enc = le.encrypt_seed_phrase(SEED_12, BK, BYK)
+        body = bytearray(le._b64url_decode(enc[len(le.V2_PREFIX):]))
+        body[2:6] = (0xFFFFFFFF).to_bytes(4, "big")
+        forged = le.V2_PREFIX + le._b64url_encode(bytes(body))
+        t0 = time.time()
+        try:
+            le.decrypt_seed_phrase(forged, BK, BYK)
+            assert False, "Forged iteration count wrongly accepted"
+        except ValueError as e:
+            assert "iteration" in str(e).lower()
+        # Must fail fast (no PBKDF2 with 4 billion iterations).
+        assert time.time() - t0 < 1.0, "Rejection happened after key derivation"
+        # Below the minimum bound must also be rejected (downgrade forgery).
+        body[2:6] = (1).to_bytes(4, "big")
+        forged = le.V2_PREFIX + le._b64url_encode(bytes(body))
+        try:
+            le.decrypt_seed_phrase(forged, BK, BYK)
+            assert False, "Downgraded iteration count wrongly accepted"
+        except ValueError as e:
+            assert "iteration" in str(e).lower()
+
     def test_qr_helpers(self):
         enc = le.encrypt_seed_phrase(SEED_12, BK, BYK)
         qr = le.encrypted_to_qr_data(enc)

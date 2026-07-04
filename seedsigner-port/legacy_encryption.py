@@ -202,6 +202,12 @@ V2_PREFIX = "LE2."
 V2_VERSION = 0x02
 KDF_PBKDF2_SHA256 = 0x01
 V2_HEADER_LEN = 35
+# Bounds on the header's iteration count. The header is only authenticated
+# AFTER key derivation, so without a cap a forged payload could set
+# iterations=0xFFFFFFFF and stall the device for days before the GCM tag
+# ever gets checked.
+MIN_PBKDF2_ITERATIONS = 100_000
+MAX_PBKDF2_ITERATIONS = 10_000_000
 # Unit Separator (0x1F) — untypeable, so the benefactor/beneficiary boundary is
 # unambiguous: "ab"+"c" no longer derives the same key as "a"+"bc".
 KEY_SEPARATOR = "\x1f"
@@ -285,6 +291,8 @@ def _decrypt_v2(body: bytes, benefactor_key: str, beneficiary_key: str) -> str:
     if kdf_id != KDF_PBKDF2_SHA256:
         raise ValueError(f"Unsupported KDF id: 0x{kdf_id:02x}")
     iterations = int.from_bytes(body[2:6], "big")
+    if not (MIN_PBKDF2_ITERATIONS <= iterations <= MAX_PBKDF2_ITERATIONS):
+        raise ValueError(f"Unreasonable PBKDF2 iteration count: {iterations}")
     pad_len = body[6]
     salt = body[7:23]
     iv = body[23:35]

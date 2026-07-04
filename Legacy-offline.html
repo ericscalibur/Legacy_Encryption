@@ -2265,6 +2265,12 @@
             const LE_V2_VERSION = 0x02;
             const LE_KDF_PBKDF2_SHA256 = 0x01;
             const LE_V2_HEADER_LEN = 35;
+            // Bounds on the header's iteration count. The header is only
+            // authenticated AFTER key derivation, so without a cap a forged
+            // payload could set iterations=0xFFFFFFFF and stall the browser
+            // for hours before the GCM tag ever gets checked.
+            const LE_MIN_ITERATIONS = 100000;
+            const LE_MAX_ITERATIONS = 10000000;
             // Unit Separator (0x1F) — untypeable, so the benefactor/beneficiary
             // boundary is unambiguous: "ab"+"c" no longer derives the same key
             // as "a"+"bc".
@@ -2378,6 +2384,13 @@
                     body.buffer,
                     body.byteOffset,
                 ).getUint32(2, false);
+                if (
+                    iterations < LE_MIN_ITERATIONS ||
+                    iterations > LE_MAX_ITERATIONS
+                )
+                    throw new Error(
+                        "Unreasonable PBKDF2 iteration count: " + iterations,
+                    );
                 const padLen = body[6];
                 const salt = body.slice(7, 23);
                 const iv = body.slice(23, 35);

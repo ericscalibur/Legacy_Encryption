@@ -34,6 +34,12 @@ class LegacyEncryption {
     static V2_PREFIX = "LE2.";
     static V2_VERSION = 0x02;
     static KDF_PBKDF2_SHA256 = 0x01;
+    // Bounds on the header's iteration count. The header is only authenticated
+    // AFTER key derivation, so without a cap a forged payload could set
+    // iterations=0xFFFFFFFF and stall the decryptor for hours before the GCM
+    // tag ever gets checked.
+    static MIN_ITERATIONS = 100000;
+    static MAX_ITERATIONS = 10000000;
     static V2_HEADER_LEN = 35;
     // Unit Separator (0x1F) — untypeable, removes the key-boundary ambiguity.
     static KEY_SEPARATOR = "\u001f";
@@ -278,6 +284,9 @@ class LegacyEncryption {
         const kdfId = body[1];
         if (kdfId !== this.KDF_PBKDF2_SHA256) throw new Error(`Unsupported KDF id: ${kdfId}`);
         const iterations = new DataView(body.buffer, body.byteOffset).getUint32(2, false);
+        if (iterations < this.MIN_ITERATIONS || iterations > this.MAX_ITERATIONS) {
+            throw new Error(`Unreasonable PBKDF2 iteration count: ${iterations}`);
+        }
         const padLen = body[6];
         const salt = body.slice(7, 23);
         const iv = body.slice(23, 35);
