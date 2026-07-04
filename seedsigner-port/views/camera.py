@@ -8,7 +8,6 @@ from seedsigner.models.singleton import Singleton
 from seedsigner.helpers.legacy_log import get_logger
 
 _log = get_logger("legacy.camera")
-_log.info("camera.py loaded — v3 (500ms flush, framerate=1 park)")
 
 
 class Camera(Singleton):
@@ -63,7 +62,6 @@ class Camera(Singleton):
                 self._parked_stream = None
         if self._parked_stream is not None:
             if not self._parked_stream.is_stopped:
-                _log.info("start_video_stream_mode: reusing parked stream, flushing 500ms")
                 # Restore scan framerate — parked stream was throttled to 1 fps.
                 try:
                     self._parked_stream.camera.framerate = framerate
@@ -85,7 +83,6 @@ class Camera(Singleton):
                 while self._parked_stream.frame is None and time.time() < deadline:
                     time.sleep(0.05)
                 if self._parked_stream.frame is not None:
-                    _log.info("start_video_stream_mode: flush done, stream ready")
                     self._video_stream = self._parked_stream
                     self._parked_stream = None
                     return
@@ -94,7 +91,6 @@ class Camera(Singleton):
             self._force_close_stream(self._parked_stream)
             self._parked_stream = None
 
-        _log.info("start_video_stream_mode: opening fresh PiVideoStream")
         self._video_stream = PiVideoStream(resolution=resolution, framerate=framerate, format=format)
         self._video_stream.start()
 
@@ -112,7 +108,6 @@ class Camera(Singleton):
             raise RuntimeError(
                 "Camera failed to start. Power the device off and back on to reset it."
             )
-        _log.info("start_video_stream_mode: fresh stream ready")
 
 
     def read_video_stream(self, as_image=False):
@@ -176,7 +171,6 @@ class Camera(Singleton):
                 self._force_close_stream(self._parked_stream)
             self._parked_stream = self._video_stream
             self._video_stream = None
-            _log.info("stop_video_stream_mode: stream parked, dropping to 1fps")
             # Drop to 1 fps. The parked thread keeps the camera sensor running at
             # whatever framerate was configured, firing that many DMA interrupts/sec.
             # On Pi Zero's single core, 12 interrupts/sec during PBKDF2 or UI

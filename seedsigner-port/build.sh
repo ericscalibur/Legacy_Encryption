@@ -163,6 +163,14 @@ patch_seedsigner() {
     # --- 2d. Patch the main menu to add Legacy Encryption entry ---
     patch_main_menu
 
+    # --- 2d2. Patch the Controller to wipe legacy_session on Home ---
+    if [ -f src/seedsigner/controller.py ]; then
+        python3 "$SCRIPT_DIR/patch_controller.py" src/seedsigner/controller.py || \
+            warn "Controller auto-patch failed — legacy_session won't be wiped on Home"
+    else
+        warn "controller.py not found — skipping legacy_session Home-wipe patch"
+    fi
+
     # --- 2e. Commit the changes ---
     cd "$SEEDSIGNER_DIR"
     git add -A
@@ -177,7 +185,8 @@ Files added:
   - src/seedsigner/helpers/legacy_log.py (debug logger → /mnt/boot/legacy.log)
   - src/seedsigner/views/legacy_views.py (UI views)
   - src/seedsigner/hardware/camera.py (persistent stream + 500ms flush + 1fps park)
-  - Main menu patched to include Legacy Encryption entry"
+  - Main menu patched to include Legacy Encryption entry
+  - controller.py patched to wipe legacy_session (seed/keys) on Home"
 
     ok "Changes committed to branch '$BRANCH_NAME'"
 }
@@ -455,6 +464,9 @@ files = [
 extra_files = [
     (os.path.join(seedsigner_dir, "src/seedsigner/views/tools_views.py"),
      "opt/src/seedsigner/views/tools_views.py"),
+    # Patched controller (wipes legacy_session on Home) — produced by patch step
+    (os.path.join(seedsigner_dir, "src/seedsigner/controller.py"),
+     "opt/src/seedsigner/controller.py"),
 ]
 
 injected = []
