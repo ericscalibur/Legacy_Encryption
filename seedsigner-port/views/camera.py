@@ -1,13 +1,15 @@
 import io
+import logging
 import time
 
 from PIL import Image
 from seedsigner.hardware.pivideostream import PiVideoStream
 from seedsigner.models.settings import Settings, SettingsConstants
 from seedsigner.models.singleton import Singleton
-from seedsigner.helpers.legacy_log import get_logger
 
-_log = get_logger("legacy.camera")
+# Stdlib logger only — same idiom as the rest of SeedSigner. Nothing is ever
+# written to the SD card; on the device this goes to the console (i.e. nowhere).
+_log = logging.getLogger(__name__)
 
 
 class Camera(Singleton):

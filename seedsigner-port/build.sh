@@ -121,10 +121,6 @@ patch_seedsigner() {
     cp "$SCRIPT_DIR/legacy_encryption.py" src/seedsigner/helpers/legacy_encryption.py
     ok "Copied legacy_encryption.py → src/seedsigner/helpers/"
 
-    # --- 2a2. Copy the debug logger ---
-    cp "$SCRIPT_DIR/helpers/legacy_log.py" src/seedsigner/helpers/legacy_log.py
-    ok "Copied legacy_log.py → src/seedsigner/helpers/"
-
     # --- 2b. Copy the views into views/ ---
     cp "$SCRIPT_DIR/views/legacy_views.py" src/seedsigner/views/legacy_views.py
     ok "Copied legacy_views.py → src/seedsigner/views/"
@@ -182,7 +178,6 @@ with Legacy-offline.html (browser version).
 
 Files added:
   - src/seedsigner/helpers/legacy_encryption.py (crypto core)
-  - src/seedsigner/helpers/legacy_log.py (debug logger → /mnt/boot/legacy.log)
   - src/seedsigner/views/legacy_views.py (UI views)
   - src/seedsigner/hardware/camera.py (persistent stream + 500ms flush + 1fps park)
   - Main menu patched to include Legacy Encryption entry
@@ -453,6 +448,8 @@ seedsigner_dir = sys.argv[3]  # build/seedsigner (has patched tools_views.py)
 # Each entry: (source_path_relative_to_script_dir, dest_path_in_rootfs)
 files = [
     ("legacy_encryption.py",          "opt/src/seedsigner/helpers/legacy_encryption.py"),
+    # No-op shim: overrides the file logger baked into older images so nothing
+    # can ever write to the SD card, even if a stale module still imports it.
     ("helpers/legacy_log.py",         "opt/src/seedsigner/helpers/legacy_log.py"),
     ("views/legacy_views.py",         "opt/src/seedsigner/views/legacy_views.py"),
     ("views/camera.py",               "opt/src/seedsigner/hardware/camera.py"),
