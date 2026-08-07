@@ -298,6 +298,67 @@
                     </div>
                 </div>
 
+                <div class="faq-card">
+                    <button class="faq-question">
+                        <span class="q-num">10</span>
+                        <span class="q-text">I received an inheritance email with an encrypted payload — how do I recover the seed phrase, even if the tool no longer runs?</span>
+                        <span class="q-arrow">▾</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Take your time — there is no time pressure, and nothing in the email is secret on its own. The encrypted payload is useless without the two passwords.</p>
+                        <p><strong>Normal path:</strong> open the <a href="decrypt.html">Legacy Decryption</a> page (or your saved copy of <a href="https://github.com/ericscalibur/Legacy_Encryption/blob/main/Legacy-offline.html">Legacy-offline.html</a>) on an <strong>offline</strong> computer, paste the ciphertext into the Encrypted Seed Phrase field, enter your Beneficiary Key and the Benefactor Key, and click <em>Decrypt</em>.</p>
+                        <p><strong>Do NOT</strong> type the passwords into any other website, and do not share them with anyone who offers to "help recover" — run everything offline.</p>
+                        <p><strong>If no copy of the tool runs anymore:</strong> any software engineer can rebuild decryption from the specification below using any mainstream cryptography library.</p>
+                        <pre style="white-space: pre-wrap; overflow-x: auto; font-size: 0.85em; background: rgba(0,0,0,0.25); padding: 14px; border-radius: 6px;">TECHNICAL SPECIFICATION OF THE ENCRYPTED PAYLOAD (Legacy protocol)
+
+Version detection:
+- If the payload string starts with "LE2." it is version 2.
+- Otherwise it is version 1.
+
+Common to both versions:
+- Key derivation: PBKDF2-HMAC-SHA256, 600,000 iterations (v2 stores the
+  exact count in its header), 16-byte random salt, output 32 bytes.
+- Cipher: AES-256-GCM, 12-byte random IV (nonce), 16-byte authentication
+  tag appended to the end of the ciphertext.
+- Before encryption, 0 to 4 random padding bytes were appended to the
+  UTF-8 seed phrase; the count is stored, strip that many bytes from the
+  end of the decrypted plaintext.
+- Two passwords are involved: the benefactor's and the beneficiary's,
+  combined IN THAT ORDER into a single PBKDF2 input.
+
+Version 1 format:
+- Combined password = benefactor password + beneficiary password,
+  concatenated directly (no separator), UTF-8.
+- The payload is base64. Decode it once to get a string of four fields
+  joined by "." (dots):  base64(salt) "." base64(iv) "." base64(ciphertext
+  including tag) "." two-digit padding count (e.g. "03").
+- Decode the three base64 fields, derive the key, AES-256-GCM decrypt
+  (no associated data), strip padding, interpret as UTF-8.
+
+Version 2 format ("LE2." prefix):
+- Combined password = benefactor password, then byte 0x1F (the ASCII Unit
+  Separator control character), then beneficiary password, UTF-8.
+- Strip "LE2." and base64url-decode the rest (base64url: "-" and "_"
+  instead of "+" and "/"; pad "=" back if your decoder needs it).
+- The decoded binary body, all multi-byte integers big-endian:
+    offset 0, 1 byte : version, must be 0x02
+    offset 1, 1 byte : KDF id, 0x01 = PBKDF2-HMAC-SHA256
+    offset 2, 4 bytes: PBKDF2 iteration count (uint32; reject values
+                       outside 100,000..10,000,000 before deriving)
+    offset 6, 1 byte : padding length (0..4)
+    offset 7, 16 bytes: salt
+    offset 23, 12 bytes: IV (GCM nonce)
+    offset 35 onward : ciphertext with 16-byte GCM tag at the end
+- AES-256-GCM decrypt with the first 35 bytes of the body passed as the
+  GCM associated data (AAD). A failed authentication tag means a wrong
+  password or a corrupted payload — it will not decrypt to garbage.
+
+The decrypted plaintext is a BIP-39 seed phrase (space-separated English
+words). Verify it against the BIP-39 word list, then follow standard
+Bitcoin wallet recovery procedure with hardware you control.</pre>
+                    </div>
+                </div>
+
                 <div class="faq-cta">
                     <a href="encrypt.html" class="learn-more-button">Try the Demo</a>
                 </div>
