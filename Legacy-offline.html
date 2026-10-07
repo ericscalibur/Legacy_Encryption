@@ -1,2732 +1,1078 @@
 <!doctype html>
-<html>
+<html lang="en">
     <!--
     Greetings! If you're reading this, Congratulations! you are one of the
     small percentage of humans that knows how to view source html.
     Hopefully, you are here to vet my encryption protocol!
 
-    There are some comments included throughout to help but
-    I suggest you read /protocol.html for a complete summary.
+    The cryptography lives in one block, between the BEGIN/END LEGACY CORE
+    markers below. It is a byte-for-byte copy of legacy-core.js from the
+    repository, which is what the test suite exercises. PROTOCOL-SPEC.md
+    describes the format completely enough to decrypt without this file.
 
+    This page makes no network requests. The Content-Security-Policy below
+    forbids them outright (connect-src 'none', no remote images or scripts),
+    so even if you open it while online, nothing you type can leave the page.
     -->
     <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta
+            http-equiv="Content-Security-Policy"
+            content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: blob:; media-src blob: mediastream:; connect-src 'none'; form-action 'none'; base-uri 'none'"
+        />
+        <meta name="referrer" content="no-referrer" />
         <title>Legacy Encryption</title>
         <link rel="icon" type="image/png" href="favicon.png" />
         <style>
-            input {
-                width: 80%;
+            body {
+                font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+                line-height: 1.5;
+                margin: 0;
+                padding: 0 16px;
+            }
+            main {
+                max-width: 720px;
+                margin: 0 auto 20vh;
+            }
+            label {
+                display: block;
+                margin-top: 14px;
+                font-weight: 600;
+            }
+            input,
+            textarea {
+                box-sizing: border-box;
+                width: 100%;
+                font: 16px/1.4 ui-monospace, Menlo, Consolas, monospace;
+                padding: 6px 8px;
+            }
+            textarea {
+                resize: vertical;
+            }
+            button {
+                font-size: 16px;
+                padding: 8px 18px;
+                margin: 14px 8px 0 0;
+                cursor: pointer;
+            }
+            button:disabled {
+                cursor: progress;
+            }
+            .note {
+                font-size: 0.92em;
+                color: #555;
+            }
+            .status {
+                min-height: 1.5em;
+                margin: 12px 0;
+                white-space: pre-wrap;
+            }
+            .status.error {
+                color: #b00020;
+                font-weight: 600;
+            }
+            .status.ok {
+                color: #1b6e20;
+                font-weight: 600;
+            }
+            .payload {
+                overflow-wrap: anywhere;
+                font-family: ui-monospace, Menlo, Consolas, monospace;
+                background: #f4f4f4;
+                padding: 8px;
+            }
+            #encrypted-qr-container {
+                text-align: center;
+                margin: 16px 0;
+            }
+            #encrypted-qr-canvas {
+                max-width: 100%;
+                height: auto;
+            }
+            #decrypted-words {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 4px 16px;
+                padding: 0;
+                list-style: none;
+                font-family: ui-monospace, Menlo, Consolas, monospace;
+                font-size: 1.1em;
+            }
+            #qr-video {
+                width: 100%;
+                max-width: 360px;
+                border: 1px solid #555;
+                border-radius: 4px;
+                display: block;
+            }
+            hr {
+                margin: 48px 0;
             }
         </style>
     </head>
 
     <body>
-        <header>
-            <div class="content">
-                <div style="margin: auto; width: 80%">
-                    <h1>Legacy Encryption</h1>
-                    <div style="height: 5vh"></div>
-                    <p>THIS VERSION IS INTEDED FOR OFFLINE USE</p>
+        <main>
+            <h1>Legacy Encryption</h1>
+            <p><strong>This version is intended for offline use.</strong>
+                Disconnect from the internet before entering a real seed phrase.</p>
+            <p>Please read the HOW-IT-WORKS, BENEFITS and FAQ pages.
+                For further consultation, email ericscalibur@protonmail.com.</p>
+            <p>We do not store any data. Securing your keys is your responsibility.</p>
+            <p>
+                Your encryption is only as strong as your keys. The stronger the
+                keys, the harder they are to brute force. Record your keys and
+                store them in a safe place, but keep them separate.
+            </p>
+            <p class="note">
+                Keys may use only characters on a standard US keyboard: letters,
+                digits, spaces and ordinary punctuation (no accents or emoji).
+                Capitalization matters. Extra spaces don't: leading, trailing and
+                repeated spaces are ignored, and curly quotes count as straight
+                quotes. Avoid look-alike characters such as <strong>0</strong>
+                (zero) and <strong>O</strong> (letter O), or <strong>1</strong>
+                (one) and <strong>l</strong> (letter L).
+            </p>
 
-                    <p>Please read the HOW-IT-WORKS, BENEFITS and FAQ page.</p>
-                    <p>
-                        For further consultation, email
-                        ericscalibur@protonmail.com
-                    </p>
-                    <p>
-                        Check the expected functionality of your keys using the
-                        DECRYPT function below.
-                    </p>
-                    <p>WE DO NOT STORE ANY DATA.</p>
-                    <p>Securing your keys is your responsibility.</p>
+            <label for="benefactor-Key">Benefactor Key</label>
+            <input type="text" id="benefactor-Key" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" />
 
-                    <div style="height: 10vh"></div>
-                    <p>
-                        Your encryption is only as strong as your keys are
-                        secure. The stronger the keys, the harder to brute
-                        force. Record your keys and store them in a safe place,
-                        but keep them separate. Avoid ambiguous characters such
-                        as <strong>0</strong> (zero) and <strong>O</strong>
-                        (letter O), or <strong>1</strong> (one) and
-                        <strong>l</strong> (letter L).
-                    </p>
-                    <label for="benefactor-Key">Benefactor Key:</label><br />
-                    <input type="text" id="benefactor-Key" /><br /><br />
+            <label for="confirm-BenefactorKey">Confirm Benefactor Key</label>
+            <input type="text" id="confirm-BenefactorKey" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" />
 
-                    <label for="confirm-BenefactorKey"
-                        >Confirm Benefactor Key:</label
-                    ><br />
-                    <input type="text" id="confirm-BenefactorKey" /><br /><br />
+            <label for="beneficiary-Key">Beneficiary Key</label>
+            <input type="text" id="beneficiary-Key" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" />
 
-                    <label for="beneficiary-Key">Beneficiary Key:</label><br />
-                    <input type="text" id="beneficiary-Key" /><br /><br />
+            <label for="confirm-BeneficiaryKey">Confirm Beneficiary Key</label>
+            <input type="text" id="confirm-BeneficiaryKey" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" />
 
-                    <label for="confirm-BeneficiaryKey"
-                        >Confirm Beneficiary Key:</label
-                    ><br />
-                    <input
-                        type="text"
-                        id="confirm-BeneficiaryKey"
-                    /><br /><br />
+            <label for="seed-Phrase">Seed Phrase (12 or 24 words)</label>
+            <textarea id="seed-Phrase" rows="3" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false"></textarea>
 
-                    <label for="seed-Phrase">Seed Phrase:</label><br />
-                    <input
-                        type="text"
-                        id="seed-Phrase"
-                        style="color: #000000"
-                    /><br /><br />
+            <button id="encryptButton" onclick="encryptSeedPhrase()">Encrypt</button>
+            <p id="encrypt-status" class="status" role="alert"></p>
 
-                    <div style="display: flex">
-                        <button
-                            id="encryptButton"
-                            onclick="encryptSeedPhrase()"
-                        >
-                            Encrypt
-                        </button>
-                    </div>
-                    <br /><br />
-                    <p for="encrypted-SeedPhrase">Encrypted Seed Phrase:</p>
-                    <p
-                        id="encrypted-SeedPhrase"
-                        style="overflow-wrap: break-word"
-                    ></p>
-                    <div id="encrypted-qr-container" style="display:none; text-align:center; margin: 16px 0;">
-                        <p style="margin-bottom: 8px;">Encrypted QR Code — photograph or screenshot this:</p>
-                        <canvas id="encrypted-qr-canvas"></canvas>
-                    </div>
-                    <div style="height: 10vh"></div>
-                    <h1>Legacy Decryption</h1>
-                    <div style="height: 5vh"></div>
-
-                    <label for="benefactorKey">Benefactor Key:</label><br />
-                    <input type="text" id="benefactorKey" /><br /><br />
-
-                    <label for="beneficiaryKey">Beneficiary Key:</label><br />
-                    <input type="text" id="beneficiaryKey" /><br /><br />
-
-                    <label for="encryptedSeedPhrase"
-                        >Encrypted Seed Phrase:</label
-                    ><br />
-                    <input
-                        type="text"
-                        id="encryptedSeedPhrase"
-                        style="color: #000000"
-                    /><br /><br />
-
-                    <button onclick="startQrScan()">Scan QR Code</button>
-                    <div id="qr-scanner" style="display:none; margin: 10px 0;">
-                        <video id="qr-video" style="width:100%; max-width:360px; border:1px solid #555; border-radius:4px; display:block;" autoplay playsinline muted></video>
-                        <p id="qr-status" style="margin:6px 0; font-size:0.9em; color:#aaa;"></p>
-                        <button onclick="stopQrScan()">Cancel</button>
-                    </div><br />
-
-                    <button id="decryptButton" onclick="decryptSeedPhrase()">
-                        Decrypt</button
-                    ><br /><br />
-
-                    <p for="decryptedSeedPhrase">Decrypted Seed Phrase:</p>
-                    <p
-                        id="decryptedSeedPhrase"
-                        style="overflow-wrap: break-word"
-                    ></p>
-                    <div style="height: 20vh"></div>
+            <div id="encrypt-result" hidden>
+                <p><strong>Encrypted Seed Phrase:</strong></p>
+                <p id="encrypted-SeedPhrase" class="payload"></p>
+                <div id="encrypted-qr-container" hidden>
+                    <p>Encrypted QR Code. Photograph, print or screenshot this:</p>
+                    <canvas id="encrypted-qr-canvas"></canvas>
                 </div>
+                <p class="note">
+                    Before relying on this, test it: enter both keys and this
+                    encrypted text into Legacy Decryption below and confirm you
+                    get your seed phrase back.
+                </p>
             </div>
-        </header>
-        <!-- The Javascript to Encrypt -->
+
+            <hr />
+
+            <h1>Legacy Decryption</h1>
+
+            <label for="benefactorKey">Benefactor Key</label>
+            <input type="text" id="benefactorKey" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" />
+
+            <label for="beneficiaryKey">Beneficiary Key</label>
+            <input type="text" id="beneficiaryKey" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" />
+
+            <label for="encryptedSeedPhrase">Encrypted Seed Phrase</label>
+            <textarea id="encryptedSeedPhrase" rows="4" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false"></textarea>
+
+            <button onclick="startQrScan()">Scan QR Code</button>
+            <div id="qr-scanner" hidden>
+                <video id="qr-video" autoplay playsinline muted></video>
+                <p id="qr-status" class="note"></p>
+                <button onclick="stopQrScan()">Cancel</button>
+            </div>
+
+            <div>
+                <button id="decryptButton" onclick="decryptSeedPhrase()">Decrypt</button>
+                <button onclick="clearDecryption()">Clear</button>
+            </div>
+            <p id="decrypt-status" class="status" role="alert"></p>
+
+            <div id="decrypt-result" hidden>
+                <p><strong>Decrypted Seed Phrase:</strong></p>
+                <ol id="decrypted-words"></ol>
+                <p id="decryptedSeedPhrase" class="payload"></p>
+            </div>
+        </main>
+
         <script>
-            // Shared BIP-39 wordlist (used by all functions) - Official BIP-39 English wordlist
-            const BIP39_WORDLIST = [
-                "abandon",
-                "ability",
-                "able",
-                "about",
-                "above",
-                "absent",
-                "absorb",
-                "abstract",
-                "absurd",
-                "abuse",
-                "access",
-                "accident",
-                "account",
-                "accuse",
-                "achieve",
-                "acid",
-                "acoustic",
-                "acquire",
-                "across",
-                "act",
-                "action",
-                "actor",
-                "actress",
-                "actual",
-                "adapt",
-                "add",
-                "addict",
-                "address",
-                "adjust",
-                "admit",
-                "adult",
-                "advance",
-                "advice",
-                "aerobic",
-                "affair",
-                "afford",
-                "afraid",
-                "again",
-                "age",
-                "agent",
-                "agree",
-                "ahead",
-                "aim",
-                "air",
-                "airport",
-                "aisle",
-                "alarm",
-                "album",
-                "alcohol",
-                "alert",
-                "alien",
-                "all",
-                "alley",
-                "allow",
-                "almost",
-                "alone",
-                "alpha",
-                "already",
-                "also",
-                "alter",
-                "always",
-                "amateur",
-                "amazing",
-                "among",
-                "amount",
-                "amused",
-                "analyst",
-                "anchor",
-                "ancient",
-                "anger",
-                "angle",
-                "angry",
-                "animal",
-                "ankle",
-                "announce",
-                "annual",
-                "another",
-                "answer",
-                "antenna",
-                "antique",
-                "anxiety",
-                "any",
-                "apart",
-                "apology",
-                "appear",
-                "apple",
-                "approve",
-                "april",
-                "arch",
-                "arctic",
-                "area",
-                "arena",
-                "argue",
-                "arm",
-                "armed",
-                "armor",
-                "army",
-                "around",
-                "arrange",
-                "arrest",
-                "arrive",
-                "arrow",
-                "art",
-                "artefact",
-                "artist",
-                "artwork",
-                "ask",
-                "aspect",
-                "assault",
-                "asset",
-                "assist",
-                "assume",
-                "asthma",
-                "athlete",
-                "atom",
-                "attack",
-                "attend",
-                "attitude",
-                "attract",
-                "auction",
-                "audit",
-                "august",
-                "aunt",
-                "author",
-                "auto",
-                "autumn",
-                "average",
-                "avocado",
-                "avoid",
-                "awake",
-                "aware",
-                "away",
-                "awesome",
-                "awful",
-                "awkward",
-                "axis",
-                "baby",
-                "bachelor",
-                "bacon",
-                "badge",
-                "bag",
-                "balance",
-                "balcony",
-                "ball",
-                "bamboo",
-                "banana",
-                "banner",
-                "bar",
-                "barely",
-                "bargain",
-                "barrel",
-                "base",
-                "basic",
-                "basket",
-                "battle",
-                "beach",
-                "bean",
-                "beauty",
-                "because",
-                "become",
-                "beef",
-                "before",
-                "begin",
-                "behave",
-                "behind",
-                "believe",
-                "below",
-                "belt",
-                "bench",
-                "benefit",
-                "best",
-                "betray",
-                "better",
-                "between",
-                "beyond",
-                "bicycle",
-                "bid",
-                "bike",
-                "bind",
-                "biology",
-                "bird",
-                "birth",
-                "bitter",
-                "black",
-                "blade",
-                "blame",
-                "blanket",
-                "blast",
-                "bleak",
-                "bless",
-                "blind",
-                "blood",
-                "blossom",
-                "blouse",
-                "blue",
-                "blur",
-                "blush",
-                "board",
-                "boat",
-                "body",
-                "boil",
-                "bomb",
-                "bone",
-                "bonus",
-                "book",
-                "boost",
-                "border",
-                "boring",
-                "borrow",
-                "boss",
-                "bottom",
-                "bounce",
-                "box",
-                "boy",
-                "bracket",
-                "brain",
-                "brand",
-                "brass",
-                "brave",
-                "bread",
-                "breeze",
-                "brick",
-                "bridge",
-                "brief",
-                "bright",
-                "bring",
-                "brisk",
-                "broccoli",
-                "broken",
-                "bronze",
-                "broom",
-                "brother",
-                "brown",
-                "brush",
-                "bubble",
-                "buddy",
-                "budget",
-                "buffalo",
-                "build",
-                "bulb",
-                "bulk",
-                "bullet",
-                "bundle",
-                "bunker",
-                "burden",
-                "burger",
-                "burst",
-                "bus",
-                "business",
-                "busy",
-                "butter",
-                "buyer",
-                "buzz",
-                "cabbage",
-                "cabin",
-                "cable",
-                "cactus",
-                "cage",
-                "cake",
-                "call",
-                "calm",
-                "camera",
-                "camp",
-                "can",
-                "canal",
-                "cancel",
-                "candy",
-                "cannon",
-                "canoe",
-                "canvas",
-                "canyon",
-                "capable",
-                "capital",
-                "captain",
-                "car",
-                "carbon",
-                "card",
-                "cargo",
-                "carpet",
-                "carry",
-                "cart",
-                "case",
-                "cash",
-                "casino",
-                "castle",
-                "casual",
-                "cat",
-                "catalog",
-                "catch",
-                "category",
-                "cattle",
-                "caught",
-                "cause",
-                "caution",
-                "cave",
-                "ceiling",
-                "celery",
-                "cement",
-                "census",
-                "century",
-                "cereal",
-                "certain",
-                "chair",
-                "chalk",
-                "champion",
-                "change",
-                "chaos",
-                "chapter",
-                "charge",
-                "chase",
-                "chat",
-                "cheap",
-                "check",
-                "cheese",
-                "chef",
-                "cherry",
-                "chest",
-                "chicken",
-                "chief",
-                "child",
-                "chimney",
-                "choice",
-                "choose",
-                "chronic",
-                "chuckle",
-                "chunk",
-                "churn",
-                "cigar",
-                "cinnamon",
-                "circle",
-                "citizen",
-                "city",
-                "civil",
-                "claim",
-                "clap",
-                "clarify",
-                "claw",
-                "clay",
-                "clean",
-                "clerk",
-                "clever",
-                "click",
-                "client",
-                "cliff",
-                "climb",
-                "clinic",
-                "clip",
-                "clock",
-                "clog",
-                "close",
-                "cloth",
-                "cloud",
-                "clown",
-                "club",
-                "clump",
-                "cluster",
-                "clutch",
-                "coach",
-                "coast",
-                "coconut",
-                "code",
-                "coffee",
-                "coil",
-                "coin",
-                "collect",
-                "color",
-                "column",
-                "combine",
-                "come",
-                "comfort",
-                "comic",
-                "common",
-                "company",
-                "concert",
-                "conduct",
-                "confirm",
-                "congress",
-                "connect",
-                "consider",
-                "control",
-                "convince",
-                "cook",
-                "cool",
-                "copper",
-                "copy",
-                "coral",
-                "core",
-                "corn",
-                "correct",
-                "cost",
-                "cotton",
-                "couch",
-                "country",
-                "couple",
-                "course",
-                "cousin",
-                "cover",
-                "coyote",
-                "crack",
-                "cradle",
-                "craft",
-                "cram",
-                "crane",
-                "crash",
-                "crater",
-                "crawl",
-                "crazy",
-                "cream",
-                "credit",
-                "creek",
-                "crew",
-                "cricket",
-                "crime",
-                "crisp",
-                "critic",
-                "crop",
-                "cross",
-                "crouch",
-                "crowd",
-                "crucial",
-                "cruel",
-                "cruise",
-                "crumble",
-                "crunch",
-                "crush",
-                "cry",
-                "crystal",
-                "cube",
-                "culture",
-                "cup",
-                "cupboard",
-                "curious",
-                "current",
-                "curtain",
-                "curve",
-                "cushion",
-                "custom",
-                "cute",
-                "cycle",
-                "dad",
-                "damage",
-                "damp",
-                "dance",
-                "danger",
-                "daring",
-                "dash",
-                "daughter",
-                "dawn",
-                "day",
-                "deal",
-                "debate",
-                "debris",
-                "decade",
-                "december",
-                "decide",
-                "decline",
-                "decorate",
-                "decrease",
-                "deer",
-                "defense",
-                "define",
-                "defy",
-                "degree",
-                "delay",
-                "deliver",
-                "demand",
-                "demise",
-                "denial",
-                "dentist",
-                "deny",
-                "depart",
-                "depend",
-                "deposit",
-                "depth",
-                "deputy",
-                "derive",
-                "describe",
-                "desert",
-                "design",
-                "desk",
-                "despair",
-                "destroy",
-                "detail",
-                "detect",
-                "develop",
-                "device",
-                "devote",
-                "diagram",
-                "dial",
-                "diamond",
-                "diary",
-                "dice",
-                "diesel",
-                "diet",
-                "differ",
-                "digital",
-                "dignity",
-                "dilemma",
-                "dinner",
-                "dinosaur",
-                "direct",
-                "dirt",
-                "disagree",
-                "discover",
-                "disease",
-                "dish",
-                "dismiss",
-                "disorder",
-                "display",
-                "distance",
-                "divert",
-                "divide",
-                "divorce",
-                "dizzy",
-                "doctor",
-                "document",
-                "dog",
-                "doll",
-                "dolphin",
-                "domain",
-                "donate",
-                "donkey",
-                "donor",
-                "door",
-                "dose",
-                "double",
-                "dove",
-                "draft",
-                "dragon",
-                "drama",
-                "drastic",
-                "draw",
-                "dream",
-                "dress",
-                "drift",
-                "drill",
-                "drink",
-                "drip",
-                "drive",
-                "drop",
-                "drum",
-                "dry",
-                "duck",
-                "dumb",
-                "dune",
-                "during",
-                "dust",
-                "dutch",
-                "duty",
-                "dwarf",
-                "dynamic",
-                "eager",
-                "eagle",
-                "early",
-                "earn",
-                "earth",
-                "easily",
-                "east",
-                "easy",
-                "echo",
-                "ecology",
-                "economy",
-                "edge",
-                "edit",
-                "educate",
-                "effort",
-                "egg",
-                "eight",
-                "either",
-                "elbow",
-                "elder",
-                "electric",
-                "elegant",
-                "element",
-                "elephant",
-                "elevator",
-                "elite",
-                "else",
-                "embark",
-                "embody",
-                "embrace",
-                "emerge",
-                "emotion",
-                "employ",
-                "empower",
-                "empty",
-                "enable",
-                "enact",
-                "end",
-                "endless",
-                "endorse",
-                "enemy",
-                "energy",
-                "enforce",
-                "engage",
-                "engine",
-                "enhance",
-                "enjoy",
-                "enlist",
-                "enough",
-                "enrich",
-                "enroll",
-                "ensure",
-                "enter",
-                "entire",
-                "entry",
-                "envelope",
-                "episode",
-                "equal",
-                "equip",
-                "era",
-                "erase",
-                "erode",
-                "erosion",
-                "error",
-                "erupt",
-                "escape",
-                "essay",
-                "essence",
-                "estate",
-                "eternal",
-                "ethics",
-                "evidence",
-                "evil",
-                "evoke",
-                "evolve",
-                "exact",
-                "example",
-                "excess",
-                "exchange",
-                "excite",
-                "exclude",
-                "excuse",
-                "execute",
-                "exercise",
-                "exhaust",
-                "exhibit",
-                "exile",
-                "exist",
-                "exit",
-                "exotic",
-                "expand",
-                "expect",
-                "expire",
-                "explain",
-                "expose",
-                "express",
-                "extend",
-                "extra",
-                "eye",
-                "eyebrow",
-                "fabric",
-                "face",
-                "faculty",
-                "fade",
-                "faint",
-                "faith",
-                "fall",
-                "false",
-                "fame",
-                "family",
-                "famous",
-                "fan",
-                "fancy",
-                "fantasy",
-                "farm",
-                "fashion",
-                "fat",
-                "fatal",
-                "father",
-                "fatigue",
-                "fault",
-                "favorite",
-                "feature",
-                "february",
-                "federal",
-                "fee",
-                "feed",
-                "feel",
-                "female",
-                "fence",
-                "festival",
-                "fetch",
-                "fever",
-                "few",
-                "fiber",
-                "fiction",
-                "field",
-                "figure",
-                "file",
-                "film",
-                "filter",
-                "final",
-                "find",
-                "fine",
-                "finger",
-                "finish",
-                "fire",
-                "firm",
-                "first",
-                "fiscal",
-                "fish",
-                "fit",
-                "fitness",
-                "fix",
-                "flag",
-                "flame",
-                "flash",
-                "flat",
-                "flavor",
-                "flee",
-                "flight",
-                "flip",
-                "float",
-                "flock",
-                "floor",
-                "flower",
-                "fluid",
-                "flush",
-                "fly",
-                "foam",
-                "focus",
-                "fog",
-                "foil",
-                "fold",
-                "follow",
-                "food",
-                "foot",
-                "force",
-                "forest",
-                "forget",
-                "fork",
-                "fortune",
-                "forum",
-                "forward",
-                "fossil",
-                "foster",
-                "found",
-                "fox",
-                "fragile",
-                "frame",
-                "frequent",
-                "fresh",
-                "friend",
-                "fringe",
-                "frog",
-                "front",
-                "frost",
-                "frown",
-                "frozen",
-                "fruit",
-                "fuel",
-                "fun",
-                "funny",
-                "furnace",
-                "fury",
-                "future",
-                "gadget",
-                "gain",
-                "galaxy",
-                "gallery",
-                "game",
-                "gap",
-                "garage",
-                "garbage",
-                "garden",
-                "garlic",
-                "garment",
-                "gas",
-                "gasp",
-                "gate",
-                "gather",
-                "gauge",
-                "gaze",
-                "general",
-                "genius",
-                "genre",
-                "gentle",
-                "genuine",
-                "gesture",
-                "ghost",
-                "giant",
-                "gift",
-                "giggle",
-                "ginger",
-                "giraffe",
-                "girl",
-                "give",
-                "glad",
-                "glance",
-                "glare",
-                "glass",
-                "glide",
-                "glimpse",
-                "globe",
-                "gloom",
-                "glory",
-                "glove",
-                "glow",
-                "glue",
-                "goat",
-                "goddess",
-                "gold",
-                "good",
-                "goose",
-                "gorilla",
-                "gospel",
-                "gossip",
-                "govern",
-                "gown",
-                "grab",
-                "grace",
-                "grain",
-                "grant",
-                "grape",
-                "grass",
-                "gravity",
-                "great",
-                "green",
-                "grid",
-                "grief",
-                "grit",
-                "grocery",
-                "group",
-                "grow",
-                "grunt",
-                "guard",
-                "guess",
-                "guide",
-                "guilt",
-                "guitar",
-                "gun",
-                "gym",
-                "habit",
-                "hair",
-                "half",
-                "hammer",
-                "hamster",
-                "hand",
-                "happy",
-                "harbor",
-                "hard",
-                "harsh",
-                "harvest",
-                "hat",
-                "have",
-                "hawk",
-                "hazard",
-                "head",
-                "health",
-                "heart",
-                "heavy",
-                "hedgehog",
-                "height",
-                "hello",
-                "helmet",
-                "help",
-                "hen",
-                "hero",
-                "hidden",
-                "high",
-                "hill",
-                "hint",
-                "hip",
-                "hire",
-                "history",
-                "hobby",
-                "hockey",
-                "hold",
-                "hole",
-                "holiday",
-                "hollow",
-                "home",
-                "honey",
-                "hood",
-                "hope",
-                "horn",
-                "horror",
-                "horse",
-                "hospital",
-                "host",
-                "hotel",
-                "hour",
-                "hover",
-                "hub",
-                "huge",
-                "human",
-                "humble",
-                "humor",
-                "hundred",
-                "hungry",
-                "hunt",
-                "hurdle",
-                "hurry",
-                "hurt",
-                "husband",
-                "hybrid",
-                "ice",
-                "icon",
-                "idea",
-                "identify",
-                "idle",
-                "ignore",
-                "ill",
-                "illegal",
-                "illness",
-                "image",
-                "imitate",
-                "immense",
-                "immune",
-                "impact",
-                "impose",
-                "improve",
-                "impulse",
-                "inch",
-                "include",
-                "income",
-                "increase",
-                "index",
-                "indicate",
-                "indoor",
-                "industry",
-                "infant",
-                "inflict",
-                "inform",
-                "inhale",
-                "inherit",
-                "initial",
-                "inject",
-                "injury",
-                "inmate",
-                "inner",
-                "innocent",
-                "input",
-                "inquiry",
-                "insane",
-                "insect",
-                "inside",
-                "inspire",
-                "install",
-                "intact",
-                "interest",
-                "into",
-                "invest",
-                "invite",
-                "involve",
-                "iron",
-                "island",
-                "isolate",
-                "issue",
-                "item",
-                "ivory",
-                "jacket",
-                "jaguar",
-                "jar",
-                "jazz",
-                "jealous",
-                "jeans",
-                "jelly",
-                "jewel",
-                "job",
-                "join",
-                "joke",
-                "journey",
-                "joy",
-                "judge",
-                "juice",
-                "jump",
-                "jungle",
-                "junior",
-                "junk",
-                "just",
-                "kangaroo",
-                "keen",
-                "keep",
-                "ketchup",
-                "key",
-                "kick",
-                "kid",
-                "kidney",
-                "kind",
-                "kingdom",
-                "kiss",
-                "kit",
-                "kitchen",
-                "kite",
-                "kitten",
-                "kiwi",
-                "knee",
-                "knife",
-                "knock",
-                "know",
-                "lab",
-                "label",
-                "labor",
-                "ladder",
-                "lady",
-                "lake",
-                "lamp",
-                "language",
-                "laptop",
-                "large",
-                "later",
-                "latin",
-                "laugh",
-                "laundry",
-                "lava",
-                "law",
-                "lawn",
-                "lawsuit",
-                "layer",
-                "lazy",
-                "leader",
-                "leaf",
-                "learn",
-                "leave",
-                "lecture",
-                "left",
-                "leg",
-                "legal",
-                "legend",
-                "leisure",
-                "lemon",
-                "lend",
-                "length",
-                "lens",
-                "leopard",
-                "lesson",
-                "letter",
-                "level",
-                "liar",
-                "liberty",
-                "library",
-                "license",
-                "life",
-                "lift",
-                "light",
-                "like",
-                "limb",
-                "limit",
-                "link",
-                "lion",
-                "liquid",
-                "list",
-                "little",
-                "live",
-                "lizard",
-                "load",
-                "loan",
-                "lobster",
-                "local",
-                "lock",
-                "logic",
-                "lonely",
-                "long",
-                "loop",
-                "lottery",
-                "loud",
-                "lounge",
-                "love",
-                "loyal",
-                "lucky",
-                "luggage",
-                "lumber",
-                "lunar",
-                "lunch",
-                "luxury",
-                "lyrics",
-                "machine",
-                "mad",
-                "magic",
-                "magnet",
-                "maid",
-                "mail",
-                "main",
-                "major",
-                "make",
-                "mammal",
-                "man",
-                "manage",
-                "mandate",
-                "mango",
-                "mansion",
-                "manual",
-                "maple",
-                "marble",
-                "march",
-                "margin",
-                "marine",
-                "market",
-                "marriage",
-                "mask",
-                "mass",
-                "master",
-                "match",
-                "material",
-                "math",
-                "matrix",
-                "matter",
-                "maximum",
-                "maze",
-                "meadow",
-                "mean",
-                "measure",
-                "meat",
-                "mechanic",
-                "medal",
-                "media",
-                "melody",
-                "melt",
-                "member",
-                "memory",
-                "mention",
-                "menu",
-                "mercy",
-                "merge",
-                "merit",
-                "merry",
-                "mesh",
-                "message",
-                "metal",
-                "method",
-                "middle",
-                "midnight",
-                "milk",
-                "million",
-                "mimic",
-                "mind",
-                "minimum",
-                "minor",
-                "minute",
-                "miracle",
-                "mirror",
-                "misery",
-                "miss",
-                "mistake",
-                "mix",
-                "mixed",
-                "mixture",
-                "mobile",
-                "model",
-                "modify",
-                "mom",
-                "moment",
-                "monitor",
-                "monkey",
-                "monster",
-                "month",
-                "moon",
-                "moral",
-                "more",
-                "morning",
-                "mosquito",
-                "mother",
-                "motion",
-                "motor",
-                "mountain",
-                "mouse",
-                "move",
-                "movie",
-                "much",
-                "muffin",
-                "mule",
-                "multiply",
-                "muscle",
-                "museum",
-                "mushroom",
-                "music",
-                "must",
-                "mutual",
-                "myself",
-                "mystery",
-                "myth",
-                "naive",
-                "name",
-                "napkin",
-                "narrow",
-                "nasty",
-                "nation",
-                "nature",
-                "near",
-                "neck",
-                "need",
-                "negative",
-                "neglect",
-                "neither",
-                "nephew",
-                "nerve",
-                "nest",
-                "net",
-                "network",
-                "neutral",
-                "never",
-                "news",
-                "next",
-                "nice",
-                "night",
-                "noble",
-                "noise",
-                "nominee",
-                "noodle",
-                "normal",
-                "north",
-                "nose",
-                "notable",
-                "note",
-                "nothing",
-                "notice",
-                "novel",
-                "now",
-                "nuclear",
-                "number",
-                "nurse",
-                "nut",
-                "oak",
-                "obey",
-                "object",
-                "oblige",
-                "obscure",
-                "observe",
-                "obtain",
-                "obvious",
-                "occur",
-                "ocean",
-                "october",
-                "odor",
-                "off",
-                "offer",
-                "office",
-                "often",
-                "oil",
-                "okay",
-                "old",
-                "olive",
-                "olympic",
-                "omit",
-                "once",
-                "one",
-                "onion",
-                "online",
-                "only",
-                "open",
-                "opera",
-                "opinion",
-                "oppose",
-                "option",
-                "orange",
-                "orbit",
-                "orchard",
-                "order",
-                "ordinary",
-                "organ",
-                "orient",
-                "original",
-                "orphan",
-                "ostrich",
-                "other",
-                "outdoor",
-                "outer",
-                "output",
-                "outside",
-                "oval",
-                "oven",
-                "over",
-                "own",
-                "owner",
-                "oxygen",
-                "oyster",
-                "ozone",
-                "pact",
-                "paddle",
-                "page",
-                "pair",
-                "palace",
-                "palm",
-                "panda",
-                "panel",
-                "panic",
-                "panther",
-                "paper",
-                "parade",
-                "parent",
-                "park",
-                "parrot",
-                "party",
-                "pass",
-                "patch",
-                "path",
-                "patient",
-                "patrol",
-                "pattern",
-                "pause",
-                "pave",
-                "payment",
-                "peace",
-                "peanut",
-                "pear",
-                "peasant",
-                "pelican",
-                "pen",
-                "penalty",
-                "pencil",
-                "people",
-                "pepper",
-                "perfect",
-                "permit",
-                "person",
-                "pet",
-                "phone",
-                "photo",
-                "phrase",
-                "physical",
-                "piano",
-                "picnic",
-                "picture",
-                "piece",
-                "pig",
-                "pigeon",
-                "pill",
-                "pilot",
-                "pink",
-                "pioneer",
-                "pipe",
-                "pistol",
-                "pitch",
-                "pizza",
-                "place",
-                "planet",
-                "plastic",
-                "plate",
-                "play",
-                "please",
-                "pledge",
-                "pluck",
-                "plug",
-                "plunge",
-                "poem",
-                "poet",
-                "point",
-                "polar",
-                "pole",
-                "police",
-                "pond",
-                "pony",
-                "pool",
-                "popular",
-                "portion",
-                "position",
-                "possible",
-                "post",
-                "potato",
-                "pottery",
-                "poverty",
-                "powder",
-                "power",
-                "practice",
-                "praise",
-                "predict",
-                "prefer",
-                "prepare",
-                "present",
-                "pretty",
-                "prevent",
-                "price",
-                "pride",
-                "primary",
-                "print",
-                "priority",
-                "prison",
-                "private",
-                "prize",
-                "problem",
-                "process",
-                "produce",
-                "profit",
-                "program",
-                "project",
-                "promote",
-                "proof",
-                "property",
-                "prosper",
-                "protect",
-                "proud",
-                "provide",
-                "public",
-                "pudding",
-                "pull",
-                "pulp",
-                "pulse",
-                "pumpkin",
-                "punch",
-                "pupil",
-                "puppy",
-                "purchase",
-                "purity",
-                "purpose",
-                "purse",
-                "push",
-                "put",
-                "puzzle",
-                "pyramid",
-                "quality",
-                "quantum",
-                "quarter",
-                "question",
-                "quick",
-                "quit",
-                "quiz",
-                "quote",
-                "rabbit",
-                "raccoon",
-                "race",
-                "rack",
-                "radar",
-                "radio",
-                "rail",
-                "rain",
-                "raise",
-                "rally",
-                "ramp",
-                "ranch",
-                "random",
-                "range",
-                "rapid",
-                "rare",
-                "rate",
-                "rather",
-                "raven",
-                "raw",
-                "razor",
-                "ready",
-                "real",
-                "reason",
-                "rebel",
-                "rebuild",
-                "recall",
-                "receive",
-                "recipe",
-                "record",
-                "recycle",
-                "reduce",
-                "reflect",
-                "reform",
-                "refuse",
-                "region",
-                "regret",
-                "regular",
-                "reject",
-                "relax",
-                "release",
-                "relief",
-                "rely",
-                "remain",
-                "remember",
-                "remind",
-                "remove",
-                "render",
-                "renew",
-                "rent",
-                "reopen",
-                "repair",
-                "repeat",
-                "replace",
-                "report",
-                "require",
-                "rescue",
-                "resemble",
-                "resist",
-                "resource",
-                "response",
-                "result",
-                "retire",
-                "retreat",
-                "return",
-                "reunion",
-                "reveal",
-                "review",
-                "reward",
-                "rhythm",
-                "rib",
-                "ribbon",
-                "rice",
-                "rich",
-                "ride",
-                "ridge",
-                "rifle",
-                "right",
-                "rigid",
-                "ring",
-                "riot",
-                "ripple",
-                "risk",
-                "ritual",
-                "rival",
-                "river",
-                "road",
-                "roast",
-                "robot",
-                "robust",
-                "rocket",
-                "romance",
-                "roof",
-                "rookie",
-                "room",
-                "rose",
-                "rotate",
-                "rough",
-                "round",
-                "route",
-                "royal",
-                "rubber",
-                "rude",
-                "rug",
-                "rule",
-                "run",
-                "runway",
-                "rural",
-                "sad",
-                "saddle",
-                "sadness",
-                "safe",
-                "sail",
-                "salad",
-                "salmon",
-                "salon",
-                "salt",
-                "salute",
-                "same",
-                "sample",
-                "sand",
-                "satisfy",
-                "satoshi",
-                "sauce",
-                "sausage",
-                "save",
-                "say",
-                "scale",
-                "scan",
-                "scare",
-                "scatter",
-                "scene",
-                "scheme",
-                "school",
-                "science",
-                "scissors",
-                "scorpion",
-                "scout",
-                "scrap",
-                "screen",
-                "script",
-                "scrub",
-                "sea",
-                "search",
-                "season",
-                "seat",
-                "second",
-                "secret",
-                "section",
-                "security",
-                "seed",
-                "seek",
-                "segment",
-                "select",
-                "sell",
-                "seminar",
-                "senior",
-                "sense",
-                "sentence",
-                "series",
-                "service",
-                "session",
-                "settle",
-                "setup",
-                "seven",
-                "shadow",
-                "shaft",
-                "shallow",
-                "share",
-                "shed",
-                "shell",
-                "sheriff",
-                "shield",
-                "shift",
-                "shine",
-                "ship",
-                "shiver",
-                "shock",
-                "shoe",
-                "shoot",
-                "shop",
-                "short",
-                "shoulder",
-                "shove",
-                "shrimp",
-                "shrug",
-                "shuffle",
-                "shy",
-                "sibling",
-                "sick",
-                "side",
-                "siege",
-                "sight",
-                "sign",
-                "silent",
-                "silk",
-                "silly",
-                "silver",
-                "similar",
-                "simple",
-                "since",
-                "sing",
-                "siren",
-                "sister",
-                "situate",
-                "six",
-                "size",
-                "skate",
-                "sketch",
-                "ski",
-                "skill",
-                "skin",
-                "skirt",
-                "skull",
-                "slab",
-                "slam",
-                "sleep",
-                "slender",
-                "slice",
-                "slide",
-                "slight",
-                "slim",
-                "slogan",
-                "slot",
-                "slow",
-                "slush",
-                "small",
-                "smart",
-                "smile",
-                "smoke",
-                "smooth",
-                "snack",
-                "snake",
-                "snap",
-                "sniff",
-                "snow",
-                "soap",
-                "soccer",
-                "social",
-                "sock",
-                "soda",
-                "soft",
-                "solar",
-                "soldier",
-                "solid",
-                "solution",
-                "solve",
-                "someone",
-                "song",
-                "soon",
-                "sorry",
-                "sort",
-                "soul",
-                "sound",
-                "soup",
-                "source",
-                "south",
-                "space",
-                "spare",
-                "spatial",
-                "spawn",
-                "speak",
-                "special",
-                "speed",
-                "spell",
-                "spend",
-                "sphere",
-                "spice",
-                "spider",
-                "spike",
-                "spin",
-                "spirit",
-                "split",
-                "spoil",
-                "sponsor",
-                "spoon",
-                "sport",
-                "spot",
-                "spray",
-                "spread",
-                "spring",
-                "spy",
-                "square",
-                "squeeze",
-                "squirrel",
-                "stable",
-                "stadium",
-                "staff",
-                "stage",
-                "stairs",
-                "stamp",
-                "stand",
-                "start",
-                "state",
-                "stay",
-                "steak",
-                "steel",
-                "stem",
-                "step",
-                "stereo",
-                "stick",
-                "still",
-                "sting",
-                "stock",
-                "stomach",
-                "stone",
-                "stool",
-                "story",
-                "stove",
-                "strategy",
-                "street",
-                "strike",
-                "strong",
-                "struggle",
-                "student",
-                "stuff",
-                "stumble",
-                "style",
-                "subject",
-                "submit",
-                "subway",
-                "success",
-                "such",
-                "sudden",
-                "suffer",
-                "sugar",
-                "suggest",
-                "suit",
-                "summer",
-                "sun",
-                "sunny",
-                "sunset",
-                "super",
-                "supply",
-                "supreme",
-                "sure",
-                "surface",
-                "surge",
-                "surprise",
-                "surround",
-                "survey",
-                "suspect",
-                "sustain",
-                "swallow",
-                "swamp",
-                "swap",
-                "swarm",
-                "swear",
-                "sweet",
-                "swift",
-                "swim",
-                "swing",
-                "switch",
-                "sword",
-                "symbol",
-                "symptom",
-                "syrup",
-                "system",
-                "table",
-                "tackle",
-                "tag",
-                "tail",
-                "talent",
-                "talk",
-                "tank",
-                "tape",
-                "target",
-                "task",
-                "taste",
-                "tattoo",
-                "taxi",
-                "teach",
-                "team",
-                "tell",
-                "ten",
-                "tenant",
-                "tennis",
-                "tent",
-                "term",
-                "test",
-                "text",
-                "thank",
-                "that",
-                "theme",
-                "then",
-                "theory",
-                "there",
-                "they",
-                "thing",
-                "this",
-                "thought",
-                "three",
-                "thrive",
-                "throw",
-                "thumb",
-                "thunder",
-                "ticket",
-                "tide",
-                "tiger",
-                "tilt",
-                "timber",
-                "time",
-                "tiny",
-                "tip",
-                "tired",
-                "tissue",
-                "title",
-                "toast",
-                "tobacco",
-                "today",
-                "toddler",
-                "toe",
-                "together",
-                "toilet",
-                "token",
-                "tomato",
-                "tomorrow",
-                "tone",
-                "tongue",
-                "tonight",
-                "tool",
-                "tooth",
-                "top",
-                "topic",
-                "topple",
-                "torch",
-                "tornado",
-                "tortoise",
-                "toss",
-                "total",
-                "tourist",
-                "toward",
-                "tower",
-                "town",
-                "toy",
-                "track",
-                "trade",
-                "traffic",
-                "tragic",
-                "train",
-                "transfer",
-                "trap",
-                "trash",
-                "travel",
-                "tray",
-                "treat",
-                "tree",
-                "trend",
-                "trial",
-                "tribe",
-                "trick",
-                "trigger",
-                "trim",
-                "trip",
-                "trophy",
-                "trouble",
-                "truck",
-                "true",
-                "truly",
-                "trumpet",
-                "trust",
-                "truth",
-                "try",
-                "tube",
-                "tuition",
-                "tumble",
-                "tuna",
-                "tunnel",
-                "turkey",
-                "turn",
-                "turtle",
-                "twelve",
-                "twenty",
-                "twice",
-                "twin",
-                "twist",
-                "two",
-                "type",
-                "typical",
-                "ugly",
-                "umbrella",
-                "unable",
-                "unaware",
-                "uncle",
-                "uncover",
-                "under",
-                "undo",
-                "unfair",
-                "unfold",
-                "unhappy",
-                "uniform",
-                "unique",
-                "unit",
-                "universe",
-                "unknown",
-                "unlock",
-                "until",
-                "unusual",
-                "unveil",
-                "update",
-                "upgrade",
-                "uphold",
-                "upon",
-                "upper",
-                "upset",
-                "urban",
-                "urge",
-                "usage",
-                "use",
-                "used",
-                "useful",
-                "useless",
-                "usual",
-                "utility",
-                "vacant",
-                "vacuum",
-                "vague",
-                "valid",
-                "valley",
-                "valve",
-                "van",
-                "vanish",
-                "vapor",
-                "various",
-                "vast",
-                "vault",
-                "vehicle",
-                "velvet",
-                "vendor",
-                "venture",
-                "venue",
-                "verb",
-                "verify",
-                "version",
-                "very",
-                "vessel",
-                "veteran",
-                "viable",
-                "vibrant",
-                "vicious",
-                "victory",
-                "video",
-                "view",
-                "village",
-                "vintage",
-                "violin",
-                "virtual",
-                "virus",
-                "visa",
-                "visit",
-                "visual",
-                "vital",
-                "vivid",
-                "vocal",
-                "voice",
-                "void",
-                "volcano",
-                "volume",
-                "vote",
-                "voyage",
-                "wage",
-                "wagon",
-                "wait",
-                "walk",
-                "wall",
-                "walnut",
-                "want",
-                "warfare",
-                "warm",
-                "warrior",
-                "wash",
-                "wasp",
-                "waste",
-                "water",
-                "wave",
-                "way",
-                "wealth",
-                "weapon",
-                "wear",
-                "weasel",
-                "weather",
-                "web",
-                "wedding",
-                "weekend",
-                "weird",
-                "welcome",
-                "west",
-                "wet",
-                "whale",
-                "what",
-                "wheat",
-                "wheel",
-                "when",
-                "where",
-                "whip",
-                "whisper",
-                "wide",
-                "width",
-                "wife",
-                "wild",
-                "will",
-                "win",
-                "window",
-                "wine",
-                "wing",
-                "wink",
-                "winner",
-                "winter",
-                "wire",
-                "wisdom",
-                "wise",
-                "wish",
-                "witness",
-                "wolf",
-                "woman",
-                "wonder",
-                "wood",
-                "wool",
-                "word",
-                "work",
-                "world",
-                "worry",
-                "worth",
-                "wrap",
-                "wreck",
-                "wrestle",
-                "wrist",
-                "write",
-                "wrong",
-                "yard",
-                "year",
-                "yellow",
-                "you",
-                "young",
-                "youth",
-                "zebra",
-                "zero",
-                "zone",
-                "zoo",
-            ];
+// ==== BEGIN LEGACY CORE ====
+// Legacy Encryption core — the one and only implementation of the format.
+//
+// This block is the single source of truth for the JavaScript crypto. It is
+// copied byte-for-byte into Legacy-offline.html, encrypt.html and
+// decrypt.html by `node tools/sync-core.js`, and the test suite fails if any
+// copy drifts. Edit legacy-core.js, then re-run the sync script.
+//
+// Format (see PROTOCOL-SPEC.md for the full, implementer-facing spec):
+//
+//   payload    = base64url(salt(16) || iv(12) || ciphertext)       (no '=')
+//   password   = canon(benefactorKey) || 0x1F || canon(beneficiaryKey)
+//   key        = PBKDF2-HMAC-SHA256(password, salt, 600000, 32 bytes)
+//   plaintext  = padLen(1) || seed || padBytes(padLen)              padLen 0..4
+//   ciphertext = AES-256-GCM(key, iv, plaintext), 16-byte tag appended, no AAD
+//
+// Every visible byte is random (salt, IV, ciphertext), so a payload carries
+// no marker identifying it as Legacy. All parameters are fixed by the
+// format; nothing about them is stored.
+//
+// The seed is the canonical mnemonic: lowercase BIP-39 English words joined
+// by single spaces. canon() is defined in canonicalizeKey() below; it is part
+// of the format, and every implementation must apply it identically.
+//
+// Pure functions only: no DOM access. Runs in browsers and in Node (>= 19).
+var LegacyCore = (function () {
+    "use strict";
 
-            // Verify wordlist integrity
-            console.log(
-                `BIP-39 wordlist loaded with ${BIP39_WORDLIST.length} words`,
+    const ITERATIONS = 600000;
+    const SALT_LEN = 16;
+    const IV_LEN = 12;
+    const TAG_LEN = 16;
+    const MAX_PAD = 4;
+    // Shortest and longest canonical mnemonics: 12 three-letter words
+    // (47 bytes) and 24 eight-letter words (215 bytes).
+    const MIN_SEED_LEN = 47;
+    const MAX_SEED_LEN = 215;
+    const MIN_BODY = SALT_LEN + IV_LEN + 1 + MIN_SEED_LEN + TAG_LEN;           // 92
+    const MAX_BODY = SALT_LEN + IV_LEN + 1 + MAX_SEED_LEN + MAX_PAD + TAG_LEN; // 264
+    const KEY_SEPARATOR = 0x1f;
+
+    // Official BIP-39 English wordlist (sha256 of english.txt:
+    // 2f5eed53a4727b4bf8880d8f3f199efc90e58503646d9ff8eff3a2ed3b24dbda).
+    const WORDLIST = [
+        "abandon", "ability", "able", "about", "above", "absent", "absorb", "abstract",
+        "absurd", "abuse", "access", "accident", "account", "accuse", "achieve", "acid",
+        "acoustic", "acquire", "across", "act", "action", "actor", "actress", "actual",
+        "adapt", "add", "addict", "address", "adjust", "admit", "adult", "advance",
+        "advice", "aerobic", "affair", "afford", "afraid", "again", "age", "agent",
+        "agree", "ahead", "aim", "air", "airport", "aisle", "alarm", "album",
+        "alcohol", "alert", "alien", "all", "alley", "allow", "almost", "alone",
+        "alpha", "already", "also", "alter", "always", "amateur", "amazing", "among",
+        "amount", "amused", "analyst", "anchor", "ancient", "anger", "angle", "angry",
+        "animal", "ankle", "announce", "annual", "another", "answer", "antenna", "antique",
+        "anxiety", "any", "apart", "apology", "appear", "apple", "approve", "april",
+        "arch", "arctic", "area", "arena", "argue", "arm", "armed", "armor",
+        "army", "around", "arrange", "arrest", "arrive", "arrow", "art", "artefact",
+        "artist", "artwork", "ask", "aspect", "assault", "asset", "assist", "assume",
+        "asthma", "athlete", "atom", "attack", "attend", "attitude", "attract", "auction",
+        "audit", "august", "aunt", "author", "auto", "autumn", "average", "avocado",
+        "avoid", "awake", "aware", "away", "awesome", "awful", "awkward", "axis",
+        "baby", "bachelor", "bacon", "badge", "bag", "balance", "balcony", "ball",
+        "bamboo", "banana", "banner", "bar", "barely", "bargain", "barrel", "base",
+        "basic", "basket", "battle", "beach", "bean", "beauty", "because", "become",
+        "beef", "before", "begin", "behave", "behind", "believe", "below", "belt",
+        "bench", "benefit", "best", "betray", "better", "between", "beyond", "bicycle",
+        "bid", "bike", "bind", "biology", "bird", "birth", "bitter", "black",
+        "blade", "blame", "blanket", "blast", "bleak", "bless", "blind", "blood",
+        "blossom", "blouse", "blue", "blur", "blush", "board", "boat", "body",
+        "boil", "bomb", "bone", "bonus", "book", "boost", "border", "boring",
+        "borrow", "boss", "bottom", "bounce", "box", "boy", "bracket", "brain",
+        "brand", "brass", "brave", "bread", "breeze", "brick", "bridge", "brief",
+        "bright", "bring", "brisk", "broccoli", "broken", "bronze", "broom", "brother",
+        "brown", "brush", "bubble", "buddy", "budget", "buffalo", "build", "bulb",
+        "bulk", "bullet", "bundle", "bunker", "burden", "burger", "burst", "bus",
+        "business", "busy", "butter", "buyer", "buzz", "cabbage", "cabin", "cable",
+        "cactus", "cage", "cake", "call", "calm", "camera", "camp", "can",
+        "canal", "cancel", "candy", "cannon", "canoe", "canvas", "canyon", "capable",
+        "capital", "captain", "car", "carbon", "card", "cargo", "carpet", "carry",
+        "cart", "case", "cash", "casino", "castle", "casual", "cat", "catalog",
+        "catch", "category", "cattle", "caught", "cause", "caution", "cave", "ceiling",
+        "celery", "cement", "census", "century", "cereal", "certain", "chair", "chalk",
+        "champion", "change", "chaos", "chapter", "charge", "chase", "chat", "cheap",
+        "check", "cheese", "chef", "cherry", "chest", "chicken", "chief", "child",
+        "chimney", "choice", "choose", "chronic", "chuckle", "chunk", "churn", "cigar",
+        "cinnamon", "circle", "citizen", "city", "civil", "claim", "clap", "clarify",
+        "claw", "clay", "clean", "clerk", "clever", "click", "client", "cliff",
+        "climb", "clinic", "clip", "clock", "clog", "close", "cloth", "cloud",
+        "clown", "club", "clump", "cluster", "clutch", "coach", "coast", "coconut",
+        "code", "coffee", "coil", "coin", "collect", "color", "column", "combine",
+        "come", "comfort", "comic", "common", "company", "concert", "conduct", "confirm",
+        "congress", "connect", "consider", "control", "convince", "cook", "cool", "copper",
+        "copy", "coral", "core", "corn", "correct", "cost", "cotton", "couch",
+        "country", "couple", "course", "cousin", "cover", "coyote", "crack", "cradle",
+        "craft", "cram", "crane", "crash", "crater", "crawl", "crazy", "cream",
+        "credit", "creek", "crew", "cricket", "crime", "crisp", "critic", "crop",
+        "cross", "crouch", "crowd", "crucial", "cruel", "cruise", "crumble", "crunch",
+        "crush", "cry", "crystal", "cube", "culture", "cup", "cupboard", "curious",
+        "current", "curtain", "curve", "cushion", "custom", "cute", "cycle", "dad",
+        "damage", "damp", "dance", "danger", "daring", "dash", "daughter", "dawn",
+        "day", "deal", "debate", "debris", "decade", "december", "decide", "decline",
+        "decorate", "decrease", "deer", "defense", "define", "defy", "degree", "delay",
+        "deliver", "demand", "demise", "denial", "dentist", "deny", "depart", "depend",
+        "deposit", "depth", "deputy", "derive", "describe", "desert", "design", "desk",
+        "despair", "destroy", "detail", "detect", "develop", "device", "devote", "diagram",
+        "dial", "diamond", "diary", "dice", "diesel", "diet", "differ", "digital",
+        "dignity", "dilemma", "dinner", "dinosaur", "direct", "dirt", "disagree", "discover",
+        "disease", "dish", "dismiss", "disorder", "display", "distance", "divert", "divide",
+        "divorce", "dizzy", "doctor", "document", "dog", "doll", "dolphin", "domain",
+        "donate", "donkey", "donor", "door", "dose", "double", "dove", "draft",
+        "dragon", "drama", "drastic", "draw", "dream", "dress", "drift", "drill",
+        "drink", "drip", "drive", "drop", "drum", "dry", "duck", "dumb",
+        "dune", "during", "dust", "dutch", "duty", "dwarf", "dynamic", "eager",
+        "eagle", "early", "earn", "earth", "easily", "east", "easy", "echo",
+        "ecology", "economy", "edge", "edit", "educate", "effort", "egg", "eight",
+        "either", "elbow", "elder", "electric", "elegant", "element", "elephant", "elevator",
+        "elite", "else", "embark", "embody", "embrace", "emerge", "emotion", "employ",
+        "empower", "empty", "enable", "enact", "end", "endless", "endorse", "enemy",
+        "energy", "enforce", "engage", "engine", "enhance", "enjoy", "enlist", "enough",
+        "enrich", "enroll", "ensure", "enter", "entire", "entry", "envelope", "episode",
+        "equal", "equip", "era", "erase", "erode", "erosion", "error", "erupt",
+        "escape", "essay", "essence", "estate", "eternal", "ethics", "evidence", "evil",
+        "evoke", "evolve", "exact", "example", "excess", "exchange", "excite", "exclude",
+        "excuse", "execute", "exercise", "exhaust", "exhibit", "exile", "exist", "exit",
+        "exotic", "expand", "expect", "expire", "explain", "expose", "express", "extend",
+        "extra", "eye", "eyebrow", "fabric", "face", "faculty", "fade", "faint",
+        "faith", "fall", "false", "fame", "family", "famous", "fan", "fancy",
+        "fantasy", "farm", "fashion", "fat", "fatal", "father", "fatigue", "fault",
+        "favorite", "feature", "february", "federal", "fee", "feed", "feel", "female",
+        "fence", "festival", "fetch", "fever", "few", "fiber", "fiction", "field",
+        "figure", "file", "film", "filter", "final", "find", "fine", "finger",
+        "finish", "fire", "firm", "first", "fiscal", "fish", "fit", "fitness",
+        "fix", "flag", "flame", "flash", "flat", "flavor", "flee", "flight",
+        "flip", "float", "flock", "floor", "flower", "fluid", "flush", "fly",
+        "foam", "focus", "fog", "foil", "fold", "follow", "food", "foot",
+        "force", "forest", "forget", "fork", "fortune", "forum", "forward", "fossil",
+        "foster", "found", "fox", "fragile", "frame", "frequent", "fresh", "friend",
+        "fringe", "frog", "front", "frost", "frown", "frozen", "fruit", "fuel",
+        "fun", "funny", "furnace", "fury", "future", "gadget", "gain", "galaxy",
+        "gallery", "game", "gap", "garage", "garbage", "garden", "garlic", "garment",
+        "gas", "gasp", "gate", "gather", "gauge", "gaze", "general", "genius",
+        "genre", "gentle", "genuine", "gesture", "ghost", "giant", "gift", "giggle",
+        "ginger", "giraffe", "girl", "give", "glad", "glance", "glare", "glass",
+        "glide", "glimpse", "globe", "gloom", "glory", "glove", "glow", "glue",
+        "goat", "goddess", "gold", "good", "goose", "gorilla", "gospel", "gossip",
+        "govern", "gown", "grab", "grace", "grain", "grant", "grape", "grass",
+        "gravity", "great", "green", "grid", "grief", "grit", "grocery", "group",
+        "grow", "grunt", "guard", "guess", "guide", "guilt", "guitar", "gun",
+        "gym", "habit", "hair", "half", "hammer", "hamster", "hand", "happy",
+        "harbor", "hard", "harsh", "harvest", "hat", "have", "hawk", "hazard",
+        "head", "health", "heart", "heavy", "hedgehog", "height", "hello", "helmet",
+        "help", "hen", "hero", "hidden", "high", "hill", "hint", "hip",
+        "hire", "history", "hobby", "hockey", "hold", "hole", "holiday", "hollow",
+        "home", "honey", "hood", "hope", "horn", "horror", "horse", "hospital",
+        "host", "hotel", "hour", "hover", "hub", "huge", "human", "humble",
+        "humor", "hundred", "hungry", "hunt", "hurdle", "hurry", "hurt", "husband",
+        "hybrid", "ice", "icon", "idea", "identify", "idle", "ignore", "ill",
+        "illegal", "illness", "image", "imitate", "immense", "immune", "impact", "impose",
+        "improve", "impulse", "inch", "include", "income", "increase", "index", "indicate",
+        "indoor", "industry", "infant", "inflict", "inform", "inhale", "inherit", "initial",
+        "inject", "injury", "inmate", "inner", "innocent", "input", "inquiry", "insane",
+        "insect", "inside", "inspire", "install", "intact", "interest", "into", "invest",
+        "invite", "involve", "iron", "island", "isolate", "issue", "item", "ivory",
+        "jacket", "jaguar", "jar", "jazz", "jealous", "jeans", "jelly", "jewel",
+        "job", "join", "joke", "journey", "joy", "judge", "juice", "jump",
+        "jungle", "junior", "junk", "just", "kangaroo", "keen", "keep", "ketchup",
+        "key", "kick", "kid", "kidney", "kind", "kingdom", "kiss", "kit",
+        "kitchen", "kite", "kitten", "kiwi", "knee", "knife", "knock", "know",
+        "lab", "label", "labor", "ladder", "lady", "lake", "lamp", "language",
+        "laptop", "large", "later", "latin", "laugh", "laundry", "lava", "law",
+        "lawn", "lawsuit", "layer", "lazy", "leader", "leaf", "learn", "leave",
+        "lecture", "left", "leg", "legal", "legend", "leisure", "lemon", "lend",
+        "length", "lens", "leopard", "lesson", "letter", "level", "liar", "liberty",
+        "library", "license", "life", "lift", "light", "like", "limb", "limit",
+        "link", "lion", "liquid", "list", "little", "live", "lizard", "load",
+        "loan", "lobster", "local", "lock", "logic", "lonely", "long", "loop",
+        "lottery", "loud", "lounge", "love", "loyal", "lucky", "luggage", "lumber",
+        "lunar", "lunch", "luxury", "lyrics", "machine", "mad", "magic", "magnet",
+        "maid", "mail", "main", "major", "make", "mammal", "man", "manage",
+        "mandate", "mango", "mansion", "manual", "maple", "marble", "march", "margin",
+        "marine", "market", "marriage", "mask", "mass", "master", "match", "material",
+        "math", "matrix", "matter", "maximum", "maze", "meadow", "mean", "measure",
+        "meat", "mechanic", "medal", "media", "melody", "melt", "member", "memory",
+        "mention", "menu", "mercy", "merge", "merit", "merry", "mesh", "message",
+        "metal", "method", "middle", "midnight", "milk", "million", "mimic", "mind",
+        "minimum", "minor", "minute", "miracle", "mirror", "misery", "miss", "mistake",
+        "mix", "mixed", "mixture", "mobile", "model", "modify", "mom", "moment",
+        "monitor", "monkey", "monster", "month", "moon", "moral", "more", "morning",
+        "mosquito", "mother", "motion", "motor", "mountain", "mouse", "move", "movie",
+        "much", "muffin", "mule", "multiply", "muscle", "museum", "mushroom", "music",
+        "must", "mutual", "myself", "mystery", "myth", "naive", "name", "napkin",
+        "narrow", "nasty", "nation", "nature", "near", "neck", "need", "negative",
+        "neglect", "neither", "nephew", "nerve", "nest", "net", "network", "neutral",
+        "never", "news", "next", "nice", "night", "noble", "noise", "nominee",
+        "noodle", "normal", "north", "nose", "notable", "note", "nothing", "notice",
+        "novel", "now", "nuclear", "number", "nurse", "nut", "oak", "obey",
+        "object", "oblige", "obscure", "observe", "obtain", "obvious", "occur", "ocean",
+        "october", "odor", "off", "offer", "office", "often", "oil", "okay",
+        "old", "olive", "olympic", "omit", "once", "one", "onion", "online",
+        "only", "open", "opera", "opinion", "oppose", "option", "orange", "orbit",
+        "orchard", "order", "ordinary", "organ", "orient", "original", "orphan", "ostrich",
+        "other", "outdoor", "outer", "output", "outside", "oval", "oven", "over",
+        "own", "owner", "oxygen", "oyster", "ozone", "pact", "paddle", "page",
+        "pair", "palace", "palm", "panda", "panel", "panic", "panther", "paper",
+        "parade", "parent", "park", "parrot", "party", "pass", "patch", "path",
+        "patient", "patrol", "pattern", "pause", "pave", "payment", "peace", "peanut",
+        "pear", "peasant", "pelican", "pen", "penalty", "pencil", "people", "pepper",
+        "perfect", "permit", "person", "pet", "phone", "photo", "phrase", "physical",
+        "piano", "picnic", "picture", "piece", "pig", "pigeon", "pill", "pilot",
+        "pink", "pioneer", "pipe", "pistol", "pitch", "pizza", "place", "planet",
+        "plastic", "plate", "play", "please", "pledge", "pluck", "plug", "plunge",
+        "poem", "poet", "point", "polar", "pole", "police", "pond", "pony",
+        "pool", "popular", "portion", "position", "possible", "post", "potato", "pottery",
+        "poverty", "powder", "power", "practice", "praise", "predict", "prefer", "prepare",
+        "present", "pretty", "prevent", "price", "pride", "primary", "print", "priority",
+        "prison", "private", "prize", "problem", "process", "produce", "profit", "program",
+        "project", "promote", "proof", "property", "prosper", "protect", "proud", "provide",
+        "public", "pudding", "pull", "pulp", "pulse", "pumpkin", "punch", "pupil",
+        "puppy", "purchase", "purity", "purpose", "purse", "push", "put", "puzzle",
+        "pyramid", "quality", "quantum", "quarter", "question", "quick", "quit", "quiz",
+        "quote", "rabbit", "raccoon", "race", "rack", "radar", "radio", "rail",
+        "rain", "raise", "rally", "ramp", "ranch", "random", "range", "rapid",
+        "rare", "rate", "rather", "raven", "raw", "razor", "ready", "real",
+        "reason", "rebel", "rebuild", "recall", "receive", "recipe", "record", "recycle",
+        "reduce", "reflect", "reform", "refuse", "region", "regret", "regular", "reject",
+        "relax", "release", "relief", "rely", "remain", "remember", "remind", "remove",
+        "render", "renew", "rent", "reopen", "repair", "repeat", "replace", "report",
+        "require", "rescue", "resemble", "resist", "resource", "response", "result", "retire",
+        "retreat", "return", "reunion", "reveal", "review", "reward", "rhythm", "rib",
+        "ribbon", "rice", "rich", "ride", "ridge", "rifle", "right", "rigid",
+        "ring", "riot", "ripple", "risk", "ritual", "rival", "river", "road",
+        "roast", "robot", "robust", "rocket", "romance", "roof", "rookie", "room",
+        "rose", "rotate", "rough", "round", "route", "royal", "rubber", "rude",
+        "rug", "rule", "run", "runway", "rural", "sad", "saddle", "sadness",
+        "safe", "sail", "salad", "salmon", "salon", "salt", "salute", "same",
+        "sample", "sand", "satisfy", "satoshi", "sauce", "sausage", "save", "say",
+        "scale", "scan", "scare", "scatter", "scene", "scheme", "school", "science",
+        "scissors", "scorpion", "scout", "scrap", "screen", "script", "scrub", "sea",
+        "search", "season", "seat", "second", "secret", "section", "security", "seed",
+        "seek", "segment", "select", "sell", "seminar", "senior", "sense", "sentence",
+        "series", "service", "session", "settle", "setup", "seven", "shadow", "shaft",
+        "shallow", "share", "shed", "shell", "sheriff", "shield", "shift", "shine",
+        "ship", "shiver", "shock", "shoe", "shoot", "shop", "short", "shoulder",
+        "shove", "shrimp", "shrug", "shuffle", "shy", "sibling", "sick", "side",
+        "siege", "sight", "sign", "silent", "silk", "silly", "silver", "similar",
+        "simple", "since", "sing", "siren", "sister", "situate", "six", "size",
+        "skate", "sketch", "ski", "skill", "skin", "skirt", "skull", "slab",
+        "slam", "sleep", "slender", "slice", "slide", "slight", "slim", "slogan",
+        "slot", "slow", "slush", "small", "smart", "smile", "smoke", "smooth",
+        "snack", "snake", "snap", "sniff", "snow", "soap", "soccer", "social",
+        "sock", "soda", "soft", "solar", "soldier", "solid", "solution", "solve",
+        "someone", "song", "soon", "sorry", "sort", "soul", "sound", "soup",
+        "source", "south", "space", "spare", "spatial", "spawn", "speak", "special",
+        "speed", "spell", "spend", "sphere", "spice", "spider", "spike", "spin",
+        "spirit", "split", "spoil", "sponsor", "spoon", "sport", "spot", "spray",
+        "spread", "spring", "spy", "square", "squeeze", "squirrel", "stable", "stadium",
+        "staff", "stage", "stairs", "stamp", "stand", "start", "state", "stay",
+        "steak", "steel", "stem", "step", "stereo", "stick", "still", "sting",
+        "stock", "stomach", "stone", "stool", "story", "stove", "strategy", "street",
+        "strike", "strong", "struggle", "student", "stuff", "stumble", "style", "subject",
+        "submit", "subway", "success", "such", "sudden", "suffer", "sugar", "suggest",
+        "suit", "summer", "sun", "sunny", "sunset", "super", "supply", "supreme",
+        "sure", "surface", "surge", "surprise", "surround", "survey", "suspect", "sustain",
+        "swallow", "swamp", "swap", "swarm", "swear", "sweet", "swift", "swim",
+        "swing", "switch", "sword", "symbol", "symptom", "syrup", "system", "table",
+        "tackle", "tag", "tail", "talent", "talk", "tank", "tape", "target",
+        "task", "taste", "tattoo", "taxi", "teach", "team", "tell", "ten",
+        "tenant", "tennis", "tent", "term", "test", "text", "thank", "that",
+        "theme", "then", "theory", "there", "they", "thing", "this", "thought",
+        "three", "thrive", "throw", "thumb", "thunder", "ticket", "tide", "tiger",
+        "tilt", "timber", "time", "tiny", "tip", "tired", "tissue", "title",
+        "toast", "tobacco", "today", "toddler", "toe", "together", "toilet", "token",
+        "tomato", "tomorrow", "tone", "tongue", "tonight", "tool", "tooth", "top",
+        "topic", "topple", "torch", "tornado", "tortoise", "toss", "total", "tourist",
+        "toward", "tower", "town", "toy", "track", "trade", "traffic", "tragic",
+        "train", "transfer", "trap", "trash", "travel", "tray", "treat", "tree",
+        "trend", "trial", "tribe", "trick", "trigger", "trim", "trip", "trophy",
+        "trouble", "truck", "true", "truly", "trumpet", "trust", "truth", "try",
+        "tube", "tuition", "tumble", "tuna", "tunnel", "turkey", "turn", "turtle",
+        "twelve", "twenty", "twice", "twin", "twist", "two", "type", "typical",
+        "ugly", "umbrella", "unable", "unaware", "uncle", "uncover", "under", "undo",
+        "unfair", "unfold", "unhappy", "uniform", "unique", "unit", "universe", "unknown",
+        "unlock", "until", "unusual", "unveil", "update", "upgrade", "uphold", "upon",
+        "upper", "upset", "urban", "urge", "usage", "use", "used", "useful",
+        "useless", "usual", "utility", "vacant", "vacuum", "vague", "valid", "valley",
+        "valve", "van", "vanish", "vapor", "various", "vast", "vault", "vehicle",
+        "velvet", "vendor", "venture", "venue", "verb", "verify", "version", "very",
+        "vessel", "veteran", "viable", "vibrant", "vicious", "victory", "video", "view",
+        "village", "vintage", "violin", "virtual", "virus", "visa", "visit", "visual",
+        "vital", "vivid", "vocal", "voice", "void", "volcano", "volume", "vote",
+        "voyage", "wage", "wagon", "wait", "walk", "wall", "walnut", "want",
+        "warfare", "warm", "warrior", "wash", "wasp", "waste", "water", "wave",
+        "way", "wealth", "weapon", "wear", "weasel", "weather", "web", "wedding",
+        "weekend", "weird", "welcome", "west", "wet", "whale", "what", "wheat",
+        "wheel", "when", "where", "whip", "whisper", "wide", "width", "wife",
+        "wild", "will", "win", "window", "wine", "wing", "wink", "winner",
+        "winter", "wire", "wisdom", "wise", "wish", "witness", "wolf", "woman",
+        "wonder", "wood", "wool", "word", "work", "world", "worry", "worth",
+        "wrap", "wreck", "wrestle", "wrist", "write", "wrong", "yard", "year",
+        "yellow", "you", "young", "youth", "zebra", "zero", "zone", "zoo",
+    ];
+    const WORD_INDEX = new Map(WORDLIST.map((w, i) => [w, i]));
+
+    class LegacyError extends Error {
+        // code: BAD_KEY | BAD_SEED | BAD_PAYLOAD | WRONG_KEYS
+        //       | CORRUPT | VERIFY_FAILED | NO_CRYPTO
+        constructor(code, message) {
+            super(message);
+            this.name = "LegacyError";
+            this.code = code;
+        }
+    }
+
+    function cryptoApi() {
+        const c = globalThis.crypto;
+        if (!c || !c.subtle || !c.getRandomValues) {
+            throw new LegacyError(
+                "NO_CRYPTO",
+                "This browser does not provide the Web Crypto API. Use a current version of Firefox, Chrome, Safari or Edge.",
             );
-            console.log(
-                `Word 'flee' is at index: ${BIP39_WORDLIST.indexOf("flee")} (should be 710)`,
+        }
+        return c;
+    }
+
+    function randomBytes(n) {
+        return cryptoApi().getRandomValues(new Uint8Array(n));
+    }
+
+    // Uniform 0..MAX_PAD, by rejection sampling.
+    function randomPadLen() {
+        const b = new Uint8Array(1);
+        do {
+            cryptoApi().getRandomValues(b);
+        } while (b[0] >= 255);
+        return b[0] % (MAX_PAD + 1);
+    }
+
+    // ---------------------------------------------------------------
+    // Key canonicalization (part of the format)
+    //
+    // An heir must be able to type the key years later, on a different
+    // device, from a paper copy. So both encrypt and decrypt reduce a key to
+    // one canonical form before it touches the KDF:
+    //   1. Replace curly quotes (as phones auto-insert) with straight
+    //      quotes, and no-break space, tab, CR and LF with a plain space.
+    //   2. Collapse runs of spaces to one space; drop leading and trailing
+    //      spaces.
+    //   3. Require a non-empty result made only of printable ASCII
+    //      (0x20-0x7E): exactly what a standard US keyboard, and the
+    //      SeedSigner keyboard, can type. Anything else is rejected rather
+    //      than silently transformed.
+    // Because a canonical key never contains 0x1F, the separator between the
+    // two keys is unambiguous.
+    // ---------------------------------------------------------------
+    const KEY_CHAR_MAP = {
+        "\u2018": "'",
+        "\u2019": "'",
+        "\u201c": '"',
+        "\u201d": '"',
+        "\u00a0": " ",
+        "\t": " ",
+        "\n": " ",
+        "\r": " ",
+    };
+
+    function describeChar(ch) {
+        const cp = ch.codePointAt(0);
+        const hex = "U+" + cp.toString(16).toUpperCase().padStart(4, "0");
+        return cp < 0x20 || cp === 0x7f ? hex : `"${ch}" (${hex})`;
+    }
+
+    function canonicalizeKey(key, label) {
+        label = label || "key";
+        if (typeof key !== "string") {
+            throw new LegacyError("BAD_KEY", `The ${label} is missing.`);
+        }
+        let s = "";
+        for (const ch of key) {
+            s += Object.prototype.hasOwnProperty.call(KEY_CHAR_MAP, ch)
+                ? KEY_CHAR_MAP[ch]
+                : ch;
+        }
+        s = s.replace(/ +/g, " ").replace(/^ /, "").replace(/ $/, "");
+        if (s.length === 0) {
+            throw new LegacyError("BAD_KEY", `The ${label} is empty.`);
+        }
+        for (const ch of s) {
+            const cp = ch.codePointAt(0);
+            if (cp < 0x20 || cp > 0x7e) {
+                throw new LegacyError(
+                    "BAD_KEY",
+                    `The ${label} contains ${describeChar(ch)}, which is not allowed. ` +
+                        "Keys may only use characters on a standard US keyboard: " +
+                        "letters A-Z and a-z, digits, spaces and ordinary punctuation " +
+                        "(no accents, emoji or other alphabets).",
+                );
+            }
+        }
+        return s;
+    }
+
+    function combinedKeyBytes(benefactorKey, beneficiaryKey) {
+        const a = canonicalizeKey(benefactorKey, "benefactor key");
+        const b = canonicalizeKey(beneficiaryKey, "beneficiary key");
+        const out = new Uint8Array(a.length + 1 + b.length);
+        for (let i = 0; i < a.length; i++) out[i] = a.charCodeAt(i);
+        out[a.length] = KEY_SEPARATOR;
+        for (let i = 0; i < b.length; i++) out[a.length + 1 + i] = b.charCodeAt(i);
+        return out;
+    }
+
+    // ---------------------------------------------------------------
+    // Seed phrase handling
+    // ---------------------------------------------------------------
+
+    // Split on ASCII whitespace, drop empties, ASCII-lowercase, join with
+    // single spaces. Non-ASCII is left alone (and then fails the wordlist).
+    function normalizeSeedPhrase(seed) {
+        if (typeof seed !== "string") return "";
+        return seed
+            .split(/[ \t\n\r]+/)
+            .filter((w) => w.length > 0)
+            .map((w) => w.replace(/[A-Z]/g, (c) => c.toLowerCase()))
+            .join(" ");
+    }
+
+    // Returns null for a valid 12- or 24-word BIP-39 mnemonic (checksum
+    // included), otherwise a human-readable reason. Normalizes first.
+    async function seedPhraseError(seed) {
+        const norm = normalizeSeedPhrase(seed);
+        const words = norm.length ? norm.split(" ") : [];
+        if (words.length !== 12 && words.length !== 24) {
+            return `A seed phrase must be 12 or 24 words (this one has ${words.length}).`;
+        }
+        let bits = "";
+        for (let i = 0; i < words.length; i++) {
+            const idx = WORD_INDEX.get(words[i]);
+            if (idx === undefined) {
+                return `Word ${i + 1} ("${words[i]}") is not in the BIP-39 English wordlist.`;
+            }
+            bits += idx.toString(2).padStart(11, "0");
+        }
+        const checksumBits = bits.length / 33; // 4 (12 words) or 8 (24 words)
+        const entropyBits = bits.length - checksumBits;
+        const entropy = new Uint8Array(entropyBits / 8);
+        for (let i = 0; i < entropy.length; i++) {
+            entropy[i] = parseInt(bits.slice(i * 8, i * 8 + 8), 2);
+        }
+        const digest = new Uint8Array(
+            await cryptoApi().subtle.digest("SHA-256", entropy),
+        );
+        let digestBits = "";
+        for (const b of digest) digestBits += b.toString(2).padStart(8, "0");
+        if (digestBits.slice(0, checksumBits) !== bits.slice(entropyBits)) {
+            return "All words are valid, but the BIP-39 checksum does not match. Check the word order and the last word.";
+        }
+        return null;
+    }
+
+    // ---------------------------------------------------------------
+    // Encoding helpers
+    // ---------------------------------------------------------------
+
+    function bytesToBase64Url(bytes) {
+        let bin = "";
+        for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+        return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    }
+
+    // Caller has already checked the alphabet and length.
+    function base64UrlToBytes(str) {
+        let b64 = str.replace(/-/g, "+").replace(/_/g, "/");
+        while (b64.length % 4 !== 0) b64 += "=";
+        const bin = atob(b64);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        return bytes;
+    }
+
+    function asciiBytes(s) {
+        const out = new Uint8Array(s.length);
+        for (let i = 0; i < s.length; i++) out[i] = s.charCodeAt(i);
+        return out;
+    }
+
+    function bytesEqual(a, b) {
+        if (a.length !== b.length) return false;
+        let diff = 0;
+        for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
+        return diff === 0;
+    }
+
+    // ---------------------------------------------------------------
+    // Payload parsing: strict, and done before any key derivation.
+    // Without a marker, this can only reject what cannot possibly be a
+    // Legacy payload (wrong alphabet or length). Anything else is decided by
+    // the GCM tag after PBKDF2.
+    // ---------------------------------------------------------------
+
+    function parsePayload(payload) {
+        if (typeof payload !== "string") {
+            throw new LegacyError("BAD_PAYLOAD", "No encrypted seed phrase was provided.");
+        }
+        const s = payload.replace(/^[ \t\n\r]+/, "").replace(/[ \t\n\r]+$/, "");
+        if (s.length === 0) {
+            throw new LegacyError("BAD_PAYLOAD", "No encrypted seed phrase was provided.");
+        }
+        if (!/^[A-Za-z0-9_-]+$/.test(s) || s.length % 4 === 1) {
+            throw new LegacyError(
+                "BAD_PAYLOAD",
+                "This is not a Legacy encrypted seed phrase: it contains characters that never appear in one, or it is incomplete. Copy or scan it again.",
             );
-            if (BIP39_WORDLIST.length !== 2048) {
-                console.error(
-                    "ERROR: BIP-39 wordlist does not contain exactly 2048 words!",
-                );
-            }
-            if (BIP39_WORDLIST.indexOf("flee") !== 710) {
-                console.error(
-                    "ERROR: Word 'flee' is not at the correct index 710!",
-                );
-            }
+        }
+        const body = base64UrlToBytes(s);
+        if (body.length < MIN_BODY || body.length > MAX_BODY) {
+            throw new LegacyError(
+                "BAD_PAYLOAD",
+                body.length < MIN_BODY
+                    ? "This is too short to be a Legacy encrypted seed phrase. It may have been cut off; copy or scan it again."
+                    : "This is too long to be a Legacy encrypted seed phrase.",
+            );
+        }
+        return {
+            salt: body.slice(0, SALT_LEN),
+            iv: body.slice(SALT_LEN, SALT_LEN + IV_LEN),
+            ciphertext: body.slice(SALT_LEN + IV_LEN),
+        };
+    }
 
-            // Function to convert string to array buffer
-            function strToArrayBuffer(str) {
-                const buf = new ArrayBuffer(str.length);
-                const bufView = new Uint8Array(buf);
-                for (let i = 0, strLen = str.length; i < strLen; i++) {
-                    bufView[i] = str.charCodeAt(i);
-                }
-                return buf;
-            }
+    // ---------------------------------------------------------------
+    // Crypto
+    // ---------------------------------------------------------------
 
-            // Function to convert array buffer to string
-            function arrayBufferToStr(buf) {
-                return String.fromCharCode.apply(null, new Uint8Array(buf));
-            }
+    async function deriveKey(passwordBytes, salt) {
+        const subtle = cryptoApi().subtle;
+        const material = await subtle.importKey("raw", passwordBytes, { name: "PBKDF2" }, false, ["deriveKey"]);
+        return subtle.deriveKey(
+            { name: "PBKDF2", salt: salt, iterations: ITERATIONS, hash: "SHA-256" },
+            material,
+            { name: "AES-GCM", length: 256 },
+            false,
+            ["encrypt", "decrypt"],
+        );
+    }
 
-            // Function to generate a salt
-            function generateSalt() {
-                return window.crypto.getRandomValues(new Uint8Array(16));
-            }
-            // salts the combined key, then iteritively hashes with sha256
-            // returns the cipherkey used to encrypt
-            async function deriveKey(password, salt, iterations = 600000) {
-                const encoder = new TextEncoder();
-                const keyMaterial = await window.crypto.subtle.importKey(
-                    "raw",
-                    encoder.encode(password),
-                    {
-                        name: "PBKDF2",
-                    },
-                    false,
-                    ["deriveKey"],
-                );
-
-                const key = await window.crypto.subtle.deriveKey(
-                    {
-                        name: "PBKDF2",
-                        salt: salt,
-                        iterations: iterations,
-                        hash: "SHA-256",
-                    },
-                    keyMaterial,
-                    {
-                        name: "AES-GCM",
-                        length: 256,
-                    },
-                    true,
-                    ["encrypt", "decrypt"],
-                );
-                return key;
-            }
-
-            // ===========================================================
-            // Protocol v2 envelope  (see PROTOCOL-V2-SPEC.md)
-            //   "LE2." + base64url( header(35) || ciphertext )
-            //   header = version(1) kdf_id(1) iterations(4,BE) padLen(1)
-            //            salt(16) iv(12)
-            // ===========================================================
-            const LE_V2_PREFIX = "LE2.";
-            const LE_V2_VERSION = 0x02;
-            const LE_KDF_PBKDF2_SHA256 = 0x01;
-            const LE_V2_HEADER_LEN = 35;
-            // Bounds on the header's iteration count. The header is only
-            // authenticated AFTER key derivation, so without a cap a forged
-            // payload could set iterations=0xFFFFFFFF and stall the browser
-            // for hours before the GCM tag ever gets checked.
-            const LE_MIN_ITERATIONS = 100000;
-            const LE_MAX_ITERATIONS = 10000000;
-            // Unit Separator (0x1F) — untypeable, so the benefactor/beneficiary
-            // boundary is unambiguous: "ab"+"c" no longer derives the same key
-            // as "a"+"bc".
-            const LE_KEY_SEPARATOR = "\u001f";
-
-            function bytesToBase64Url(bytes) {
-                let bin = "";
-                for (let i = 0; i < bytes.length; i++)
-                    bin += String.fromCharCode(bytes[i]);
-                return btoa(bin)
-                    .replace(/\+/g, "-")
-                    .replace(/\//g, "_")
-                    .replace(/=+$/, "");
-            }
-
-            function base64UrlToBytes(str) {
-                let b64 = str.replace(/-/g, "+").replace(/_/g, "/");
-                while (b64.length % 4 !== 0) b64 += "=";
-                const bin = atob(b64);
-                const bytes = new Uint8Array(bin.length);
-                for (let i = 0; i < bin.length; i++)
-                    bytes[i] = bin.charCodeAt(i);
-                return bytes;
-            }
-
-            // Real BIP-39 checksum validation: word indices -> entropy bits,
-            // SHA-256 the entropy, compare the leading checksum bits.
-            async function validateBip39Checksum(seedPhrase) {
-                const words = seedPhrase.trim().split(/\s+/);
-                if (words.length !== 12 && words.length !== 24) return false;
-                let bits = "";
-                for (const w of words) {
-                    const idx = BIP39_WORDLIST.indexOf(w);
-                    if (idx === -1) return false;
-                    bits += idx.toString(2).padStart(11, "0");
-                }
-                const totalBits = words.length * 11;
-                const checksumBits = totalBits / 33; // 4 (12w) or 8 (24w)
-                const entropyBits = totalBits - checksumBits;
-                const entropy = new Uint8Array(entropyBits / 8);
-                for (let i = 0; i < entropy.length; i++) {
-                    entropy[i] = parseInt(bits.slice(i * 8, i * 8 + 8), 2);
-                }
-                const digest = new Uint8Array(
-                    await window.crypto.subtle.digest("SHA-256", entropy),
-                );
-                let digestBits = "";
-                for (const b of digest)
-                    digestBits += b.toString(2).padStart(8, "0");
-                return (
-                    digestBits.slice(0, checksumBits) === bits.slice(entropyBits)
-                );
-            }
-
-            // Encrypt a seed phrase into a v2 "LE2." payload.
-            async function encryptSeedPhraseV2(
-                seedPhrase,
-                benefactorKey,
-                beneficiaryKey,
-            ) {
-                const salt = window.crypto.getRandomValues(new Uint8Array(16));
-                const iv = window.crypto.getRandomValues(new Uint8Array(12));
-                const padLen = Math.floor(Math.random() * 5); // 0..4
-                const iterations = 600000;
-
-                const header = new Uint8Array(LE_V2_HEADER_LEN);
-                header[0] = LE_V2_VERSION;
-                header[1] = LE_KDF_PBKDF2_SHA256;
-                new DataView(header.buffer).setUint32(2, iterations, false);
-                header[6] = padLen;
-                header.set(salt, 7);
-                header.set(iv, 23);
-
-                // Pad on the byte array so high bytes can't desync padLen.
-                const seedBytes = new TextEncoder().encode(seedPhrase);
-                const plaintext = new Uint8Array(seedBytes.length + padLen);
-                plaintext.set(seedBytes, 0);
-                if (padLen > 0) {
-                    plaintext.set(
-                        window.crypto.getRandomValues(new Uint8Array(padLen)),
-                        seedBytes.length,
-                    );
-                }
-
-                const key = await deriveKey(
-                    benefactorKey + LE_KEY_SEPARATOR + beneficiaryKey,
-                    salt,
-                    iterations,
-                );
-                // Header bound as GCM AAD -> tampering with version/params fails.
-                const ct = new Uint8Array(
-                    await window.crypto.subtle.encrypt(
-                        { name: "AES-GCM", iv: iv, additionalData: header },
-                        key,
-                        plaintext,
-                    ),
-                );
-
-                const body = new Uint8Array(LE_V2_HEADER_LEN + ct.length);
-                body.set(header, 0);
-                body.set(ct, LE_V2_HEADER_LEN);
-                return LE_V2_PREFIX + bytesToBase64Url(body);
-            }
-
-            // Decrypt a v2 body. `password` is the combined key (with separator).
-            async function decryptSeedPhraseV2(body, password) {
-                const kdfId = body[1];
-                if (kdfId !== LE_KDF_PBKDF2_SHA256)
-                    throw new Error("Unsupported KDF id: " + kdfId);
-                const iterations = new DataView(
-                    body.buffer,
-                    body.byteOffset,
-                ).getUint32(2, false);
-                if (
-                    iterations < LE_MIN_ITERATIONS ||
-                    iterations > LE_MAX_ITERATIONS
-                )
-                    throw new Error(
-                        "Unreasonable PBKDF2 iteration count: " + iterations,
-                    );
-                const padLen = body[6];
-                const salt = body.slice(7, 23);
-                const iv = body.slice(23, 35);
-                const header = body.slice(0, LE_V2_HEADER_LEN);
-                const ciphertext = body.slice(LE_V2_HEADER_LEN);
-
-                const key = await deriveKey(password, salt, iterations);
-                let decrypted;
-                try {
-                    decrypted = new Uint8Array(
-                        await window.crypto.subtle.decrypt(
-                            { name: "AES-GCM", iv: iv, additionalData: header },
-                            key,
-                            ciphertext,
-                        ),
-                    );
-                } catch (error) {
-                    if (error.name === "OperationError") {
-                        throw new Error(
-                            "Decryption failed due to authentication tag mismatch. This may indicate an incorrect key or corrupted data.",
-                        );
-                    }
-                    throw error;
-                }
-                const unpadded =
-                    padLen > 0
-                        ? decrypted.slice(0, decrypted.length - padLen)
-                        : decrypted;
-                return new TextDecoder().decode(unpadded);
-            }
-
-            // Takes seedphrase and combinedkey to generate salt, IV and ciphertext
-            // Everything is converted to Base64 and returned in JSON format
-            // (v1 — retained so old "LE2."-less blobs can still be decrypted)
-            async function encryptData(plaintext, password) {
-                const salt = generateSalt();
-                const key = await deriveKey(password, salt);
-                const iv = window.crypto.getRandomValues(new Uint8Array(12));
-                const encoder = new TextEncoder();
-
-                // Add random padding to the plaintext
-                const randomPaddingLength = Math.floor(Math.random() * 5); // Add 0-4 random bytes
-                let paddedPlaintext = plaintext;
-                for (let i = 0; i < randomPaddingLength; i++) {
-                    paddedPlaintext += String.fromCharCode(
-                        Math.floor(Math.random() * 256),
-                    ); // Add random characters
-                }
-
-                const encoded = encoder.encode(paddedPlaintext);
-
-                // Advanced Encryption Standard - Galois/Counter Mode //
-                const ciphertext = await window.crypto.subtle.encrypt(
-                    {
-                        name: "AES-GCM",
-                        iv: iv,
-                    },
+    // Decrypt a parsed payload with an already-derived key; returns the seed
+    // bytes with the padLen byte and padding removed.
+    async function openWithKey(key, parsed) {
+        let plain;
+        try {
+            plain = new Uint8Array(
+                await cryptoApi().subtle.decrypt(
+                    { name: "AES-GCM", iv: parsed.iv, tagLength: 128 },
                     key,
-                    encoded,
-                );
+                    parsed.ciphertext,
+                ),
+            );
+        } catch (e) {
+            throw new LegacyError(
+                "WRONG_KEYS",
+                "Decryption failed. Either a key is wrong (spelling, capitalization, punctuation and order all matter: benefactor key first, beneficiary key second), or this is not a Legacy encrypted seed phrase, or it is damaged.",
+            );
+        }
+        const padLen = plain[0];
+        if (padLen > MAX_PAD || plain.length < 1 + padLen) {
+            throw new LegacyError("CORRUPT", "Decryption succeeded, but the padding is invalid.");
+        }
+        return plain.slice(1, plain.length - padLen);
+    }
 
-                // Convert to Base64
-                const ivString = arrayBufferToStr(iv);
-                const ciphertextString = arrayBufferToStr(ciphertext);
-                const saltString = arrayBufferToStr(salt);
+    // Deterministic encryption: the caller supplies salt, iv and padding
+    // bytes. Used for published test vectors; real use goes through
+    // encryptSeedPhrase(), which draws them from the CSPRNG.
+    async function encryptWithParams(seedPhrase, benefactorKey, beneficiaryKey, params) {
+        const password = combinedKeyBytes(benefactorKey, beneficiaryKey);
+        const seed = normalizeSeedPhrase(seedPhrase);
+        const err = await seedPhraseError(seed);
+        if (err) throw new LegacyError("BAD_SEED", err);
 
-                const ivBase64 = btoa(ivString);
-                const ciphertextBase64 = btoa(ciphertextString);
-                const saltBase64 = btoa(saltString);
+        const salt = params.salt;
+        const iv = params.iv;
+        const padBytes = params.padBytes;
+        if (!(salt instanceof Uint8Array) || salt.length !== SALT_LEN) throw new Error("salt must be 16 bytes");
+        if (!(iv instanceof Uint8Array) || iv.length !== IV_LEN) throw new Error("iv must be 12 bytes");
+        if (!(padBytes instanceof Uint8Array) || padBytes.length > MAX_PAD) throw new Error("padBytes must be 0-4 bytes");
 
-                return {
-                    salt: saltBase64,
-                    iv: ivBase64,
-                    ciphertext: ciphertextBase64,
-                    paddingLength: randomPaddingLength,
-                };
+        const seedBytes = asciiBytes(seed);
+        const plaintext = new Uint8Array(1 + seedBytes.length + padBytes.length);
+        plaintext[0] = padBytes.length;
+        plaintext.set(seedBytes, 1);
+        plaintext.set(padBytes, 1 + seedBytes.length);
+
+        const key = await deriveKey(password, salt);
+        password.fill(0);
+        const ct = new Uint8Array(
+            await cryptoApi().subtle.encrypt({ name: "AES-GCM", iv: iv, tagLength: 128 }, key, plaintext),
+        );
+        plaintext.fill(0);
+        const body = new Uint8Array(SALT_LEN + IV_LEN + ct.length);
+        body.set(salt, 0);
+        body.set(iv, SALT_LEN);
+        body.set(ct, SALT_LEN + IV_LEN);
+        const payload = bytesToBase64Url(body);
+
+        // Read the payload back through the same strict parser a decryptor
+        // uses and open it with the same key. A payload is never returned
+        // unless it is proven to decrypt to exactly this seed.
+        let check;
+        try {
+            check = await openWithKey(key, parsePayload(payload));
+        } catch (e) {
+            throw new LegacyError("VERIFY_FAILED", "Self-check failed: the new payload did not decrypt. Nothing was produced; please try again.");
+        }
+        if (!bytesEqual(check, seedBytes)) {
+            throw new LegacyError("VERIFY_FAILED", "Self-check failed: the new payload decrypted to the wrong data. Nothing was produced; please try again.");
+        }
+        check.fill(0);
+        seedBytes.fill(0);
+        return payload;
+    }
+
+    // Encrypt a seed phrase. Validates the mnemonic (including checksum) and
+    // both keys, and self-checks the result before returning it.
+    async function encryptSeedPhrase(seedPhrase, benefactorKey, beneficiaryKey) {
+        return encryptWithParams(seedPhrase, benefactorKey, beneficiaryKey, {
+            salt: randomBytes(SALT_LEN),
+            iv: randomBytes(IV_LEN),
+            padBytes: randomBytes(randomPadLen()),
+        });
+    }
+
+    // Decrypt a payload back to the seed phrase. The result must be a valid
+    // canonical mnemonic.
+    async function decryptSeedPhrase(payload, benefactorKey, beneficiaryKey) {
+        const parsed = parsePayload(payload);
+        const password = combinedKeyBytes(benefactorKey, beneficiaryKey);
+        const key = await deriveKey(password, parsed.salt);
+        password.fill(0);
+        const bytes = await openWithKey(key, parsed);
+        let seed;
+        try {
+            seed = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+        } catch (e) {
+            throw new LegacyError("CORRUPT", "Decryption succeeded, but the result is not text.");
+        }
+        if (seed !== normalizeSeedPhrase(seed) || (await seedPhraseError(seed)) !== null) {
+            throw new LegacyError("CORRUPT", "Decryption succeeded, but the result is not a valid BIP-39 seed phrase.");
+        }
+        return seed;
+    }
+
+    return Object.freeze({
+        ITERATIONS: ITERATIONS,
+        MAX_PAD: MAX_PAD,
+        MIN_BODY: MIN_BODY,
+        MAX_BODY: MAX_BODY,
+        WORDLIST: WORDLIST,
+        LegacyError: LegacyError,
+        canonicalizeKey: canonicalizeKey,
+        normalizeSeedPhrase: normalizeSeedPhrase,
+        seedPhraseError: seedPhraseError,
+        parsePayload: parsePayload,
+        encryptSeedPhrase: encryptSeedPhrase,
+        encryptWithParams: encryptWithParams,
+        decryptSeedPhrase: decryptSeedPhrase,
+    });
+})();
+if (typeof module !== "undefined" && module.exports) module.exports = LegacyCore;
+// ==== END LEGACY CORE ====
+        </script>
+        <script>
+            // ---------------------------------------------------------------
+            // Page logic. All cryptography is in LegacyCore (the block above).
+            // ---------------------------------------------------------------
+            const $ = (id) => document.getElementById(id);
+            const SHORT_KEY = 8;
+
+            function setStatus(id, text, kind) {
+                const el = $(id);
+                el.textContent = text || "";
+                el.className = "status" + (kind ? " " + kind : "");
             }
-            async function decryptData(data, password) {
+
+            function canonicalOrStatus(statusId, value, label) {
                 try {
-                    const salt = new Uint8Array(
-                        strToArrayBuffer(atob(data.salt)),
-                    );
-                    const key = await deriveKey(password, salt);
-
-                    const iv = new Uint8Array(strToArrayBuffer(atob(data.iv)));
-                    const ciphertext = new Uint8Array(
-                        strToArrayBuffer(atob(data.ciphertext)),
-                    );
-
-                    const decrypted = await window.crypto.subtle.decrypt(
-                        {
-                            name: "AES-GCM",
-                            iv: iv,
-                        },
-                        key,
-                        ciphertext,
-                    );
-
-                    const decoder = new TextDecoder();
-                    let decryptedText = decoder.decode(decrypted);
-
-                    // Remove random padding
-                    const paddingLength = data.paddingLength;
-                    if (
-                        paddingLength > 0 &&
-                        paddingLength <= decryptedText.length
-                    ) {
-                        decryptedText = decryptedText.slice(0, -paddingLength);
-                    }
-
-                    return decryptedText;
-                } catch (error) {
-                    if (error.name === "OperationError") {
-                        // Authentication tag verification failure
-                        throw new Error(
-                            "Decryption failed due to authentication tag mismatch. This may indicate an incorrect key or corrupted data.",
-                        );
-                    } else {
-                        // Other decryption errors
-                        throw new Error(`Decryption error: ${error.message}`);
-                    }
+                    return LegacyCore.canonicalizeKey(value, label);
+                } catch (e) {
+                    setStatus(statusId, e.message, "error");
+                    return null;
                 }
             }
 
-            // this function is called when Encrypt button is clicked
+            function decodeCanvas(canvas) {
+                if (typeof jsQR !== "function") return null;
+                const ctx = canvas.getContext("2d");
+                const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const code = jsQR(img.data, img.width, img.height);
+                return code ? code.data : null;
+            }
+
+            // Called when the Encrypt button is clicked.
             async function encryptSeedPhrase() {
-                var benefactorKey =
-                    document.getElementById("benefactor-Key").value;
-                var confirmBenefactorKey = document.getElementById(
-                    "confirm-BenefactorKey",
-                ).value;
-                var beneficiaryKey =
-                    document.getElementById("beneficiary-Key").value;
-                var confirmBeneficiaryKey = document.getElementById(
-                    "confirm-BeneficiaryKey",
-                ).value;
-                var seedPhrase = document.getElementById("seed-Phrase").value;
+                const button = $("encryptButton");
+                setStatus("encrypt-status", "");
+                $("encrypt-result").hidden = true;
+                $("encrypted-qr-container").hidden = true;
 
-                if (benefactorKey !== confirmBenefactorKey) {
-                    alert("Benefactor keys do not match.");
+                const bk = canonicalOrStatus("encrypt-status", $("benefactor-Key").value, "benefactor key");
+                if (bk === null) return;
+                const bkConfirm = canonicalOrStatus("encrypt-status", $("confirm-BenefactorKey").value, "benefactor key confirmation");
+                if (bkConfirm === null) return;
+                const byk = canonicalOrStatus("encrypt-status", $("beneficiary-Key").value, "beneficiary key");
+                if (byk === null) return;
+                const bykConfirm = canonicalOrStatus("encrypt-status", $("confirm-BeneficiaryKey").value, "beneficiary key confirmation");
+                if (bykConfirm === null) return;
+
+                if (bk !== bkConfirm) {
+                    setStatus("encrypt-status", "The two benefactor keys do not match.", "error");
+                    return;
+                }
+                if (byk !== bykConfirm) {
+                    setStatus("encrypt-status", "The two beneficiary keys do not match.", "error");
+                    return;
+                }
+                const seed = $("seed-Phrase").value;
+                const seedErr = await LegacyCore.seedPhraseError(seed);
+                if (seedErr) {
+                    setStatus("encrypt-status", "Invalid seed phrase: " + seedErr, "error");
                     return;
                 }
 
-                if (beneficiaryKey !== confirmBeneficiaryKey) {
-                    alert("Beneficiary keys do not match.");
-                    return;
-                }
-
-                // Use shared BIP-39 wordlist
-                const words = BIP39_WORDLIST;
-
-                // Validate Seed Phrase
-                const seedWords = seedPhrase.trim().split(/\s+/);
-                if (seedWords.length !== 12 && seedWords.length !== 24) {
-                    alert("Seed phrase must contain 12 or 24 words.");
-                    return;
-                }
-
-                const isValid = seedWords.every((word) => words.includes(word));
-                if (!isValid) {
-                    alert(
-                        "Invalid seed phrase.  Make sure each word is a valid BIP39 word from english.txt.",
+                if (bk.length < SHORT_KEY || byk.length < SHORT_KEY) {
+                    const ok = window.confirm(
+                        "At least one key is shorter than " + SHORT_KEY + " characters.\n\n" +
+                        "Anyone who obtains the encrypted QR can try to guess the keys offline, " +
+                        "forever. Short keys can be guessed. Several unrelated words per key is far safer.\n\n" +
+                        "Encrypt with these keys anyway?",
                     );
-                    return;
+                    if (!ok) return;
                 }
 
-                if (!(await validateBip39Checksum(seedPhrase))) {
-                    alert(
-                        "Invalid seed phrase: the words are valid but the BIP39 checksum doesn't match. Double-check the word order and the final word.",
-                    );
-                    return;
-                }
-
-                // Encryption (Protocol v2 — emits an "LE2." payload)
+                button.disabled = true;
+                setStatus("encrypt-status", "Encrypting and verifying (a few seconds)...");
                 try {
-                    let base64Encoded = await encryptSeedPhraseV2(
-                        seedWords.join(" "),
-                        benefactorKey,
-                        beneficiaryKey,
-                    );
+                    // Returns only after decrypting its own output successfully.
+                    const payload = await LegacyCore.encryptSeedPhrase(seed, bk, byk);
+                    $("encrypted-SeedPhrase").textContent = payload;
+                    $("encrypt-result").hidden = false;
+                    $("seed-Phrase").value = "";
 
-                    document.getElementById("encrypted-SeedPhrase").innerText =
-                        base64Encoded;
-
-                    // Render as QR code
-                    const qrCanvas = document.getElementById("encrypted-qr-canvas");
-                    const qrContainer = document.getElementById("encrypted-qr-container");
-                    window.LegacyQR.toCanvas(qrCanvas, base64Encoded, { width: 300, margin: 2 })
-                        .then(() => { qrContainer.style.display = "block"; })
-                        .catch((err) => { console.error("QR generation failed:", err); });
-                } catch (error) {
-                    console.error("Encryption error:", error);
-                    alert("Encryption failed. Check console for details.");
-                }
-            }
-
-            // this function is called when the 12 word button is clicked
-            async function generate12SeedPhrase() {
-                const numWords = 12;
-                const seedPhraseWords = [];
-                for (let i = 0; i < parseInt(numWords); i++) {
-                    const randomIndex = Math.floor(
-                        Math.random() * BIP39_WORDLIST.length,
-                    );
-                    seedPhraseWords.push(BIP39_WORDLIST[randomIndex]);
-                }
-                const seedPhrase12 = seedPhraseWords.join(" ");
-                document.getElementById("seedPhrase").value = seedPhrase12;
-            }
-
-            // this function is called when the 24 word button is clicked
-            async function generate24SeedPhrase() {
-                const numWords = 24;
-                const seedPhraseWords = [];
-                for (let i = 0; i < parseInt(numWords); i++) {
-                    const randomIndex = Math.floor(
-                        Math.random() * BIP39_WORDLIST.length,
-                    );
-                    seedPhraseWords.push(BIP39_WORDLIST[randomIndex]);
-                }
-                const seedPhrase24 = seedPhraseWords.join(" ");
-                document.getElementById("seedPhrase").value = seedPhrase24;
-            }
-
-            async function decryptSeedPhrase() {
-                var benefactorKey =
-                    document.getElementById("benefactorKey").value;
-                var beneficiaryKey =
-                    document.getElementById("beneficiaryKey").value;
-                const encryptedSeedPhrase = document.getElementById(
-                    "encryptedSeedPhrase",
-                ).value;
-
-                try {
-                    const payload = encryptedSeedPhrase.trim();
-                    let decryptedSeedPhrase;
-
-                    const versionMatch = payload.match(/^LE(\d+)\./);
-                    if (versionMatch) {
-                        // Versioned (v2+) payload
-                        const body = base64UrlToBytes(
-                            payload.slice(versionMatch[0].length),
-                        );
-                        if (body[0] === LE_V2_VERSION) {
-                            decryptedSeedPhrase = await decryptSeedPhraseV2(
-                                body,
-                                benefactorKey + LE_KEY_SEPARATOR + beneficiaryKey,
-                            );
-                        } else {
-                            throw new Error(
-                                "Unsupported Legacy Encryption version.",
-                            );
-                        }
-                    } else {
-                        // Legacy v1 (no version marker, keys concatenated, no separator)
-                        const combinedKey = benefactorKey + beneficiaryKey;
-                        const base64Decoded = atob(payload);
-                        const components = base64Decoded.split(".");
-                        if (components.length !== 4) {
-                            throw new Error(
-                                "Invalid encrypted seed phrase format.",
-                            );
-                        }
-                        const data = {
-                            salt: components[0],
-                            iv: components[1],
-                            ciphertext: components[2],
-                            paddingLength: parseInt(components[3], 10),
-                        };
-                        decryptedSeedPhrase = await decryptData(
-                            data,
-                            combinedKey,
-                        );
+                    let qrOk = false;
+                    try {
+                        const canvas = $("encrypted-qr-canvas");
+                        await window.LegacyQR.toCanvas(canvas, payload, { width: 400, margin: 4, errorCorrectionLevel: "M" });
+                        // Read the QR back off the canvas; only show it if it
+                        // scans to exactly the payload.
+                        qrOk = decodeCanvas(canvas) === payload;
+                    } catch (e) {
+                        console.error("QR generation failed:", e);
                     }
-
-                    document.getElementById("decryptedSeedPhrase").innerText =
-                        decryptedSeedPhrase;
-                } catch (error) {
-                    console.error("Decryption error:", error);
-
-                    if (error.message.includes("authentication tag mismatch")) {
-                        alert(
-                            "Decryption failed: Authentication tag verification failed. Please check that both keys are correct and the encrypted data is intact.",
-                        );
-                    } else if (
-                        error.message.includes(
-                            "Invalid encrypted seed phrase format",
-                        )
-                    ) {
-                        alert(
-                            "Decryption failed: The encrypted seed phrase format is invalid. Ensure it is correctly formatted.",
+                    if (qrOk) {
+                        $("encrypted-qr-container").hidden = false;
+                        setStatus(
+                            "encrypt-status",
+                            "Done. Verified: the encrypted text decrypts with your keys, and the QR code scans back to exactly that text. The seed phrase field has been cleared.",
+                            "ok",
                         );
                     } else {
-                        alert(`Decryption failed: ${error.message}`);
+                        setStatus(
+                            "encrypt-status",
+                            "Encrypted and verified, but the QR code failed its scan-back check, so it is not shown. Save the encrypted text instead.",
+                            "error",
+                        );
                     }
+                } catch (e) {
+                    console.error("Encryption error:", e);
+                    setStatus("encrypt-status", "Encryption failed: " + e.message, "error");
                 } finally {
-                    // Clear field
-                    document.getElementById("encryptedSeedPhrase").value = "";
+                    button.disabled = false;
                 }
             }
 
-            let _qrStream = null, _qrTimer = null;
-            const _qrCanvas = document.createElement('canvas');
+            // Called when the Decrypt button is clicked.
+            async function decryptSeedPhrase() {
+                const button = $("decryptButton");
+                setStatus("decrypt-status", "");
+                $("decrypt-result").hidden = true;
+
+                const payload = $("encryptedSeedPhrase").value;
+                try {
+                    LegacyCore.parsePayload(payload); // fast format check first
+                } catch (e) {
+                    setStatus("decrypt-status", e.message, "error");
+                    return;
+                }
+                const bk = canonicalOrStatus("decrypt-status", $("benefactorKey").value, "benefactor key");
+                if (bk === null) return;
+                const byk = canonicalOrStatus("decrypt-status", $("beneficiaryKey").value, "beneficiary key");
+                if (byk === null) return;
+
+                button.disabled = true;
+                setStatus("decrypt-status", "Decrypting (a few seconds)...");
+                try {
+                    const seed = await LegacyCore.decryptSeedPhrase(payload, bk, byk);
+                    const list = $("decrypted-words");
+                    list.textContent = "";
+                    seed.split(" ").forEach((w, i) => {
+                        const li = document.createElement("li");
+                        li.textContent = String(i + 1).padStart(2, " ") + ". " + w;
+                        list.appendChild(li);
+                    });
+                    $("decryptedSeedPhrase").textContent = seed;
+                    $("decrypt-result").hidden = false;
+                    setStatus("decrypt-status", "Decrypted. This is a valid " + seed.split(" ").length + "-word BIP-39 seed phrase.", "ok");
+                } catch (e) {
+                    console.error("Decryption error:", e);
+                    setStatus("decrypt-status", e.message, "error");
+                } finally {
+                    button.disabled = false;
+                }
+            }
+
+            function clearDecryption() {
+                ["benefactorKey", "beneficiaryKey", "encryptedSeedPhrase"].forEach((id) => ($(id).value = ""));
+                $("decrypted-words").textContent = "";
+                $("decryptedSeedPhrase").textContent = "";
+                $("decrypt-result").hidden = true;
+                setStatus("decrypt-status", "");
+            }
+
+            let _qrStream = null,
+                _qrTimer = null;
+            const _qrCanvas = document.createElement("canvas");
 
             function startQrScan() {
-                const scanner = document.getElementById('qr-scanner');
-                const status  = document.getElementById('qr-status');
-                const video   = document.getElementById('qr-video');
-                scanner.style.display = 'block';
-                status.textContent = 'Starting camera…';
-                navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } })
-                    .then(stream => {
+                const status = $("qr-status");
+                const video = $("qr-video");
+                $("qr-scanner").hidden = false;
+                status.textContent = "Starting camera...";
+                navigator.mediaDevices
+                    .getUserMedia({ video: { facingMode: { ideal: "environment" } } })
+                    .then((stream) => {
                         _qrStream = stream;
                         video.srcObject = stream;
-                        status.textContent = 'Hold the QR code steady…';
+                        status.textContent = "Hold the QR code steady...";
                         _qrTimer = setInterval(() => {
                             if (video.readyState < video.HAVE_ENOUGH_DATA) return;
-                            _qrCanvas.width  = video.videoWidth;
+                            _qrCanvas.width = video.videoWidth;
                             _qrCanvas.height = video.videoHeight;
-                            const ctx = _qrCanvas.getContext('2d');
+                            const ctx = _qrCanvas.getContext("2d");
                             ctx.drawImage(video, 0, 0);
-                            const img  = ctx.getImageData(0, 0, _qrCanvas.width, _qrCanvas.height);
-                            const code = jsQR(img.data, img.width, img.height, { inversionAttempts: 'dontInvert' });
+                            const img = ctx.getImageData(0, 0, _qrCanvas.width, _qrCanvas.height);
+                            const code = jsQR(img.data, img.width, img.height, { inversionAttempts: "dontInvert" });
                             if (code) {
-                                document.getElementById('encryptedSeedPhrase').value = code.data;
+                                $("encryptedSeedPhrase").value = code.data;
                                 stopQrScan();
                             }
                         }, 250);
                     })
-                    .catch(err => { status.textContent = 'Camera error: ' + err.message; });
+                    .catch((err) => {
+                        status.textContent = "Camera error: " + err.message;
+                    });
             }
 
             function stopQrScan() {
-                clearInterval(_qrTimer); _qrTimer = null;
-                if (_qrStream) { _qrStream.getTracks().forEach(t => t.stop()); _qrStream = null; }
-                document.getElementById('qr-scanner').style.display = 'none';
+                clearInterval(_qrTimer);
+                _qrTimer = null;
+                if (_qrStream) {
+                    _qrStream.getTracks().forEach((t) => t.stop());
+                    _qrStream = null;
+                }
+                $("qr-scanner").hidden = true;
             }
         </script>
         <script>

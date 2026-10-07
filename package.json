@@ -6,7 +6,8 @@
   "scripts": {
     "test": "node test-legacy-encryption.js",
     "test:verbose": "node test-legacy-encryption.js --verbose",
-    "test:quick": "node test-legacy-encryption.js --quick"
+    "test:quick": "node test-legacy-encryption.js --quick",
+    "test:all": "node run-tests.js"
   },
   "keywords": [
     "encryption",

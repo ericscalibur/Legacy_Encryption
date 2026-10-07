@@ -1,7 +1,8 @@
 # Legacy Encryption — Protocol v3 Spec (design draft, for review)
 
-**Status:** DESIGN ONLY — not implemented. Drafted 2026-06-23 to circulate for feedback
-before deciding whether to build. v1 and v2 stay decryptable forever regardless.
+**Status:** SHELVED (decided 2026-06-24) — not implemented, not planned. Kept for the
+record. Legacy now has one final format, specified in `PROTOCOL-SPEC.md`; references
+below to "v1" and "v2" are historical ("v2" is that final format, and v1 was retired).
 
 **What this adds:** **k-of-n recovery** (e.g. 2-of-3) so the scheme no longer fails if a
 single party loses their key. Today's v2 is strict **2-of-2**: two people each hold one

@@ -53,26 +53,47 @@ Copy the view file:
 cp views/legacy_views.py src/seedsigner/views/legacy_views.py
 ```
 
-### 4. Wire Into the Main Menu
+### 4. Wire Into the Tools Menu
 
-Edit `src/seedsigner/views/view.py` (or wherever `MainMenuView` lives in your version) to add a menu entry.
+Edit `src/seedsigner/views/tools_views.py` — the entry goes in the **Tools**
+menu, not the main menu. See the warning below for why.
 
-In the `MainMenuView.run()` method, add a button:
+Add the button option to `ToolsMenuView`:
 
 ```python
-# Add to the button_data list:
-("Legacy Encryption", FontAwesomeIconConstants.LOCK),
+from seedsigner.views.legacy_views import LegacyMainMenuView
+
+    LEGACY = ButtonOption("Legacy Encryption", FontAwesomeIconConstants.LOCK)
+```
+
+Add it to the button list:
+
+```python
+button_data = [self.IMAGE, self.DICE, self.KEYBOARD, self.ADDRESS_EXPLORER, self.VERIFY_ADDRESS, self.LEGACY]
 ```
 
 And handle the selection:
 
 ```python
-from seedsigner.views.legacy_views import LegacyMainMenuView
-
-# In the selection handler:
-if button_data[selected_menu_num] == "Legacy Encryption":
-    return Destination(LegacyMainMenuView)
+        elif button_data[selected_menu_num] == self.LEGACY:
+            return Destination(LegacyMainMenuView)
 ```
+
+`build.sh` does exactly this automatically via `patch_menu.py`; the steps
+above are only needed if you are patching by hand.
+
+> **Do not add the entry to the main menu.** `MainMenuView` renders through
+> `MainMenuScreen`, which extends `LargeButtonScreen` — a fixed 2×2 grid with
+> no pagination. Its `__post_init__` raises
+> `"LargeButtonScreen only supports 2 or 4 buttons"` on any other count, and
+> `MainMenuScreen` does not override it. The main menu already has four
+> entries (Scan, Seeds, Tools, Settings), so adding a fifth means the
+> controller catches that exception and the device boots to an error screen
+> instead of a menu. Released images are built by `build.sh` and are not
+> affected.
+
+Resulting path on the device: **Tools → Legacy Encryption → Decrypt Seed
+Phrase**.
 
 ### 5. Ensure BIP-39 Wordlist Is Accessible
 
@@ -113,13 +134,13 @@ sudo dd if=output/seedsigner.img of=/dev/sdX bs=4M status=progress
 sync
 ```
 
-Insert the microSD into the Pi Zero, power on, and "Legacy Encryption" appears in the main menu.
+Insert the microSD into the Pi Zero, power on, and "Legacy Encryption" appears in the **Tools** menu.
 
 ## User Flow
 
 ### Encrypting a Seed Phrase
 
-1. Boot SeedSigner → select **Legacy Encryption** → **Encrypt Seed Phrase**
+1. Boot SeedSigner → **Tools** → **Legacy Encryption** → **Encrypt Seed Phrase**
 2. Scan your seed phrase as a SeedQR (use another device to generate the SeedQR, or use SeedSigner's built-in seed tools first)
 3. Enter the **benefactor key** using the on-screen keyboard (joystick to navigate, button to select characters)
 4. Enter the **beneficiary key**
@@ -130,7 +151,7 @@ Insert the microSD into the Pi Zero, power on, and "Legacy Encryption" appears i
 
 ### Decrypting
 
-1. Boot → **Legacy Encryption** → **Decrypt Seed Phrase**
+1. Boot → **Tools** → **Legacy Encryption** → **Decrypt Seed Phrase**
 2. Scan the encrypted QR code
 3. Enter benefactor key, then beneficiary key
 4. Device decrypts and shows the recovered seed words on screen
@@ -162,7 +183,7 @@ python test_cross_compat.py           # Full test suite (needs Node.js for cross
 
 ## Customization Ideas
 
-- **Iteration count toggle**: Add a settings view to let users choose between 600K iterations (compatible with browser version) and a lower count for faster Pi Zero performance
+- **Iteration count**: fixed at 600,000 by the format (payloads carry no parameters), so it cannot be made configurable without breaking compatibility.
 - **Direct seed entry**: Add a word-by-word BIP-39 entry flow instead of requiring SeedQR scan
 - **Multiple encryption layers**: Encrypt once for storage, scan back to encrypt again with different keys
 - **Compact QR**: Use SeedSigner's compact SeedQR encoding for smaller QR codes

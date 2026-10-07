@@ -10,38 +10,43 @@ Legacy Encryption is a P2P Bitcoin inheritance solution — a client-side web ap
 
 ```bash
 # Run tests
-npm test                          # Standard test run (~1,010 tests)
-npm run test:verbose              # With detailed output
-npm run test:quick                # Quick subset
+npm test                          # JS suite: vectors, HTML-embed check, ~300 round-trips
+npm run test:quick                # Fewer random round-trips
+npm run test:all                  # JS suite + Python port/cross-compat suite
+python3 seedsigner-port/test_cross_compat.py   # Python port only (needs `cryptography`)
 
-# Advanced test runner
-node run-tests.js --quick --verbose
-node run-tests.js --iterations 2000
-node run-tests.js --extensive --parallel
+# After editing legacy-core.js
+node tools/sync-core.js           # copy the core into the three HTML pages
+node tools/generate-vectors.js    # only if the format itself changed (it shouldn't)
 ```
 
 ## Architecture
 
 ### Core Application
-The primary deliverable is **`Legacy-offline.html`** — a single self-contained HTML file with no external dependencies. It embeds:
-- Full BIP39 English wordlist (2,048 words)
-- AES-256-GCM encryption/decryption implementation using the browser Web Crypto API
-- Both the encrypt and decrypt UIs in one file
+The primary deliverable is **`Legacy-offline.html`** — a single self-contained HTML file with no external dependencies and a Content-Security-Policy that forbids all network access.
+
+**`legacy-core.js`** is the single source of truth for the JavaScript crypto (including the BIP-39 wordlist). It is embedded verbatim, between `// ==== BEGIN/END LEGACY CORE ====` markers, in `Legacy-offline.html`, `encrypt.html` and `decrypt.html`. Never edit the embedded copies; edit `legacy-core.js` and run `node tools/sync-core.js`. The test suite fails if any copy drifts.
 
 **`encrypt.html`** and **`decrypt.html`** are online demo versions with a warning not to use real seed phrases there.
 
-**`index.html`** is the marketing landing page; the other HTML files (`mission.html`, `how-it-works.html`, `benefits.html`, `FAQ.html`, `protocol.html`, `contact.html`) are informational pages.
+**`index.html`** is the marketing landing page; the other HTML files (`mission.html`, `how-it-works.html`, `benefits.html`, `FAQ.html`, `protocol.html`, `contact.html`) are informational pages. FAQ #10 contains a plain-language recovery spec for heirs; keep it in sync with `PROTOCOL-SPEC.md`.
 
-### Cryptographic Design
-- **Key derivation:** PBKDF2 (SHA-256, 600,000 iterations, 16-byte random salt)
-- **Encryption:** AES-256-GCM with a 12-byte random IV
-- **Dual-key scheme:** The benefactor and beneficiary keys are joined with a `0x1F` (Unit Separator) byte between them — `benefactorKey + 0x1F + beneficiaryKey` — into a single combined password, which PBKDF2 stretches into one AES-256 key; the seed is encrypted in a single AES-256-GCM pass. Decryption requires both keys in the correct order. This is one split password, **not** threshold/secret-sharing crypto (see `protocol.html`). The `0x1F` separator (added in v2) removes the v1 ambiguity where `"ab"+"c"` and `"a"+"bc"` derived the same key.
-- **Format (Protocol v2):** Output is `"LE2." + base64url(header || ciphertext)`. The fixed 35-byte header is `version(1) || kdf_id(1) || iterations(4,BE) || padLen(1) || salt(16) || iv(12)`, bound to the ciphertext as GCM AAD. Decryptors detect the `LE2.` prefix; payloads with no prefix are legacy **v1** (concatenation with no separator, `b64(b64salt.b64iv.b64ct.padLen)`) and stay decryptable forever. See `PROTOCOL-V2-SPEC.md`.
-- **BIP39 validation:** `encryptSeedPhrase()` enforces the real BIP-39 checksum (not just word membership + count) before encrypting.
-- **Obfuscation:** 0–4 random **bytes** of padding appended to the plaintext byte array before encryption (count stored in the v2 header)
+### Cryptographic Design (final format — see `PROTOCOL-SPEC.md`)
+There is exactly **one** format. The old unprefixed "v1" format was removed from all implementations (never used for real funds); do not reintroduce version dispatch.
+- **Key derivation:** PBKDF2-HMAC-SHA256, 600,000 iterations, 16-byte random salt.
+- **Encryption:** AES-256-GCM, 12-byte random IV, 16-byte tag.
+- **Dual-key scheme:** `canon(benefactorKey) + 0x1F + canon(beneficiaryKey)` → one password. One split password, **not** threshold/secret-sharing crypto.
+- **Key canonicalization (part of the format):** curly quotes → straight, tab/CR/LF/no-break space → space, collapse spaces, trim; result must be non-empty printable ASCII (0x20–0x7E) or it is rejected. Applied on both encrypt and decrypt in every implementation.
+- **Payload:** `base64url(salt(16) || iv(12) || ciphertext)`, no prefix and no header: every visible byte is random, so a payload can't be identified as Legacy-generated (user requirement — never add a marker or fixed bytes). All parameters are fixed; plaintext = `padLen(1) || seed || padBytes`, no AAD. Decryptors pre-check only alphabet and body length (92–264 bytes) before PBKDF2.
+- **Seed:** 12/24-word BIP-39 with checksum, stored canonical (lowercase, single spaces). Decrypt rejects a result that isn't one.
+- **Self-check:** encrypt parses and decrypts its own output before returning it.
+- **Obfuscation:** 0–4 random padding bytes (count is the first, encrypted, plaintext byte).
 
-### Test Suite (`test-legacy-encryption.js`)
-Node.js test suite that reimplements the encryption logic using the Node `crypto` module to mirror the browser Web Crypto API behavior. The `LegacyEncryption` class in this file is the reference implementation for testing purposes only — the canonical implementation lives in `Legacy-offline.html`.
+### Implementations and tests
+- `legacy-core.js` (browser) and `seedsigner-port/legacy_encryption.py` (device) must agree byte-for-byte. Both are checked against the published deterministic vectors in **`test-vectors.json`** (regenerated by `tools/generate-vectors.js`; `--check` fails on drift).
+- `test-legacy-encryption.js` tests the real `legacy-core.js` (not a copy), plus an independent Node-crypto decode of the vectors.
+- `seedsigner-port/test_cross_compat.py` tests the Python port, an independent from-the-spec decryptor, and Python ↔ `legacy-core.js` in both directions.
+- `seedsigner-port/views/legacy_views.py`: on-device flow. When encrypting, each key is entered twice; scanned payloads are validated before key entry.
 
 ### Styling
 `styles.css` is shared across the informational/demo HTML pages (dark theme, Bitcoin orange `#f7931a` accent, Courier New body font). `Legacy-offline.html` has its own embedded styles.

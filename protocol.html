@@ -71,9 +71,24 @@
                         it is one password split into two parts, not threshold
                         cryptography or secret-sharing — "neither key alone
                         decrypts" is a property of any split password. The
-                        separator removes the old ambiguity where
-                        <code>"ab" + "c"</code> and <code>"a" + "bc"</code> would
-                        derive the same key.
+                        separator keeps the boundary unambiguous:
+                        <code>"ab" + "c"</code> and <code>"a" + "bc"</code>
+                        derive different keys.
+                    </li>
+                    <li>
+                        Each key is canonicalized before use, on both encrypt and
+                        decrypt: curly quotes become straight quotes, tabs, line
+                        breaks and no-break spaces become spaces, repeated spaces
+                        collapse to one, and leading/trailing spaces are dropped.
+                        Keys must then be non-empty printable ASCII (what a
+                        standard US keyboard, and the SeedSigner keyboard, can
+                        type). Anything else is refused at encryption time, so a
+                        key can always be retyped exactly by an heir.
+                    </li>
+                    <li>
+                        The seed phrase must be a valid 12- or 24-word BIP-39
+                        mnemonic, checksum included. It is stored as lowercase
+                        words separated by single spaces.
                     </li>
                 </ul>
                 <div style="height: 10vh"></div>
@@ -123,45 +138,46 @@
                     </ul>
                 </ul>
                 <div style="height: 10vh"></div>
-                <h2>Data Formatting (Protocol v2):</h2>
+                <h2>Data Formatting:</h2>
                 <div style="height: 5vh"></div>
                 <ul>
                     <li>
-                        Output is a self-describing, versioned binary envelope.
-                        A fixed 35-byte header is packed as:
-                    </li>
-                    <ul style="padding-left: 20px">
-                        <li>version (1 byte) = 0x02</li>
-                        <li>kdf_id (1 byte) = 0x01 (PBKDF2-HMAC-SHA256)</li>
-                        <li>iterations (4 bytes, big-endian) — stored so the count can change without a new format</li>
-                        <li>padLen (1 byte) — 0–4 random padding bytes</li>
-                        <li>salt (16 bytes)</li>
-                        <li>iv (12 bytes)</li>
-                    </ul>
-                    <li>
-                        The header is followed by the AES-GCM ciphertext (which
-                        includes the 16-byte auth tag). The header is also passed
-                        as GCM <em>associated data (AAD)</em>, so tampering with
-                        the version or stored parameters fails the auth tag.
+                        Before encryption, the plaintext is laid out as one
+                        byte holding the padding length (0–4), then the seed
+                        phrase, then that many random padding bytes.
                     </li>
                     <li>
-                        The whole <code>header || ciphertext</code> blob is
+                        The output is the 16-byte salt, the 12-byte IV and the
+                        AES-GCM ciphertext (including its 16-byte
+                        authentication tag), concatenated and
                         <strong>base64url</strong>-encoded (URL/filename-safe,
                         trailing <code>=</code> stripped).
+                    </li>
+                    <li>
+                        All parameters (PBKDF2-SHA256, 600,000 iterations,
+                        AES-256-GCM) are fixed by the format, so nothing about
+                        them is stored.
                     </li>
                 </ul>
                 <div style="height: 10vh"></div>
                 <h2>Output:</h2>
                 <div style="height: 5vh"></div>
                 <ul>
+                    <li>A single string:</li>
+                    <code>base64url(salt || iv || ciphertext)</code>
                     <li>
-                        A single string, prefixed for version detection:
+                        Every visible byte is random. There is no prefix,
+                        version number or fixed header, so an encrypted seed
+                        phrase cannot be recognized as Legacy-generated. Whoever
+                        holds it needs to know what it is.
                     </li>
-                    <code>"LE2." + base64url(header || ciphertext)</code>
                     <li>
-                        Decryptors detect the <code>LE2.</code> prefix to read v2;
-                        payloads with no prefix are treated as legacy v1 and stay
-                        decryptable forever.
+                        This is the only Legacy format. Before handing out a
+                        payload, the encryptor parses it back and decrypts it,
+                        and only releases it if it yields exactly the seed
+                        phrase. The full specification and published test
+                        vectors are in
+                        <a href="https://github.com/ericscalibur/Legacy_Encryption/blob/main/PROTOCOL-SPEC.md">PROTOCOL-SPEC.md</a>.
                     </li>
                 </ul>
                 <div style="height: 10vh"></div>
@@ -169,29 +185,26 @@
                 <div style="height: 5vh"></div>
                 <ul>
                     <li>
-                        strToArrayBuffer(str): Converts a string to an
-                        ArrayBuffer.
+                        canonicalizeKey(key): Applies the key rules above, or
+                        rejects the key.
                     </li>
                     <li>
-                        arrayBufferToStr(buf): Converts an ArrayBuffer to a
-                        string.
-                    </li>
-                    <li>generateSalt(): Generates a 16-byte random salt.</li>
-                    <li>
-                        deriveKey(password, salt, iterations): Derives a 256-bit
-                        AES key from a password (the combined key) and salt using
-                        PBKDF2; the iteration count is read from the v2 header.
+                        seedPhraseError(seed): Validates a 12/24-word BIP-39
+                        mnemonic, including its checksum.
                     </li>
                     <li>
-                        encryptData(plaintext, password): Encrypts the plaintext
-                        (seed phrase) using AES-GCM with a derived key, salt,
-                        and IV. Returns the encrypted data components.
+                        parsePayload(payload): Rejects anything that cannot be a
+                        Legacy payload (wrong characters or length) before any
+                        key derivation.
                     </li>
                     <li>
-                        encryptSeedPhrase(): Orchestrates the encryption
-                        process: retrieves user inputs, validates seed phrase,
-                        derives the key, encrypts the seed phrase, and displays
-                        the encrypted output.
+                        encryptSeedPhrase(seed, benefactorKey, beneficiaryKey):
+                        Validates the inputs, derives the key with PBKDF2,
+                        encrypts with AES-256-GCM, then self-checks the result.
+                    </li>
+                    <li>
+                        decryptSeedPhrase(payload, benefactorKey, beneficiaryKey):
+                        The reverse; the result must be a valid seed phrase.
                     </li>
                 </ul>
                 <div style="height: 10vh"></div>

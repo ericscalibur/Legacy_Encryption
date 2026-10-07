@@ -1,0 +1,249 @@
+{
+  "description": "Legacy Encryption test vectors. Every implementation must produce each `payload` exactly from the listed inputs (salt, iv, padBytes in hex), must decrypt each payload back to `canonicalSeed`, and must reject every entry in `invalid` with the listed error code. See PROTOCOL-SPEC.md.",
+  "format": "base64url(salt || iv || AES-256-GCM(PBKDF2-SHA256-600000(canon(k1) 0x1F canon(k2)), padLen || seed || padBytes))",
+  "valid": [
+    {
+      "name": "12 words, no padding",
+      "seed": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "benefactorKey": "correct horse battery staple",
+      "beneficiaryKey": "trombone yellow lantern quiet",
+      "salt": "000102030405060708090a0b0c0d0e0f",
+      "iv": "101112131415161718191a1b",
+      "padBytes": "",
+      "canonicalSeed": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "payload": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaG3paH38t9XEn69wGB8wrYlEQuyfO-yW3xZCmoFhUHNcEbEaMi5CgeyDP9Fq9MSka6bbovt4u0C6s2HhcDofpAWnpf9Pltr2O0K23Hw0CwZCjF554ouezMCJ6dqxV7F04Z2I0q7lTf6S2Mrke3VqF"
+    },
+    {
+      "name": "24 words, 4 padding bytes",
+      "seed": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "benefactorKey": "Benefactor-Key!2026",
+      "beneficiaryKey": "Beneficiary Key #2",
+      "salt": "f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff",
+      "iv": "a0a1a2a3a4a5a6a7a8a9aaab",
+      "padBytes": "deadbeef",
+      "canonicalSeed": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "payload": "8PHy8_T19vf4-fr7_P3-_6ChoqOkpaanqKmqq_xkjXgxYfLIhBb_RWHOBhZh_bx_MUqVh2OI6cO7oCNYATX8jyZlRULenVZ67WxrvN7pSDanMrpMaxrrH7sDCE67xrxcYvkdB_OyggOrahiLPyY_fLezKBKrGZWM-9bm7YnOk6ecfSZ7W-M97P-binCd86e2UPT3V_afwZLtGHM3HE5tLQ92TYvKPbosMttZTJysItIJK1-BG460AeLviy5ry4Z7YsD0gCf9iho0dFCoM9jrYKOJJc3zxwAONH1SSGPVfnzUzpveRzZQ7q5ENMU"
+    },
+    {
+      "name": "12 words, 2 padding bytes, all ASCII punctuation",
+      "seed": "legal winner thank year wave sausage worth useful legal winner thank yellow",
+      "benefactorKey": "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~",
+      "beneficiaryKey": "a b",
+      "salt": "404142434445464748494a4b4c4d4e4f",
+      "iv": "808182838485868788898a8b",
+      "padBytes": "0080",
+      "canonicalSeed": "legal winner thank year wave sausage worth useful legal winner thank yellow",
+      "payload": "QEFCQ0RFRkdISUpLTE1OT4CBgoOEhYaHiImKi_iJTJQ9CZ3AuI8VRh4yoTuGkAg1psMOoAkzOxOGxB_Z1SSyv5HR02nST8cSt4lQj6enQ1zCGFaWsRQYyerKRHpO9vwowqJQxMkBNYBp5zY0yuWmJtSRcHas269l4ic"
+    },
+    {
+      "name": "key canonicalization: same payload as vector 1",
+      "seed": "  Abandon abandon abandon abandon abandon abandon\nabandon abandon abandon abandon abandon ABOUT ",
+      "benefactorKey": "  correct   horse battery\tstaple\n",
+      "beneficiaryKey": "trombone yellow lantern quiet ",
+      "canonicalBenefactorKey": "correct horse battery staple",
+      "canonicalBeneficiaryKey": "trombone yellow lantern quiet",
+      "salt": "000102030405060708090a0b0c0d0e0f",
+      "iv": "101112131415161718191a1b",
+      "padBytes": "",
+      "canonicalSeed": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "payload": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaG3paH38t9XEn69wGB8wrYlEQuyfO-yW3xZCmoFhUHNcEbEaMi5CgeyDP9Fq9MSka6bbovt4u0C6s2HhcDofpAWnpf9Pltr2O0K23Hw0CwZCjF554ouezMCJ6dqxV7F04Z2I0q7lTf6S2Mrke3VqF"
+    },
+    {
+      "name": "key canonicalization: curly quotes become straight quotes",
+      "seed": "zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo wrong",
+      "benefactorKey": "It’s “ours”",
+      "beneficiaryKey": "don‘t forget",
+      "canonicalBenefactorKey": "It's \"ours\"",
+      "canonicalBeneficiaryKey": "don't forget",
+      "salt": "202122232425262728292a2b2c2d2e2f",
+      "iv": "303132333435363738393a3b",
+      "padBytes": "01",
+      "canonicalSeed": "zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo wrong",
+      "payload": "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6OykO1FAFNi_jh4u6zd-NXQLChACzm2VHjNDgG6WfcDae2zGn7qcL1yEtIGjFpB67V291hTEogyrOdZ_Usq8Dd9Hm0uQ"
+    }
+  ],
+  "invalid": [
+    {
+      "name": "wrong benefactor key",
+      "payload": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaG3paH38t9XEn69wGB8wrYlEQuyfO-yW3xZCmoFhUHNcEbEaMi5CgeyDP9Fq9MSka6bbovt4u0C6s2HhcDofpAWnpf9Pltr2O0K23Hw0CwZCjF554ouezMCJ6dqxV7F04Z2I0q7lTf6S2Mrke3VqF",
+      "benefactorKey": "correct horse battery stapler",
+      "beneficiaryKey": "trombone yellow lantern quiet",
+      "code": "WRONG_KEYS"
+    },
+    {
+      "name": "keys swapped",
+      "payload": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaG3paH38t9XEn69wGB8wrYlEQuyfO-yW3xZCmoFhUHNcEbEaMi5CgeyDP9Fq9MSka6bbovt4u0C6s2HhcDofpAWnpf9Pltr2O0K23Hw0CwZCjF554ouezMCJ6dqxV7F04Z2I0q7lTf6S2Mrke3VqF",
+      "benefactorKey": "trombone yellow lantern quiet",
+      "beneficiaryKey": "correct horse battery staple",
+      "code": "WRONG_KEYS"
+    },
+    {
+      "name": "key boundary moved",
+      "payload": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaG3paH38t9XEn69wGB8wrYlEQuyfO-yW3xZCmoFhUHNcEbEaMi5CgeyDP9Fq9MSka6bbovt4u0C6s2HhcDofpAWnpf9Pltr2O0K23Hw0CwZCjF554ouezMCJ6dqxV7F04Z2I0q7lTf6S2Mrke3VqF",
+      "benefactorKey": "correct horse battery stapl",
+      "beneficiaryKey": "etrombone yellow lantern quiet",
+      "code": "WRONG_KEYS"
+    },
+    {
+      "name": "key case changed",
+      "payload": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaG3paH38t9XEn69wGB8wrYlEQuyfO-yW3xZCmoFhUHNcEbEaMi5CgeyDP9Fq9MSka6bbovt4u0C6s2HhcDofpAWnpf9Pltr2O0K23Hw0CwZCjF554ouezMCJ6dqxV7F04Z2I0q7lTf6S2Mrke3VqF",
+      "benefactorKey": "Correct horse battery staple",
+      "beneficiaryKey": "trombone yellow lantern quiet",
+      "code": "WRONG_KEYS"
+    },
+    {
+      "name": "empty key",
+      "payload": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaG3paH38t9XEn69wGB8wrYlEQuyfO-yW3xZCmoFhUHNcEbEaMi5CgeyDP9Fq9MSka6bbovt4u0C6s2HhcDofpAWnpf9Pltr2O0K23Hw0CwZCjF554ouezMCJ6dqxV7F04Z2I0q7lTf6S2Mrke3VqF",
+      "benefactorKey": "   ",
+      "beneficiaryKey": "trombone yellow lantern quiet",
+      "code": "BAD_KEY"
+    },
+    {
+      "name": "non-ASCII key",
+      "payload": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaG3paH38t9XEn69wGB8wrYlEQuyfO-yW3xZCmoFhUHNcEbEaMi5CgeyDP9Fq9MSka6bbovt4u0C6s2HhcDofpAWnpf9Pltr2O0K23Hw0CwZCjF554ouezMCJ6dqxV7F04Z2I0q7lTf6S2Mrke3VqF",
+      "benefactorKey": "corréct horse battery staple",
+      "beneficiaryKey": "trombone yellow lantern quiet",
+      "code": "BAD_KEY"
+    },
+    {
+      "name": "control character in key",
+      "payload": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaG3paH38t9XEn69wGB8wrYlEQuyfO-yW3xZCmoFhUHNcEbEaMi5CgeyDP9Fq9MSka6bbovt4u0C6s2HhcDofpAWnpf9Pltr2O0K23Hw0CwZCjF554ouezMCJ6dqxV7F04Z2I0q7lTf6S2Mrke3VqF",
+      "benefactorKey": "correct\u001fhorse",
+      "beneficiaryKey": "trombone yellow lantern quiet",
+      "code": "BAD_KEY"
+    },
+    {
+      "name": "salt bit flipped",
+      "payload": "AQECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaG3paH38t9XEn69wGB8wrYlEQuyfO-yW3xZCmoFhUHNcEbEaMi5CgeyDP9Fq9MSka6bbovt4u0C6s2HhcDofpAWnpf9Pltr2O0K23Hw0CwZCjF554ouezMCJ6dqxV7F04Z2I0q7lTf6S2Mrke3VqF",
+      "benefactorKey": "correct horse battery staple",
+      "beneficiaryKey": "trombone yellow lantern quiet",
+      "code": "WRONG_KEYS"
+    },
+    {
+      "name": "iv bit flipped",
+      "payload": "AAECAwQFBgcICQoLDA0ODxAREhMVFRYXGBkaG3paH38t9XEn69wGB8wrYlEQuyfO-yW3xZCmoFhUHNcEbEaMi5CgeyDP9Fq9MSka6bbovt4u0C6s2HhcDofpAWnpf9Pltr2O0K23Hw0CwZCjF554ouezMCJ6dqxV7F04Z2I0q7lTf6S2Mrke3VqF",
+      "benefactorKey": "correct horse battery staple",
+      "beneficiaryKey": "trombone yellow lantern quiet",
+      "code": "WRONG_KEYS"
+    },
+    {
+      "name": "ciphertext bit flipped",
+      "payload": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaG3paH38t9XEn69wGB80rYlEQuyfO-yW3xZCmoFhUHNcEbEaMi5CgeyDP9Fq9MSka6bbovt4u0C6s2HhcDofpAWnpf9Pltr2O0K23Hw0CwZCjF554ouezMCJ6dqxV7F04Z2I0q7lTf6S2Mrke3VqF",
+      "benefactorKey": "correct horse battery staple",
+      "beneficiaryKey": "trombone yellow lantern quiet",
+      "code": "WRONG_KEYS"
+    },
+    {
+      "name": "tag bit flipped",
+      "payload": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaG3paH38t9XEn69wGB8wrYlEQuyfO-yW3xZCmoFhUHNcEbEaMi5CgeyDP9Fq9MSka6bbovt4u0C6s2HhcDofpAWnpf9Pltr2O0K23Hw0CwZCjF554ouezMCJ6dqxV7F04Z2I0q7lTf6S2Mrke3VoF",
+      "benefactorKey": "correct horse battery staple",
+      "beneficiaryKey": "trombone yellow lantern quiet",
+      "code": "WRONG_KEYS"
+    },
+    {
+      "name": "truncated by one byte",
+      "payload": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaG3paH38t9XEn69wGB8wrYlEQuyfO-yW3xZCmoFhUHNcEbEaMi5CgeyDP9Fq9MSka6bbovt4u0C6s2HhcDofpAWnpf9Pltr2O0K23Hw0CwZCjF554ouezMCJ6dqxV7F04Z2I0q7lTf6S2Mrke3Vo",
+      "benefactorKey": "correct horse battery staple",
+      "beneficiaryKey": "trombone yellow lantern quiet",
+      "code": "WRONG_KEYS"
+    },
+    {
+      "name": "random bytes of a plausible length",
+      "payload": "pKvURIxJVi2CgRXROh_M6pJ_UrTVRZKX-LQ-QtqJI4vBNibkPcs43bCCSIkn7JBPtCBXRDmD6IWFF51QVRr-YgEhtHdKdZkkopKcSkEvtuMbmqp0ZGaEDvzEp21pqUFJ4jZOOYPWRv6vqhtRF4XlyekK7cMNpqa-rVUg7MmcZiag",
+      "benefactorKey": "correct horse battery staple",
+      "beneficiaryKey": "trombone yellow lantern quiet",
+      "code": "WRONG_KEYS"
+    },
+    {
+      "name": "authenticated, padLen byte above 4",
+      "payload": "VVVVVVVVVVVVVVVVVVVVVWZmZmZmZmZmZmZmZgLBZuJxty-qALvuyCywBPlZOG8_fegLC3wdMYjvPpEYhuRA0DBWzGRM1GzJ-64SlwwkHvNYZ9-hVYTXGUR9y0HcOHGRdNjoj8ank0KSgf6n2_UGJYlB1EL24Xtkr_yAOFwcODEWhdmos071h_CfeDfH7OI",
+      "benefactorKey": "correct horse battery staple",
+      "beneficiaryKey": "trombone yellow lantern quiet",
+      "code": "CORRUPT"
+    },
+    {
+      "name": "authenticated, plaintext not a mnemonic",
+      "payload": "VVVVVVVVVVVVVVVVVVVVVWZmZmZmZmZmZmZmZgfUbOps8ym3ALTj3WK1S-QcPGl-Y-QWBC8Zf8njL4pWz_EC2C0Sz2UC0i7N-6UInkRlCP0Wc9G8BsXBEE85yEqSPmeYOt_vhIWtkcb9HskBty4BaN-zT4avYg",
+      "benefactorKey": "correct horse battery staple",
+      "beneficiaryKey": "trombone yellow lantern quiet",
+      "code": "CORRUPT"
+    },
+    {
+      "name": "authenticated, mnemonic not canonical (uppercase)",
+      "payload": "VVVVVVVVVVVVVVVVVVVVVWZmZmZmZmZmZmZmZgfhRsJRlw-KALvuyCywBPlZOG8_fegLC3wdMYjvPpEYhuRA0DBWzGRM1GzJ-64SlwwkHvNYZ9-hVYTXGUR9y0HcOHGRdNjoj8ank0KSgf6n2_UGJYlB1EL24Xtkr_wICXJZExvkGKgADDiEC2VA",
+      "benefactorKey": "correct horse battery staple",
+      "beneficiaryKey": "trombone yellow lantern quiet",
+      "code": "CORRUPT"
+    },
+    {
+      "name": "old draft format with LE2. prefix",
+      "payload": "LE2.AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaG3paH38t9XEn69wGB8wrYlEQuyfO-yW3xZCmoFhUHNcEbEaMi5CgeyDP9Fq9MSka6bbovt4u0C6s2HhcDofpAWnpf9Pltr2O0K23Hw0CwZCjF554ouezMCJ6dqxV7F04Z2I0q7lTf6S2Mrke3VqF",
+      "benefactorKey": "correct horse battery staple",
+      "beneficiaryKey": "trombone yellow lantern quiet",
+      "code": "BAD_PAYLOAD"
+    },
+    {
+      "name": "standard-base64 character",
+      "payload": "AAECAwQFBgcICQoLDA0O+xAREhMUFRYXGBkaG3paH38t9XEn69wGB8wrYlEQuyfO-yW3xZCmoFhUHNcEbEaMi5CgeyDP9Fq9MSka6bbovt4u0C6s2HhcDofpAWnpf9Pltr2O0K23Hw0CwZCjF554ouezMCJ6dqxV7F04Z2I0q7lTf6S2Mrke3VqF",
+      "benefactorKey": "correct horse battery staple",
+      "beneficiaryKey": "trombone yellow lantern quiet",
+      "code": "BAD_PAYLOAD"
+    },
+    {
+      "name": "embedded space",
+      "payload": "AAECAwQFBgcICQoLDA0O DxAREhMUFRYXGBkaG3paH38t9XEn69wGB8wrYlEQuyfO-yW3xZCmoFhUHNcEbEaMi5CgeyDP9Fq9MSka6bbovt4u0C6s2HhcDofpAWnpf9Pltr2O0K23Hw0CwZCjF554ouezMCJ6dqxV7F04Z2I0q7lTf6S2Mrke3VqF",
+      "benefactorKey": "correct horse battery staple",
+      "beneficiaryKey": "trombone yellow lantern quiet",
+      "code": "BAD_PAYLOAD"
+    },
+    {
+      "name": "impossible base64 length",
+      "payload": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaG3paH38t9XEn69wGB8wrYlEQuyfO-yW3xZCmoFhUHNcEbEaMi5CgeyDP9Fq9MSka6bbovt4u0C6s2HhcDofpAWnpf9Pltr2O0K23Hw0CwZCjF554ouezMCJ6dqxV7F04Z2I0q7lTf6S2Mrke3VqFA",
+      "benefactorKey": "correct horse battery staple",
+      "beneficiaryKey": "trombone yellow lantern quiet",
+      "code": "BAD_PAYLOAD"
+    },
+    {
+      "name": "too short (91 bytes)",
+      "payload": "QUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQQ",
+      "benefactorKey": "correct horse battery staple",
+      "beneficiaryKey": "trombone yellow lantern quiet",
+      "code": "BAD_PAYLOAD"
+    },
+    {
+      "name": "too long (265 bytes)",
+      "payload": "QUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQQ",
+      "benefactorKey": "correct horse battery staple",
+      "beneficiaryKey": "trombone yellow lantern quiet",
+      "code": "BAD_PAYLOAD"
+    },
+    {
+      "name": "a standard 12-word SeedQR (digits)",
+      "payload": "000000000000000000000000000000000000000000000003",
+      "benefactorKey": "correct horse battery staple",
+      "beneficiaryKey": "trombone yellow lantern quiet",
+      "code": "BAD_PAYLOAD"
+    },
+    {
+      "name": "a standard 24-word SeedQR (digits)",
+      "payload": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000102",
+      "benefactorKey": "correct horse battery staple",
+      "beneficiaryKey": "trombone yellow lantern quiet",
+      "code": "BAD_PAYLOAD"
+    },
+    {
+      "name": "empty",
+      "payload": "",
+      "benefactorKey": "correct horse battery staple",
+      "beneficiaryKey": "trombone yellow lantern quiet",
+      "code": "BAD_PAYLOAD"
+    },
+    {
+      "name": "whitespace only",
+      "payload": " \n ",
+      "benefactorKey": "correct horse battery staple",
+      "beneficiaryKey": "trombone yellow lantern quiet",
+      "code": "BAD_PAYLOAD"
+    }
+  ]
+}

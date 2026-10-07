@@ -1,261 +1,228 @@
 """
-Cross-compatibility test suite for Legacy Encryption Python ↔ JavaScript.
+Test suite for the Legacy Encryption Python port, and Python <-> JavaScript
+cross-compatibility.
 
 Verifies that:
-  1. Python can round-trip encrypt/decrypt its own output
-  2. Python can decrypt ciphertext produced by the Node.js reference
-  3. Node.js can decrypt ciphertext produced by Python
+  1. Python reproduces every published test vector (test-vectors.json)
+     byte-for-byte, decrypts each one, and rejects every invalid vector with
+     the expected error code.
+  2. An independent, from-the-spec decryptor (no code shared with the port)
+     decrypts the vectors — so the spec and the code agree.
+  3. Python round-trips its own output, and canonicalizes keys and seeds the
+     same way legacy-core.js does.
+  4. Payloads cross between Python and the real legacy-core.js (the exact code
+     embedded in Legacy-offline.html) in both directions.
 
 Run:  python test_cross_compat.py          (needs Node.js on PATH for cross tests)
       python -m pytest test_cross_compat.py -v
 """
 
+import base64
+import hashlib
 import json
 import os
 import subprocess
 import sys
 import time
 
-# ---------------------------------------------------------------------------
-# Bootstrap: ensure we can import the module under test
-# ---------------------------------------------------------------------------
-
-sys.path.insert(0, os.path.dirname(__file__))
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(HERE)
+sys.path.insert(0, HERE)
 import legacy_encryption as le  # noqa: E402
 
-# Provide a minimal wordlist so tests don't need english.txt
-le._BIP39_WORDLIST = [
-    "abandon", "ability", "able", "about", "above", "absent",
-    "absorb", "abstract", "absurd", "abuse", "access", "accident",
-]
+# Use the real 2048-word list from the repo root (sha256-checked) so random
+# mnemonics exercise the full wordlist.
+_WORDLIST_PATH = os.path.join(ROOT, "english.txt")
+with open(_WORDLIST_PATH, "rb") as _f:
+    _raw = _f.read()
+assert hashlib.sha256(_raw).hexdigest() == (
+    "2f5eed53a4727b4bf8880d8f3f199efc90e58503646d9ff8eff3a2ed3b24dbda"
+), "english.txt is not the official BIP-39 English wordlist"
+le._BIP39_WORDLIST = [w.strip() for w in _raw.decode().splitlines() if w.strip()]
 
-# Canonical all-zero-entropy mnemonic (checksum word "about") — a VALID BIP-39
-# phrase, required now that encrypt enforces the checksum. Uses only words that
-# exist in the minimal wordlist above (indices 0 and 3, matching real BIP-39).
+with open(os.path.join(ROOT, "test-vectors.json")) as _f:
+    VECTORS = json.load(_f)
+
+CORE_JS = os.path.join(ROOT, "legacy-core.js")
+
 SEED_12 = "abandon " * 11 + "about"
 BK = "benefactor-test-key"
 BYK = "beneficiary-test-key"
 
 
+def _random_mnemonic(words: int) -> str:
+    """A random valid BIP-39 mnemonic (test helper)."""
+    ent_bits = words * 11 * 32 // 33
+    entropy = os.urandom(ent_bits // 8)
+    cs = hashlib.sha256(entropy).digest()
+    bits = bin(int.from_bytes(entropy, "big"))[2:].zfill(ent_bits)
+    bits += bin(int.from_bytes(cs, "big"))[2:].zfill(256)[: ent_bits // 32]
+    wl = le.get_wordlist()
+    return " ".join(wl[int(bits[i:i + 11], 2)] for i in range(0, len(bits), 11))
+
+
+def _expect_code(code, fn, *args):
+    try:
+        fn(*args)
+    except le.LegacyError as e:
+        assert e.code == code, f"expected {code}, got {e.code}: {e}"
+        return
+    raise AssertionError(f"expected LegacyError({code}), nothing raised")
+
+
 # ===========================================================================
-# 1. Python self-consistency
+# 1. Published test vectors
 # ===========================================================================
 
-class TestPythonRoundTrip:
-    """encrypt → decrypt within Python must always recover the plaintext."""
+class TestVectors:
+
+    def test_reproduce_valid_vectors(self):
+        for v in VECTORS["valid"]:
+            payload = le.encrypt_with_params(
+                v["seed"], v["benefactorKey"], v["beneficiaryKey"],
+                salt=bytes.fromhex(v["salt"]),
+                iv=bytes.fromhex(v["iv"]),
+                pad_bytes=bytes.fromhex(v["padBytes"]),
+            )
+            assert payload == v["payload"], f'{v["name"]}: payload mismatch'
+
+    def test_decrypt_valid_vectors(self):
+        for v in VECTORS["valid"]:
+            got = le.decrypt_seed_phrase(v["payload"], v["benefactorKey"], v["beneficiaryKey"])
+            assert got == v["canonicalSeed"], v["name"]
+            if "canonicalBenefactorKey" in v:
+                assert le.canonicalize_key(v["benefactorKey"]) == v["canonicalBenefactorKey"]
+                assert le.canonicalize_key(v["beneficiaryKey"]) == v["canonicalBeneficiaryKey"]
+                got = le.decrypt_seed_phrase(
+                    v["payload"], v["canonicalBenefactorKey"], v["canonicalBeneficiaryKey"])
+                assert got == v["canonicalSeed"], v["name"]
+
+    def test_reject_invalid_vectors(self):
+        for v in VECTORS["invalid"]:
+            t0 = time.time()
+            try:
+                le.decrypt_seed_phrase(v["payload"], v["benefactorKey"], v["beneficiaryKey"])
+            except le.LegacyError as e:
+                assert e.code == v["code"], f'{v["name"]}: expected {v["code"]}, got {e.code}'
+            else:
+                raise AssertionError(f'{v["name"]}: was accepted')
+            if v["code"] in ("BAD_PAYLOAD", "BAD_KEY"):
+                # Rejected before PBKDF2 (no 600k-iteration delay).
+                assert time.time() - t0 < 0.1, f'{v["name"]}: rejected only after key derivation'
+
+
+# ===========================================================================
+# 2. Independent decryptor written from PROTOCOL-SPEC.md alone
+# ===========================================================================
+
+def _spec_decrypt(payload: str, benefactor: str, beneficiary: str) -> str:
+    """Deliberately shares no code with legacy_encryption.py. Inputs must
+    already be canonical (the vectors' canonical keys)."""
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    body = base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4))
+    salt, iv, ct = body[:16], body[16:28], body[28:]
+    password = benefactor.encode() + b"\x1f" + beneficiary.encode()
+    key = hashlib.pbkdf2_hmac("sha256", password, salt, 600_000, 32)
+    plain = AESGCM(key).decrypt(iv, ct, None)
+    return plain[1:len(plain) - plain[0]].decode()
+
+
+class TestSpecConformance:
+
+    def test_independent_decryptor_reads_vectors(self):
+        for v in VECTORS["valid"]:
+            bk = v.get("canonicalBenefactorKey", v["benefactorKey"])
+            byk = v.get("canonicalBeneficiaryKey", v["beneficiaryKey"])
+            assert _spec_decrypt(v["payload"], bk, byk) == v["canonicalSeed"], v["name"]
+
+
+# ===========================================================================
+# 3. Python behaviour
+# ===========================================================================
+
+class TestPython:
 
     def test_basic_roundtrip(self):
         enc = le.encrypt_seed_phrase(SEED_12, BK, BYK)
-        dec = le.decrypt_seed_phrase(enc, BK, BYK)
-        assert dec == SEED_12
+        assert le.decrypt_seed_phrase(enc, BK, BYK) == SEED_12
 
-    def test_wrong_benefactor_key_fails(self):
+    def test_random_mnemonics_roundtrip(self):
+        for words in (12, 24, 12, 24):
+            seed = _random_mnemonic(words)
+            enc = le.encrypt_seed_phrase(seed, BK, BYK)
+            assert le.decrypt_seed_phrase(enc, BK, BYK) == seed
+
+    def test_wrong_keys_fail(self):
         enc = le.encrypt_seed_phrase(SEED_12, BK, BYK)
-        try:
-            le.decrypt_seed_phrase(enc, "wrong", BYK)
-            assert False, "Should have raised"
-        except Exception:
-            pass  # expected — GCM auth tag mismatch
+        _expect_code("WRONG_KEYS", le.decrypt_seed_phrase, enc, "wrong", BYK)
+        _expect_code("WRONG_KEYS", le.decrypt_seed_phrase, enc, BK, "wrong")
+        _expect_code("WRONG_KEYS", le.decrypt_seed_phrase, enc, BYK, BK)
 
-    def test_wrong_beneficiary_key_fails(self):
-        enc = le.encrypt_seed_phrase(SEED_12, BK, BYK)
-        try:
-            le.decrypt_seed_phrase(enc, BK, "wrong")
-            assert False, "Should have raised"
-        except Exception:
-            pass
-
-    def test_multiple_roundtrips_unique_ciphertext(self):
-        """Each encryption should produce different output (random salt/IV)."""
-        results = set()
-        for _ in range(5):
-            results.add(le.encrypt_seed_phrase(SEED_12, BK, BYK))
-        assert len(results) == 5, "Ciphertexts should differ due to random salt/IV"
-
-    def test_low_level_encrypt_decrypt(self):
-        """Test encryptData/decryptData directly."""
-        data = le.encrypt_data("hello world", "password123")
-        plain = le.decrypt_data(data, "password123")
-        assert plain == "hello world"
-
-    def test_empty_keys(self):
-        enc = le.encrypt_seed_phrase(SEED_12, "", "")
-        dec = le.decrypt_seed_phrase(enc, "", "")
-        assert dec == SEED_12
-
-    def test_unicode_keys(self):
-        enc = le.encrypt_seed_phrase(SEED_12, "p@$$wörd🔑", "clé🗝️")
-        dec = le.decrypt_seed_phrase(enc, "p@$$wörd🔑", "clé🗝️")
-        assert dec == SEED_12
-
-    def test_long_keys(self):
-        long_bk = "a" * 1000
-        long_byk = "b" * 1000
-        enc = le.encrypt_seed_phrase(SEED_12, long_bk, long_byk)
-        dec = le.decrypt_seed_phrase(enc, long_bk, long_byk)
-        assert dec == SEED_12
-
-    def test_validate_seed_phrase(self):
-        assert le.validate_seed_phrase(SEED_12) is True
-        assert le.validate_seed_phrase("abandon ability able") is False  # too short
-        assert le.validate_seed_phrase("abandon " * 11 + "zzzzz") is False  # bad word
-        # Valid words + valid count but WRONG checksum is now rejected (v1 bug).
-        assert le.validate_seed_phrase("abandon " * 11 + "abandon") is False
-
-    def test_v1_backward_decrypt(self):
-        """A legacy v1 payload (no LE2. prefix, no separator) still decrypts."""
-        enc = le.encrypt_data(SEED_12, BK + BYK)        # v1: keys concatenated, no sep
-        padding_str = str(enc["paddingLength"]).zfill(2)
-        combined = f'{enc["salt"]}.{enc["iv"]}.{enc["ciphertext"]}.{padding_str}'
-        v1_payload = le.base64.b64encode(combined.encode()).decode().rstrip("=")
-        assert not v1_payload.startswith("LE2.")
-        assert le.decrypt_seed_phrase(v1_payload, BK, BYK) == SEED_12
-
-    def test_v2_format_and_separator(self):
-        """Encrypt emits an LE2. payload; the 0x1F separator disambiguates keys."""
+    def test_key_boundary_is_unambiguous(self):
         enc = le.encrypt_seed_phrase(SEED_12, "ab", "c")
-        assert enc.startswith("LE2.")
         assert le.decrypt_seed_phrase(enc, "ab", "c") == SEED_12
-        # "a"+"bc" must NOT decrypt what "ab"+"c" encrypted (the v1 collision).
-        try:
-            le.decrypt_seed_phrase(enc, "a", "bc")
-            assert False, "Ambiguous key split wrongly decrypted"
-        except Exception:
-            pass
+        _expect_code("WRONG_KEYS", le.decrypt_seed_phrase, enc, "a", "bc")
 
-    def test_forged_iteration_count_rejected(self):
-        """A forged header with a huge iteration count must be rejected BEFORE
-        key derivation runs — otherwise a malicious QR is a DoS (the header is
-        only authenticated by the GCM tag, which is checked after PBKDF2)."""
-        enc = le.encrypt_seed_phrase(SEED_12, BK, BYK)
-        body = bytearray(le._b64url_decode(enc[len(le.V2_PREFIX):]))
-        body[2:6] = (0xFFFFFFFF).to_bytes(4, "big")
-        forged = le.V2_PREFIX + le._b64url_encode(bytes(body))
-        t0 = time.time()
-        try:
-            le.decrypt_seed_phrase(forged, BK, BYK)
-            assert False, "Forged iteration count wrongly accepted"
-        except ValueError as e:
-            assert "iteration" in str(e).lower()
-        # Must fail fast (no PBKDF2 with 4 billion iterations).
-        assert time.time() - t0 < 1.0, "Rejection happened after key derivation"
-        # Below the minimum bound must also be rejected (downgrade forgery).
-        body[2:6] = (1).to_bytes(4, "big")
-        forged = le.V2_PREFIX + le._b64url_encode(bytes(body))
-        try:
-            le.decrypt_seed_phrase(forged, BK, BYK)
-            assert False, "Downgraded iteration count wrongly accepted"
-        except ValueError as e:
-            assert "iteration" in str(e).lower()
+    def test_unique_ciphertexts(self):
+        results = {le.encrypt_seed_phrase(SEED_12, BK, BYK) for _ in range(4)}
+        assert len(results) == 4, "random salt/iv must make every payload unique"
+        assert len({r[:4] for r in results}) == 4, "payloads must not share a recognizable start"
+
+    def test_key_canonicalization(self):
+        c = le.canonicalize_key
+        assert c("  a   b  ") == "a b"
+        assert c("a\tb\nc\r\nd") == "a b c d"
+        assert c("a\u00a0b") == "a b"
+        assert c("\u2018x\u2019 \u201cy\u201d") == "'x' \"y\""
+        assert c("CaSe") == "CaSe"
+        printable = "".join(chr(i) for i in range(0x21, 0x7F))
+        assert c(printable) == printable
+        for bad in ("", "   ", "\n\t", "caf\u00e9", "key\U0001F511", "a\x1fb", "a\x00b", "a\x7fb", "\u2014"):
+            _expect_code("BAD_KEY", c, bad)
+
+    def test_canonicalized_keys_decrypt(self):
+        enc = le.encrypt_seed_phrase(SEED_12, " It\u2019s  mine ", "pass\u00a0word\n")
+        assert le.decrypt_seed_phrase(enc, "It's mine", "pass word") == SEED_12
+
+    def test_seed_normalization_and_validation(self):
+        messy = "  ABANDON abandon\tabandon abandon abandon abandon\nabandon abandon abandon abandon abandon About  "
+        assert le.normalize_seed_phrase(messy) == SEED_12
+        enc = le.encrypt_seed_phrase(messy, BK, BYK)
+        assert le.decrypt_seed_phrase(enc, BK, BYK) == SEED_12
+        assert le.validate_seed_phrase(SEED_12)
+        assert not le.validate_seed_phrase("abandon ability able")
+        assert not le.validate_seed_phrase("abandon " * 11 + "zzzzz")
+        assert not le.validate_seed_phrase("abandon " * 11 + "abandon")   # bad checksum
+        assert not le.validate_seed_phrase(" ".join(["abandon"] * 17 + ["agent"]))  # 18 words
+        _expect_code("BAD_SEED", le.encrypt_seed_phrase, "abandon " * 11 + "abandon", BK, BYK)
+
+    def test_rejects_empty_keys_on_encrypt(self):
+        _expect_code("BAD_KEY", le.encrypt_seed_phrase, SEED_12, "", BYK)
+        _expect_code("BAD_KEY", le.encrypt_seed_phrase, SEED_12, BK, "  ")
 
     def test_qr_helpers(self):
         enc = le.encrypt_seed_phrase(SEED_12, BK, BYK)
-        qr = le.encrypted_to_qr_data(enc)
-        back = le.qr_data_to_encrypted(qr)
-        dec = le.decrypt_seed_phrase(back, BK, BYK)
-        assert dec == SEED_12
+        back = le.qr_data_to_encrypted("  " + le.encrypted_to_qr_data(enc) + "\n")
+        assert le.decrypt_seed_phrase(back, BK, BYK) == SEED_12
 
 
 # ===========================================================================
-# 2. Cross-compatibility: Python encrypts → Node decrypts
+# 4. Cross-compatibility with the real legacy-core.js
 # ===========================================================================
 
-# Node.js script that decrypts a Legacy payload (v2, with v1 fallback)
-NODE_DECRYPT_SCRIPT = r"""
-const crypto = require('crypto');
-const { webcrypto } = require('crypto');
-if (!globalThis.crypto) globalThis.crypto = webcrypto;
-
-const input = JSON.parse(process.argv[2]);
-const encrypted = input.encrypted;
-const bk = input.benefactorKey;
-const byk = input.beneficiaryKey;
-const SEP = "\u001f";
-
-async function deriveKey(password, salt, iterations) {
-    const enc = new TextEncoder();
-    const km = await globalThis.crypto.subtle.importKey("raw", enc.encode(password), {name:"PBKDF2"}, false, ["deriveKey"]);
-    return globalThis.crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations,hash:"SHA-256"}, km, {name:"AES-GCM",length:256}, true, ["encrypt","decrypt"]);
-}
-async function decryptV2(body, bk, byk) {
-    const iterations = new DataView(body.buffer, body.byteOffset).getUint32(2, false);
-    const padLen = body[6];
-    const salt = body.slice(7,23), iv = body.slice(23,35), header = body.slice(0,35), ct = body.slice(35);
-    const key = await deriveKey(bk + SEP + byk, salt, iterations);
-    const dec = new Uint8Array(await globalThis.crypto.subtle.decrypt({name:"AES-GCM",iv,additionalData:header}, key, ct));
-    const out = padLen > 0 ? dec.slice(0, dec.length - padLen) : dec;
-    return new TextDecoder().decode(out);
-}
-async function decryptV1(payload, bk, byk) {
-    const ck = bk + byk;
-    let padded = payload;
-    while (padded.length % 4 !== 0) padded += "=";
-    const decoded = Buffer.from(padded, 'base64').toString();
-    const parts = decoded.split(".");
-    if (parts.length !== 4) throw new Error("bad format");
-    const toU8 = s => new Uint8Array(Buffer.from(s, 'base64'));
-    const salt = toU8(parts[0]), iv = toU8(parts[1]), ct = toU8(parts[2]), pl = parseInt(parts[3], 10);
-    const key = await deriveKey(ck, salt, 600000);
-    const dec = await globalThis.crypto.subtle.decrypt({name:"AES-GCM",iv}, key, ct);
-    let text = new TextDecoder().decode(dec);
-    if (pl > 0 && pl <= text.length) text = text.slice(0, -pl);
-    return text;
-}
-async function decrypt(payload, bk, byk) {
-    const m = payload.match(/^LE(\d+)\./);
-    if (m) {
-        const body = new Uint8Array(Buffer.from(payload.slice(m[0].length), 'base64url'));
-        if (body[0] === 0x02) return decryptV2(body, bk, byk);
-        throw new Error("unsupported version " + body[0]);
+NODE_DRIVER = r"""
+const C = require(process.argv[2]);
+const req = JSON.parse(process.argv[3]);
+(async () => {
+    try {
+        const result = req.op === "encrypt"
+            ? await C.encryptSeedPhrase(req.seed, req.bk, req.byk)
+            : await C.decryptSeedPhrase(req.payload, req.bk, req.byk);
+        console.log(JSON.stringify({ ok: true, result }));
+    } catch (e) {
+        console.log(JSON.stringify({ ok: false, code: e.code || null, error: e.message }));
     }
-    return decryptV1(payload, bk, byk);
-}
-
-decrypt(encrypted, bk, byk)
-    .then(r => { console.log(JSON.stringify({ok: true, result: r})); })
-    .catch(e => { console.log(JSON.stringify({ok: false, error: e.message})); process.exit(1); });
-"""
-
-# Node.js script that encrypts a seed phrase (Protocol v2)
-NODE_ENCRYPT_SCRIPT = r"""
-const crypto = require('crypto');
-const { webcrypto } = require('crypto');
-if (!globalThis.crypto) globalThis.crypto = webcrypto;
-
-const input = JSON.parse(process.argv[2]);
-const seed = input.seedPhrase;
-const bk = input.benefactorKey;
-const byk = input.beneficiaryKey;
-const SEP = "\u001f";
-
-async function deriveKey(password, salt, iterations) {
-    const enc = new TextEncoder();
-    const km = await globalThis.crypto.subtle.importKey("raw", enc.encode(password), {name:"PBKDF2"}, false, ["deriveKey"]);
-    return globalThis.crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations,hash:"SHA-256"}, km, {name:"AES-GCM",length:256}, true, ["encrypt","decrypt"]);
-}
-async function encryptSeedPhrase(seed, bk, byk) {
-    const salt = globalThis.crypto.getRandomValues(new Uint8Array(16));
-    const iv = globalThis.crypto.getRandomValues(new Uint8Array(12));
-    const padLen = Math.floor(Math.random() * 5);
-    const iterations = 600000;
-    const header = new Uint8Array(35);
-    header[0] = 0x02; header[1] = 0x01;
-    new DataView(header.buffer).setUint32(2, iterations, false);
-    header[6] = padLen; header.set(salt, 7); header.set(iv, 23);
-    const seedBytes = new TextEncoder().encode(seed);
-    const pt = new Uint8Array(seedBytes.length + padLen);
-    pt.set(seedBytes, 0);
-    if (padLen > 0) pt.set(globalThis.crypto.getRandomValues(new Uint8Array(padLen)), seedBytes.length);
-    const key = await deriveKey(bk + SEP + byk, salt, iterations);
-    const ct = new Uint8Array(await globalThis.crypto.subtle.encrypt({name:"AES-GCM",iv,additionalData:header}, key, pt));
-    const body = new Uint8Array(35 + ct.length);
-    body.set(header, 0); body.set(ct, 35);
-    return "LE2." + Buffer.from(body).toString('base64url');
-}
-
-encryptSeedPhrase(seed, bk, byk)
-    .then(r => { console.log(JSON.stringify({ok: true, result: r})); })
-    .catch(e => { console.log(JSON.stringify({ok: false, error: e.message})); process.exit(1); });
+})();
 """
 
 
@@ -267,63 +234,51 @@ def _has_node() -> bool:
         return False
 
 
-def _run_node(script: str, data: dict, timeout: int = 120) -> dict:
-    """Run an inline Node.js script with JSON input, return parsed output."""
-    # Write script to a temp file so process.argv[2] works correctly
+def _node(req: dict) -> dict:
     import tempfile
     with tempfile.NamedTemporaryFile(mode="w", suffix=".cjs", delete=False) as f:
-        f.write(script)
-        script_path = f.name
+        f.write(NODE_DRIVER)
+        path = f.name
     try:
-        result = subprocess.run(
-            ["node", script_path, json.dumps(data)],
-            capture_output=True, text=True, timeout=timeout,
-        )
+        out = subprocess.run(["node", path, CORE_JS, json.dumps(req)],
+                             capture_output=True, text=True, timeout=120)
     finally:
-        os.unlink(script_path)
-    if result.returncode != 0:
-        raise RuntimeError(f"Node failed: {result.stderr}")
-    return json.loads(result.stdout.strip())
+        os.unlink(path)
+    if out.returncode != 0:
+        raise RuntimeError(f"node failed: {out.stderr}")
+    return json.loads(out.stdout.strip())
 
 
-class TestPythonToNode:
-    """Python encrypts, Node.js decrypts."""
+class TestCrossCompat:
 
-    def test_python_encrypt_node_decrypt(self):
+    def test_python_encrypt_js_decrypt(self):
         if not _has_node():
             print("SKIP: node not found")
             return
+        for seed in (SEED_12, _random_mnemonic(24)):
+            enc = le.encrypt_seed_phrase(seed, " It\u2019s  mine ", BYK)
+            r = _node({"op": "decrypt", "payload": enc, "bk": "It's mine", "byk": BYK})
+            assert r["ok"], r
+            assert r["result"] == seed
 
-        encrypted = le.encrypt_seed_phrase(SEED_12, BK, BYK)
-
-        result = _run_node(NODE_DECRYPT_SCRIPT, {
-            "encrypted": encrypted,
-            "benefactorKey": BK,
-            "beneficiaryKey": BYK,
-        })
-
-        assert result["ok"] is True, f"Node decryption failed: {result}"
-        assert result["result"] == SEED_12
-
-
-class TestNodeToPython:
-    """Node.js encrypts, Python decrypts."""
-
-    def test_node_encrypt_python_decrypt(self):
+    def test_js_encrypt_python_decrypt(self):
         if not _has_node():
             print("SKIP: node not found")
             return
+        for seed in (SEED_12, _random_mnemonic(24)):
+            r = _node({"op": "encrypt", "seed": seed, "bk": BK, "byk": "pass\u00a0word"})
+            assert r["ok"], r
+            assert le.decrypt_seed_phrase(r["result"], BK, "pass word") == seed
 
-        result = _run_node(NODE_ENCRYPT_SCRIPT, {
-            "seedPhrase": SEED_12,
-            "benefactorKey": BK,
-            "beneficiaryKey": BYK,
-        })
-        assert result["ok"] is True, f"Node encryption failed: {result}"
-
-        encrypted = result["result"]
-        decrypted = le.decrypt_seed_phrase(encrypted, BK, BYK)
-        assert decrypted == SEED_12
+    def test_same_errors_for_bad_input(self):
+        if not _has_node():
+            print("SKIP: node not found")
+            return
+        enc = le.encrypt_seed_phrase(SEED_12, BK, BYK)
+        r = _node({"op": "decrypt", "payload": enc, "bk": BYK, "byk": BK})
+        assert not r["ok"] and r["code"] == "WRONG_KEYS"
+        r = _node({"op": "encrypt", "seed": SEED_12, "bk": "caf\u00e9", "byk": BYK})
+        assert not r["ok"] and r["code"] == "BAD_KEY"
 
 
 # ===========================================================================
@@ -332,18 +287,14 @@ class TestNodeToPython:
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("Legacy Encryption — Cross-Compatibility Tests")
+    print("Legacy Encryption — Python port & cross-compatibility tests")
     print("=" * 60)
 
-    has_node = _has_node()
-    if not has_node:
+    if not _has_node():
         print("⚠  Node.js not found — cross-compat tests will be skipped\n")
 
-    passed = 0
-    failed = 0
-    skipped = 0
-
-    for cls in [TestPythonRoundTrip, TestPythonToNode, TestNodeToPython]:
+    passed = failed = 0
+    for cls in [TestVectors, TestSpecConformance, TestPython, TestCrossCompat]:
         print(f"\n--- {cls.__name__} ---")
         for name in sorted(dir(cls)):
             if not name.startswith("test_"):
@@ -352,11 +303,10 @@ if __name__ == "__main__":
             try:
                 t0 = time.time()
                 method()
-                elapsed = time.time() - t0
-                print(f"  ✓ {name} ({elapsed:.2f}s)")
+                print(f"  \u2713 {name} ({time.time() - t0:.2f}s)")
                 passed += 1
             except Exception as e:
-                print(f"  ✗ {name}: {e}")
+                print(f"  \u2717 {name}: {e!r}")
                 failed += 1
 
     print(f"\n{'=' * 60}")
