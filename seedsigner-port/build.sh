@@ -512,6 +512,13 @@ PYEOF
     hdiutil detach "$DISK" 2>/dev/null || true
     rm -rf "$MOUNT_POINT"
 
+    # macOS writes .fseventsd (and possibly other metadata) onto any volume it
+    # mounts read-write. Strip it, and zero deleted entries and free space,
+    # so the image carries nothing from the build host.
+    info "Scrubbing host metadata from the boot partition..."
+    python3 "$SCRIPT_DIR/scrub_image.py" "$IMG" || error "Image scrub failed — do not flash or publish this image"
+    ok "Boot partition scrubbed"
+
     echo ""
     ok "Inject complete — image is ready to flash."
 }
