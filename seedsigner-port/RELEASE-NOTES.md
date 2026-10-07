@@ -2,7 +2,7 @@ SeedSigner firmware with **Legacy Encryption** — dual-key seed phrase
 encryption and decryption on a fully air-gapped device.
 
 Based on upstream SeedSigner **0.8.6**, plus Legacy Encryption
-(`2e19bf4`).
+(fork commit `04c9978`, matching Legacy_Encryption `e823d09`).
 
 ## If you were sent here by a Deploy message
 
@@ -55,7 +55,7 @@ sync
 
 ## Decrypting a seed phrase
 
-1. Boot the device and choose **Legacy Encryption → Decrypt Seed Phrase**
+1. Boot the device and choose **Tools → Legacy Encryption → Decrypt Seed Phrase**
 2. Scan the encrypted QR code
 3. Enter the **benefactor key**, then the **beneficiary key**
 4. The recovered seed words appear on the device screen
@@ -77,4 +77,5 @@ deliberate.
 - Output is byte-compatible with `Legacy-offline.html`, so a payload can be
   encrypted on the device and decrypted in the browser, or the reverse.
 - This firmware removes SD-card logging and keeps secrets in a single
-  session cleared at flow boundaries. Do not use builds predating `2e19bf4`.
+  session cleared at flow boundaries. Do not use builds predating `04c9978`:
+  earlier builds cannot read the final payload format.
