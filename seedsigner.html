@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Legacy - SeedSigner</title>
+        <link rel="icon" type="image/png" href="favicon.png" />
+        <link rel="stylesheet" href="styles.css" />
+        <style>
+            header {
+                background-image: url("legacy-background.png");
+                background-position: center;
+                background-repeat: no-repeat;
+                background-size: cover;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: flex-start;
+                min-height: 100vh;
+                text-align: center;
+            }
+            .page-hero { padding: 0 2rem; }
+            .page-hero h1 {
+                font-family: "Georgia", serif;
+                font-size: clamp(2rem, 5vw, 3rem);
+                color: #e8e8e8;
+                letter-spacing: 2px;
+                text-shadow: 0 0 5px #0289cb, 0 0 10px #0289cb, 0 0 15px #0289cb;
+            }
+            .page-hero p {
+                color: #aac4e0;
+                margin-top: 0.75rem;
+                font-size: 1rem;
+            }
+
+            .page-section {
+                background: linear-gradient(to bottom, transparent 0px, #000102 120px);
+                margin-top: -80px;
+                position: relative;
+                z-index: 1;
+                border-radius: 16px 16px 0 0;
+                padding: 4rem 1.5rem 6rem;
+            }
+            .page-inner {
+                max-width: 800px;
+                margin: 0 auto;
+                display: flex;
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .intro {
+                color: #aac4d8;
+                font-size: 0.95rem;
+                line-height: 1.75;
+                text-align: left;
+                margin: 0 0 1rem;
+            }
+            .intro p, .step-text p {
+                font-family: Arial, sans-serif;
+                font-size: inherit;
+                text-align: left;
+                margin-top: 0.75rem;
+            }
+            .intro p:first-child, .step-text p:first-child { margin-top: 0; }
+
+            .step-card {
+                background: #0a1628;
+                border: 1px solid #0f2444;
+                border-radius: 10px;
+                padding: 1.5rem;
+                display: flex;
+                gap: 1.25rem;
+                align-items: flex-start;
+            }
+            .step-num {
+                width: 36px;
+                height: 36px;
+                background: rgba(2,150,255,0.15);
+                border: 1px solid rgba(2,150,255,0.3);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #0296ff;
+                font-weight: 700;
+                font-size: 0.9rem;
+                flex-shrink: 0;
+            }
+            .step-text {
+                color: #aac4d8;
+                font-size: 0.95rem;
+                line-height: 1.75;
+                padding-top: 0.4rem;
+                text-align: left;
+                min-width: 0;
+                flex: 1;
+            }
+            .step-text h3 {
+                font-family: "Georgia", serif;
+                font-size: 1.15rem;
+                color: #e8e8e8;
+                text-align: left;
+                margin-bottom: 0.5rem;
+            }
+            .step-text ul, .step-text ol {
+                padding-left: 1.25rem;
+                margin-top: 0.5rem;
+            }
+            .step-text li { margin-top: 0.35rem; }
+            .step-text strong { color: #e8e8e8; }
+            .step-text code, .intro code {
+                font-family: "Courier New", monospace;
+                background: rgba(2,150,255,0.08);
+                padding: 0 4px;
+                border-radius: 3px;
+                overflow-wrap: anywhere;
+            }
+            pre.cmd {
+                font-family: "Courier New", monospace;
+                font-size: 0.85rem;
+                background: rgba(0,0,0,0.35);
+                border: 1px solid #0f2444;
+                border-radius: 6px;
+                padding: 10px 12px;
+                margin-top: 0.5rem;
+                white-space: pre-wrap;
+                overflow-wrap: anywhere;
+                color: #cfe3f5;
+            }
+            .warn {
+                border-left: 3px solid #f7931a;
+                padding-left: 0.75rem;
+            }
+            details { margin-top: 0.75rem; }
+            summary { cursor: pointer; color: #e8e8e8; }
+
+            .cta-wrap {
+                text-align: center;
+                margin-top: 2rem;
+            }
+
+            .page-footer {
+                text-align: center;
+                color: #3a5a7a;
+                font-size: 0.8rem;
+                padding: 2rem;
+                border-top: 1px solid #0f2444;
+            }
+        </style>
+    </head>
+    <body>
+        <header>
+            <nav id="navbar" class="navbar">
+                <div class="navbar-toggle" id="navbar-toggle">&#9776;</div>
+                <ul class="navbar-menu">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="mission.html">Mission</a></li>
+                    <li><a href="how-it-works.html">How It Works</a></li>
+                    <li><a href="seedsigner.html">SeedSigner</a></li>
+                    <li><a href="who-is-this-for.html">Who It's For</a></li>
+                    <li><a href="benefits.html">Benefits</a></li>
+                    <li><a href="FAQ.html">FAQ</a></li>
+                    <li><a href="deadman-switch.html">Deadman Switch</a></li>
+                    <li><a href="encrypt.html">Encrypt</a></li>
+                    <li><a href="decrypt.html">Decrypt</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                </ul>
+            </nav>
+            <div style="height:65vh"></div>
+            <div class="page-hero">
+                <h1>SeedSigner</h1>
+                <p>Run Legacy on a fully air-gapped device you build yourself.</p>
+            </div>
+        </header>
+
+        <div class="page-section">
+            <div class="page-inner">
+
+                <div class="intro">
+                    <p>
+                        <a href="https://seedsigner.com">SeedSigner</a> is an
+                        open-source Bitcoin signing device built from a Raspberry
+                        Pi Zero, a small screen and a camera. It has no WiFi, no
+                        Bluetooth and no storage of its own. Legacy provides a
+                        build of the SeedSigner firmware with Legacy Encryption
+                        added, so you can encrypt and decrypt a seed phrase
+                        without it ever touching a computer or the internet.
+                    </p>
+                    <p>
+                        Payloads are interchangeable with the
+                        <a href="Legacy-offline.html">browser version</a>:
+                        encrypt on the device and decrypt in a browser, or the
+                        reverse.
+                    </p>
+                    <p>
+                        This firmware is an independent build of SeedSigner
+                        0.8.6 maintained by the Legacy project. It is not made,
+                        reviewed or endorsed by the SeedSigner project.
+                    </p>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-num">1</div>
+                    <div class="step-text">
+                        <h3>Get the hardware</h3>
+                        <ul>
+                            <li><strong>Raspberry Pi Zero v1.3</strong>, not the "W" or "2 W". Those have WiFi and Bluetooth; the point of this device is that it has no wireless hardware at all.</li>
+                            <li><strong>Waveshare 1.3" 240&times;240 LCD HAT</strong> (the screen with a joystick and three buttons).</li>
+                            <li><strong>OV5647 camera module</strong>, the version with the narrow Pi Zero ribbon cable.</li>
+                            <li><strong>MicroSD card</strong>, 4 GB or larger, plus a card reader for your computer.</li>
+                            <li>A micro-USB power supply or power bank.</li>
+                        </ul>
+                        <p>The pins on the Pi Zero must be soldered (or buy a "pre-soldered header" Pi Zero). The SeedSigner project's <a href="https://github.com/SeedSigner/seedsigner#shopping-list">shopping list</a> covers assembly and cases.</p>
+                    </div>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-num">2</div>
+                    <div class="step-text">
+                        <h3>Download the firmware</h3>
+                        <p>From the <a href="https://github.com/ericscalibur/Legacy_Encryption/releases/latest">latest release on GitHub</a>, download these three files into one folder:</p>
+                        <ul>
+                            <li><code>seedsigner_os.legacy-encryption.pi0.img.gz</code> (the firmware)</li>
+                            <li><code>seedsigner_os.legacy-encryption.pi0.img.gz.sha256</code> (its checksum)</li>
+                            <li><code>seedsigner_os.legacy-encryption.pi0.img.gz.asc</code> (its signature, for the optional check below)</li>
+                        </ul>
+                        <p class="warn">Only download firmware from that page. Do not use a copy someone emails or messages you.</p>
+                    </div>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-num">3</div>
+                    <div class="step-text">
+                        <h3>Check the download</h3>
+                        <p>This confirms the file arrived complete and unaltered. Open a terminal in the folder with the files and run the line for your system:</p>
+                        <p><strong>Mac</strong> (Terminal):</p>
+                        <pre class="cmd">shasum -a 256 -c seedsigner_os.legacy-encryption.pi0.img.gz.sha256</pre>
+                        <p><strong>Linux</strong>:</p>
+                        <pre class="cmd">sha256sum -c seedsigner_os.legacy-encryption.pi0.img.gz.sha256</pre>
+                        <p>Both should print <code>OK</code>.</p>
+                        <p><strong>Windows</strong> (PowerShell):</p>
+                        <pre class="cmd">Get-FileHash seedsigner_os.legacy-encryption.pi0.img.gz -Algorithm SHA256</pre>
+                        <p>Open the <code>.sha256</code> file in Notepad; its long code must match the hash shown, character for character.</p>
+                        <p class="warn">If the check fails, delete the files and download them again. Never flash a file that fails.</p>
+                        <details>
+                            <summary>Optional: verify the signature (proves the file came from Legacy)</summary>
+                            <p>The checksum proves the file is intact; the signature proves who published it. With <a href="https://gnupg.org/download/">GnuPG</a> installed, also download <code>legacy-signing-key.asc</code> from the same release, then:</p>
+                            <pre class="cmd">gpg --import legacy-signing-key.asc
+gpg --verify seedsigner_os.legacy-encryption.pi0.img.gz.asc seedsigner_os.legacy-encryption.pi0.img.gz</pre>
+                            <p>Look for <code>Good signature from "Eric A Summers ...</code>, and check that the key fingerprint shown is:</p>
+                            <pre class="cmd">F367 D8D8 7785 04D9 DDAF  AD9F B7E4 66E3 2305 FE1B</pre>
+                            <p>A warning that the key "is not certified with a trusted signature" is normal. A <strong>BAD signature</strong>, or a different fingerprint, means stop: do not flash it.</p>
+                        </details>
+                    </div>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-num">4</div>
+                    <div class="step-text">
+                        <h3>Write it to the microSD card</h3>
+                        <p>Use a free flashing app. Both of these write the <code>.img.gz</code> file directly (no need to unzip it), check the write afterwards, and only offer removable drives, so you can't overwrite your computer's disk by mistake.</p>
+                        <p><strong><a href="https://etcher.balena.io">balenaEtcher</a></strong> (Mac, Windows, Linux):</p>
+                        <ol>
+                            <li>Insert the microSD card.</li>
+                            <li>Click <em>Flash from file</em> and choose <code>seedsigner_os.legacy-encryption.pi0.img.gz</code>.</li>
+                            <li>Click <em>Select target</em> and choose the microSD card. Check the size matches your card.</li>
+                            <li>Click <em>Flash!</em> and wait for it to finish and validate.</li>
+                        </ol>
+                        <p><strong><a href="https://www.raspberrypi.com/software/">Raspberry Pi Imager</a></strong> (Mac, Windows, Linux):</p>
+                        <ol>
+                            <li>Insert the microSD card.</li>
+                            <li>Device: any Raspberry Pi Zero. Operating System: scroll to the bottom, <em>Use custom</em>, and choose the <code>.img.gz</code> file.</li>
+                            <li>Storage: choose the microSD card.</li>
+                            <li>When asked about <em>OS customisation</em>, choose <strong>No</strong>. Customisation adds WiFi and account settings that do not belong on this device.</li>
+                            <li>Confirm, and wait for it to write and verify.</li>
+                        </ol>
+                        <p>Your computer may say it can't read the card afterwards, or show a small drive named <code>SEEDSIGNROS</code>. Both are normal. Eject the card.</p>
+                    </div>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-num">5</div>
+                    <div class="step-text">
+                        <h3>First boot</h3>
+                        <ol>
+                            <li>Put the card in the Pi Zero and connect power to the port labelled <strong>PWR</strong>.</li>
+                            <li>After about a minute the SeedSigner menu appears.</li>
+                            <li>Go to <strong>Tools &rarr; Legacy Encryption</strong>.</li>
+                        </ol>
+                        <p>The device runs entirely from memory. Once the menu is showing you may remove the card, and turning the power off erases everything it held.</p>
+                    </div>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-num">6</div>
+                    <div class="step-text">
+                        <h3>Test it before trusting it</h3>
+                        <p>Before encrypting a real seed phrase, do a full round trip with a throwaway one (for example the <em>12 words</em> button on the <a href="encrypt.html">online demo</a>, written on scrap paper):</p>
+                        <ol>
+                            <li><strong>Encrypt Seed Phrase</strong>: enter the test words, then each key twice. Encrypting takes 15&ndash;30 seconds; that delay is deliberate.</li>
+                            <li>Photograph the encrypted QR code.</li>
+                            <li><strong>Decrypt Seed Phrase</strong>: scan the photo, enter the benefactor key, then the beneficiary key, and confirm you get the same words back.</li>
+                            <li>Also decrypt it in <a href="Legacy-offline.html">Legacy-offline.html</a> on an offline computer, so you know both paths work.</li>
+                        </ol>
+                        <p>Scanning trouble? See the QR scanning tips in the <a href="FAQ.html">FAQ</a>.</p>
+                    </div>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-num">7</div>
+                    <div class="step-text">
+                        <h3>If you are a beneficiary</h3>
+                        <p>Build and flash the device as above, then choose <strong>Tools &rarr; Legacy Encryption &rarr; Decrypt Seed Phrase</strong>, scan the encrypted QR, and enter the benefactor key followed by the beneficiary key. The seed words appear on the screen and can be exported as a SeedQR or loaded straight into SeedSigner. Take your time: nothing here is urgent, and the encrypted QR is useless without both keys.</p>
+                    </div>
+                </div>
+
+                <div class="cta-wrap">
+                    <a href="https://github.com/ericscalibur/Legacy_Encryption/releases/latest" class="learn-more-button">Download the Firmware</a>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="page-footer">
+            Legacy — Encryption and Consulting. All Rights Reserved 2025.
+        </div>
+
+        <script>
+            const toggle = document.getElementById("navbar-toggle");
+            const menu = document.querySelector(".navbar-menu");
+            toggle.addEventListener("click", function () {
+                menu.classList.toggle("active");
+            });
+        </script>
+    </body>
+</html>

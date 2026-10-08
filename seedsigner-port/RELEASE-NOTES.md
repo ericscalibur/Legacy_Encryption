@@ -4,6 +4,11 @@ encryption and decryption on a fully air-gapped device.
 Based on upstream SeedSigner **0.8.6**, plus Legacy Encryption
 (fork commit `04c9978`, matching Legacy_Encryption `e823d09`).
 
+**New to this? Follow the step-by-step setup guide:
+https://ericscalibur.github.io/Legacy_Encryption/seedsigner.html** — it covers
+the hardware, checking the download, and flashing with a graphical app
+(balenaEtcher or Raspberry Pi Imager) instead of the terminal.
+
 ## If you were sent here by a Deploy message
 
 You can decrypt the seed phrase you received without it ever touching a
@@ -23,7 +28,11 @@ computer you can erase afterwards.
 ## Verify before flashing
 
 ```bash
+# Checksum (macOS: shasum -a 256 -c ...)
 sha256sum -c seedsigner_os.legacy-encryption.pi0.img.gz.sha256
+
+# Signature: import the signing key attached to this release, then verify
+gpg --import legacy-signing-key.asc
 gpg --verify seedsigner_os.legacy-encryption.pi0.img.gz.asc \
             seedsigner_os.legacy-encryption.pi0.img.gz
 ```
@@ -37,6 +46,12 @@ F367D8D8 778504D9 DDAFAD9F B7E466E3 2305FE1B
 Both checks must pass. If the signature does not verify, do not flash it.
 
 ## Flash
+
+**Recommended:** balenaEtcher or Raspberry Pi Imager ("Use custom"), which
+write the `.img.gz` directly, verify the write, and only offer removable
+drives. In Raspberry Pi Imager, answer **No** to OS customisation.
+
+From a terminal instead:
 
 ```bash
 gunzip seedsigner_os.legacy-encryption.pi0.img.gz
