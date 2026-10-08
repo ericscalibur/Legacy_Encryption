@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Legacy - Security</title>
+        <link rel="icon" type="image/png" href="favicon.png" />
+        <link rel="stylesheet" href="styles.css" />
+        <style>
+            header {
+                background-image: url("legacy-background.png");
+                background-position: center;
+                background-repeat: no-repeat;
+                background-size: cover;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: flex-start;
+                min-height: 100vh;
+                text-align: center;
+            }
+            .page-hero { padding: 0 2rem; }
+            .page-hero h1 {
+                font-family: "Georgia", serif;
+                font-size: clamp(2rem, 5vw, 3rem);
+                color: #e8e8e8;
+                letter-spacing: 2px;
+                text-shadow: 0 0 5px #0289cb, 0 0 10px #0289cb, 0 0 15px #0289cb;
+            }
+            .page-hero p { color: #aac4e0; margin-top: 0.75rem; font-size: 1rem; }
+
+            .page-section {
+                background: linear-gradient(to bottom, transparent 0px, #000102 120px);
+                margin-top: -80px;
+                position: relative;
+                z-index: 1;
+                border-radius: 16px 16px 0 0;
+                padding: 4rem 1.5rem 6rem;
+            }
+            .page-inner { max-width: 820px; margin: 0 auto; display: flex; flex-direction: column; gap: 1rem; }
+
+            .section-title {
+                font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+                font-size: 1.6rem;
+                font-weight: 700;
+                color: #e8e8e8;
+                text-align: left;
+                margin: 2.5rem 0 0.25rem;
+                border-bottom: 1px solid #0f2444;
+                padding-bottom: 0.5rem;
+            }
+            .section-title:first-of-type { margin-top: 0; }
+
+            .intro { color: #aac4d8; font-size: 0.95rem; line-height: 1.75; text-align: left; }
+            .intro p { font-family: Arial, sans-serif; font-size: inherit; text-align: left; margin-top: 0.75rem; }
+            .intro p:first-child { margin-top: 0; }
+            .intro strong, .step-text strong { color: #e8e8e8; }
+
+            .step-card {
+                background: #0a1628;
+                border: 1px solid #0f2444;
+                border-radius: 10px;
+                padding: 1.5rem;
+                display: flex;
+                gap: 1.25rem;
+                align-items: flex-start;
+            }
+            .step-card.warn-card { border-left: 3px solid #f7931a; }
+            .step-num {
+                width: 36px; height: 36px;
+                background: rgba(2,150,255,0.15);
+                border: 1px solid rgba(2,150,255,0.3);
+                border-radius: 50%;
+                display: flex; align-items: center; justify-content: center;
+                color: #0296ff; font-weight: 700; font-size: 0.9rem; flex-shrink: 0;
+            }
+            .step-text { color: #aac4d8; font-size: 0.95rem; line-height: 1.7; padding-top: 0.4rem; text-align: left; min-width: 0; flex: 1; }
+            .step-text p, .step-text ul, .step-text li { font-family: Arial, sans-serif; font-size: inherit; text-align: left; margin-top: 0.6rem; }
+            .step-text p:first-child { margin-top: 0; }
+            .step-text h3 { font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif; font-weight: 700; font-size: 1.1rem; color: #e8e8e8; text-align: left; margin-bottom: 0.4rem; }
+            .step-text code {
+                font-family: "Courier New", monospace;
+                background: rgba(2,150,255,0.08);
+                padding: 0 4px; border-radius: 3px; overflow-wrap: anywhere;
+            }
+
+            .checklist { list-style: none; padding: 0; margin: 0.5rem 0 0; }
+            .checklist li { position: relative; padding-left: 1.75rem; margin-top: 0.6rem; color: #aac4d8; line-height: 1.6; }
+            .checklist li::before {
+                content: "✓"; position: absolute; left: 0; top: 0;
+                color: #0296ff; font-weight: 700;
+            }
+            .do { color: #7dd39a; font-weight: 700; }
+            .dont { color: #ff8080; font-weight: 700; }
+
+            .page-footer { text-align: center; color: #3a5a7a; font-size: 0.8rem; padding: 2rem; border-top: 1px solid #0f2444; }
+        </style>
+    </head>
+    <body>
+        <header>
+            <nav id="navbar" class="navbar">
+                <div class="navbar-toggle" id="navbar-toggle">&#9776;</div>
+                <ul class="navbar-menu">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="mission.html">Mission</a></li>
+                    <li><a href="how-it-works.html">How It Works</a></li>
+                    <li><a href="seedsigner.html">SeedSigner</a></li>
+                    <li><a href="who-is-this-for.html">Who It's For</a></li>
+                    <li><a href="benefits.html">Benefits</a></li>
+                    <li><a href="FAQ.html">FAQ</a></li>
+                    <li><a href="deadman-switch.html">Deadman Switch</a></li>
+                    <li><a href="security.html">Security</a></li>
+                    <li><a href="encrypt.html">Encrypt</a></li>
+                    <li><a href="decrypt.html">Decrypt</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                </ul>
+            </nav>
+            <div style="height:65vh"></div>
+            <div class="page-hero">
+                <h1>Security</h1>
+                <p>Keep the three pieces apart, and make your keywords unbreakable.</p>
+            </div>
+        </header>
+
+        <div class="page-section">
+            <div class="page-inner">
+
+                <div class="intro">
+                    <p>
+                        Legacy's safety rests on two things you control: <strong>keeping
+                        the three pieces separated</strong>, and <strong>choosing strong
+                        keywords</strong>. The cryptography is only as strong as these
+                        habits. This page is the checklist for both.
+                    </p>
+                    <p>
+                        There are three pieces. Each one alone is useless; it takes
+                        <strong>all three</strong> to recover the Bitcoin:
+                    </p>
+                    <ul class="checklist">
+                        <li>The <strong>encrypted seed</strong> (the Legacy payload / QR)</li>
+                        <li>The <strong>benefactor key</strong></li>
+                        <li>The <strong>beneficiary key</strong></li>
+                    </ul>
+                    <p>
+                        Any <em>two</em> of the three reveal nothing. The entire game is
+                        making sure no single person, device, account, or location ever
+                        holds all three at once.
+                    </p>
+                </div>
+
+                <h2 class="section-title">Secure handling</h2>
+
+                <div class="step-card">
+                    <div class="step-num">1</div>
+                    <div class="step-text">
+                        <h3>Keep the three pieces in three different places</h3>
+                        <p>Never let all three land in one spot — one laptop, one cloud account, one password manager, one safe, one inbox. If a single breach can reach all three, the whole scheme is defeated. Two of three in one place is fine; three is game over.</p>
+                    </div>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-num">2</div>
+                    <div class="step-text">
+                        <h3>Deliver the beneficiary key on a different channel than the deadman switch</h3>
+                        <p>The deadman switch holds two of the three pieces — the encrypted seed and the benefactor key — and releases them when it triggers. That's safe <em>only</em> because the beneficiary key travels separately.</p>
+                        <p>So if your switch delivers by <strong>email</strong>, do <span class="dont">not</span> also email the beneficiary key to the same inbox. Years later both legs would converge there, and whoever compromises that one account would hold all three. Instead hand the beneficiary key over <strong>out of band</strong>: in person, on paper, through a different account, or by a messaging app the switch will never touch.</p>
+                    </div>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-num">3</div>
+                    <div class="step-text">
+                        <h3>Beneficiary: get your key out of the inbox</h3>
+                        <p>If you receive your beneficiary key by email or chat, treat that message as temporary. <span class="do">Copy the key into durable, private storage</span> — write it on paper, or put it in your password manager — and then <span class="do">delete the original message</span>. Don't leave it sitting in the same inbox that may one day receive the rest of the inheritance.</p>
+                    </div>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-num">4</div>
+                    <div class="step-text">
+                        <h3>Make many copies of the encrypted seed</h3>
+                        <p>The encrypted seed is <strong>inert</strong> — without both keys it's just noise, so it can't hurt you to duplicate it. Do: keep several copies (print the QR, save the text, store it in a couple of places). The piece most likely to simply get lost over the years is the one you have the fewest copies of, and this one is free to back up.</p>
+                    </div>
+                </div>
+
+                <div class="step-card warn-card">
+                    <div class="step-num">5</div>
+                    <div class="step-text">
+                        <h3>Understand the reliability trade-off, and plan for it</h3>
+                        <p>Legacy is strict <strong>2-of-2</strong>: both keys are required, so if either key is <em>permanently</em> lost, the Bitcoin is locked forever. Mitigate it deliberately:</p>
+                        <ul class="checklist">
+                            <li>Keep redundant copies of each key (stored apart from each other and from the seed).</li>
+                            <li>Consider a sealed <strong>break-glass fallback</strong> — e.g. both keys, or the plain seed, held by a lawyer or in a bank safe-deposit box, opened only on death. It's a second path if the primary one fails.</li>
+                            <li>While you're alive you can always <strong>re-encrypt</strong> with fresh keys — do it if a key might have been exposed, or just to refresh the plan.</li>
+                        </ul>
+                        <p>See <a href="who-is-this-for.html">Who It's For</a> for where this fits and where multisig or SLIP-39 may suit you better.</p>
+                    </div>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-num">6</div>
+                    <div class="step-text">
+                        <h3>Test the whole round trip before you rely on it</h3>
+                        <p>Right after you encrypt, decrypt it back with both keys and confirm you get your exact seed phrase — ideally in two places (the <a href="seedsigner.html">SeedSigner</a> and <a href="Legacy-offline.html">Legacy-offline.html</a>). A plan you've never tested is a plan you don't have. Rehearse the decrypt once with a throwaway seed so your beneficiary knows the steps too.</p>
+                    </div>
+                </div>
+
+                <h2 class="section-title">Choosing strong keywords</h2>
+
+                <div class="intro">
+                    <p>
+                        A Legacy payload has no backdoor and no rate limit — an attacker
+                        who gets a copy can guess keys offline, forever. So the keys are
+                        the whole fight. Each 600,000-round key-stretch makes every guess
+                        expensive, but that only buys you time; <strong>the number of
+                        guesses they need is set entirely by your word choices.</strong>
+                    </p>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-num">1</div>
+                    <div class="step-text">
+                        <h3>Use many words</h3>
+                        <p>Length beats cleverness. Each additional unrelated word multiplies the attacker's work. Aim for at least <strong>three words per key</strong> (six across the two). Four each is better. A short, punchy key is a weak key no matter how obscure the word.</p>
+                    </div>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-num">2</div>
+                    <div class="step-text">
+                        <h3>Reach deep into the dictionary</h3>
+                        <p><span class="do">Do</span> use uncommon words — <code>barbaric</code>, <code>flightless</code>, <code>crucible</code>. <span class="dont">Don't</span> use the first words everyone's brain reaches for — <code>happy</code>, <code>yellow</code>, <code>duck</code>. Attackers try the common words first, so the deeper your vocabulary, the later in their list you sit.</p>
+                    </div>
+                </div>
+
+                <div class="step-card warn-card">
+                    <div class="step-num">3</div>
+                    <div class="step-text">
+                        <h3>Keep the two keys unrelated — this is the one that sinks people</h3>
+                        <p>Obscure words don't help if your two keys share a theme, come from one quote or song, or the second is guessable from the first. <strong>Correlation quietly destroys most of your protection.</strong> The two keys should look like they came from two different minds — no shared subject, no story connecting them.</p>
+                    </div>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-num">4</div>
+                    <div class="step-text">
+                        <h3>Nothing personal</h3>
+                        <p>Avoid anything tied to you: pet names, birthdays, your town, your favorite book or character. A motivated attacker — especially if your use of Legacy is ever public — will profile you and build a wordlist from <em>your</em> life. Your keys should reveal nothing about you.</p>
+                    </div>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-num">5</div>
+                    <div class="step-text">
+                        <h3>Best of all: let a generator pick</h3>
+                        <p>Human-chosen words are predictable in ways you can't feel — we cluster on common, related, meaningful words. A <strong>random word generator</strong> (diceware, or an EFF-wordlist tool) removes the bias entirely. You can keep a readable, memorable shape — adjective-adjective-noun, hyphenated — as long as each word is an <em>independent random draw</em>. Random <em>guarantees</em> the strength; picking from your head only hopes for it.</p>
+                        <p>And no — a generator being public doesn't weaken you. The security is in the random selection, not in keeping the wordlist secret: a BIP-39 seed phrase is drawn from a list the whole world has, yet it's uncrackable because the <em>choice</em> is random. Knowing the list doesn't shrink the search by a single guess. (Just use a sizable list and a real random source.)</p>
+                    </div>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-num">6</div>
+                    <div class="step-text">
+                        <h3>Record them exactly — every character counts</h3>
+                        <p>Capitalization, spaces, and punctuation are all part of the key. Legacy tidies up the harmless differences for you — it trims extra spaces, treats curly quotes as straight ones, and keeps letter case — but it will not fix a changed word. A few rules so a key can always be retyped exactly:</p>
+                        <ul class="checklist">
+                            <li>Keys use ordinary keyboard characters only — letters, digits, spaces, basic punctuation (no accents or emoji).</li>
+                            <li>Write each key down in its exact form the moment you create it.</li>
+                            <li><strong>Watch out for look-alike characters.</strong> A key written by hand gets typed back later — maybe by your beneficiary, years from now, reading <em>your</em> handwriting. Is that an <code>O</code> or a <code>0</code>? An <code>l</code>, a <code>1</code>, or an <code>I</code>? An <code>S</code> or a <code>5</code>? <code>rn</code> or <code>m</code>? One wrong guess and it never decrypts. Either avoid these characters, or mark them unmistakably — slash your zeros, annotate — so the reader can't guess wrong. If you write <code>bal00n</code>, be certain those zeros are unambiguous on paper.</li>
+                            <li>Cute character swaps (<code>bal00n</code> for <code>balloon</code>, <code>3</code> for <code>e</code>) buy you very little — attackers' cracking rules try those substitutions automatically — and cost you a lot in transcription safety. If you want more strength, <strong>add another whole word instead.</strong></li>
+                            <li>A deliberate made-up or misspelled word adds real strength (attackers' dictionaries don't contain it) — but only if it's stored as <strong>text and copied</strong>, never retyped from memory. Record the exact spelling, or it becomes a trap.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-num">7</div>
+                    <div class="step-text">
+                        <h3>Don't reuse</h3>
+                        <p>These keys protect one thing. Don't reuse a password you use anywhere else, and don't reuse the same pair across different Legacy payloads. A key is only as safe as the <em>most</em> careless place you've ever used it.</p>
+                    </div>
+                </div>
+
+                <div class="intro" style="margin-top:1.5rem;">
+                    <p>Ready to put it together? Read <a href="how-it-works.html">How It Works</a>, set up a <a href="seedsigner.html">SeedSigner</a>, and test the full round trip on the <a href="encrypt.html">demo</a> first.</p>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="page-footer">
+            Legacy — Encryption and Consulting. All Rights Reserved 2025.
+        </div>
+
+        <script>
+            const toggle = document.getElementById("navbar-toggle");
+            const menu = document.querySelector(".navbar-menu");
+            toggle.addEventListener("click", function () {
+                menu.classList.toggle("active");
+            });
+        </script>
+    </body>
+</html>
