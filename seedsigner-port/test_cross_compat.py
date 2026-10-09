@@ -215,9 +215,10 @@ const C = require(process.argv[2]);
 const req = JSON.parse(process.argv[3]);
 (async () => {
     try {
-        const result = req.op === "encrypt"
-            ? await C.encryptSeedPhrase(req.seed, req.bk, req.byk)
-            : await C.decryptSeedPhrase(req.payload, req.bk, req.byk);
+        let result;
+        if (req.op === "encrypt") result = await C.encryptSeedPhrase(req.seed, req.bk, req.byk);
+        else if (req.op === "decrypt") result = await C.decryptSeedPhrase(req.payload, req.bk, req.byk);
+        else if (req.op === "estimate") result = req.keys.map((k) => C.estimateKeyBits(k));
         console.log(JSON.stringify({ ok: true, result }));
     } catch (e) {
         console.log(JSON.stringify({ ok: false, code: e.code || null, error: e.message }));
@@ -279,6 +280,24 @@ class TestCrossCompat:
         assert not r["ok"] and r["code"] == "WRONG_KEYS"
         r = _node({"op": "encrypt", "seed": SEED_12, "bk": "caf\u00e9", "byk": BYK})
         assert not r["ok"] and r["code"] == "BAD_KEY"
+
+    def test_key_strength_matches_js(self):
+        keys = ["cat", "12345678", "aardvark", "password", "!@#$%^&*",
+                "rusty-hollow-lantern", "correct horse battery staple",
+                "aaaaaaaa", "Tr0ub4dor&3", "a", "AB cd-12"]
+        # Python's own expectations (threshold 40).
+        for k in keys:
+            assert le.key_is_weak(k) == (le.estimate_key_bits(k) < le.WEAK_KEY_BITS)
+        if not _has_node():
+            print("SKIP: node not found")
+            return
+        r = _node({"op": "estimate", "keys": keys})
+        assert r["ok"], r
+        for k, js_bits in zip(keys, r["result"]):
+            py_bits = le.estimate_key_bits(k)
+            assert abs(py_bits - js_bits) < 1e-9, f"{k}: py {py_bits} vs js {js_bits}"
+            # and the weak decision agrees
+            assert (py_bits < le.WEAK_KEY_BITS) == (js_bits < le.WEAK_KEY_BITS), k
 
 
 # ===========================================================================

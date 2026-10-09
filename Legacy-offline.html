@@ -613,6 +613,46 @@ var LegacyCore = (function () {
     }
 
     // ---------------------------------------------------------------
+    // Key strength estimate (a nudge, not crypto)
+    //
+    // A rough entropy estimate in bits: it rewards length and character
+    // variety and penalizes repetition, to flag only short / low-variety
+    // keys (cat, 12345678, a plain short word). It does NOT detect dictionary
+    // words — that needs a wordlist too heavy for the Pi Zero — so a long
+    // single word can slip through; the real guidance lives on the Security
+    // page. Used only for a one-time, dismissible "this key looks weak"
+    // warning; it never blocks. Run it on a canonical key.
+    // ---------------------------------------------------------------
+    const WEAK_KEY_BITS = 40;
+
+    function estimateKeyBits(key) {
+        const s = typeof key === "string" ? key : "";
+        const chars = Array.from(s);
+        if (chars.length === 0) return 0;
+        let lower = 0, upper = 0, digit = 0, space = 0, symbol = 0;
+        const seen = new Set();
+        for (const ch of chars) {
+            seen.add(ch);
+            const c = ch.codePointAt(0);
+            if (c >= 0x61 && c <= 0x7a) lower = 26;
+            else if (c >= 0x41 && c <= 0x5a) upper = 26;
+            else if (c >= 0x30 && c <= 0x39) digit = 10;
+            else if (c === 0x20) space = 1;
+            else symbol = 32;
+        }
+        const pool = lower + upper + digit + space + symbol;
+        if (pool <= 1) return 0;
+        const effLen = seen.size + (chars.length - seen.size) * 0.5;
+        return effLen * Math.log2(pool);
+    }
+
+    // True when a key is weak enough to be worth a warning. Keys that fail
+    // canonicalization (empty / non-ASCII) are handled before this is reached.
+    function keyIsWeak(key) {
+        return estimateKeyBits(key) < WEAK_KEY_BITS;
+    }
+
+    // ---------------------------------------------------------------
     // Seed phrase handling
     // ---------------------------------------------------------------
 
@@ -859,7 +899,10 @@ var LegacyCore = (function () {
         MAX_BODY: MAX_BODY,
         WORDLIST: WORDLIST,
         LegacyError: LegacyError,
+        WEAK_KEY_BITS: WEAK_KEY_BITS,
         canonicalizeKey: canonicalizeKey,
+        estimateKeyBits: estimateKeyBits,
+        keyIsWeak: keyIsWeak,
         normalizeSeedPhrase: normalizeSeedPhrase,
         seedPhraseError: seedPhraseError,
         parsePayload: parsePayload,
@@ -876,7 +919,6 @@ if (typeof module !== "undefined" && module.exports) module.exports = LegacyCore
             // Page logic. All cryptography is in LegacyCore (the block above).
             // ---------------------------------------------------------------
             const $ = (id) => document.getElementById(id);
-            const SHORT_KEY = 8;
 
             function setStatus(id, text, kind) {
                 const el = $(id);
@@ -932,11 +974,11 @@ if (typeof module !== "undefined" && module.exports) module.exports = LegacyCore
                     return;
                 }
 
-                if (bk.length < SHORT_KEY || byk.length < SHORT_KEY) {
+                if (LegacyCore.keyIsWeak(bk) || LegacyCore.keyIsWeak(byk)) {
                     const ok = window.confirm(
-                        "At least one key is shorter than " + SHORT_KEY + " characters.\n\n" +
+                        "This key looks weak — short or low-variety, so it could be guessed.\n\n" +
                         "Anyone who obtains the encrypted QR can try to guess the keys offline, " +
-                        "forever. Short keys can be guessed. Several unrelated words per key is far safer.\n\n" +
+                        "forever. Stronger: several unrelated words per key.\n\n" +
                         "Encrypt with these keys anyway?",
                     );
                     if (!ok) return;

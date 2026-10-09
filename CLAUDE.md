@@ -40,6 +40,7 @@ There is exactly **one** format. The old unprefixed "v1" format was removed from
 - **Payload:** `base64url(salt(16) || iv(12) || ciphertext)`, no prefix and no header: every visible byte is random, so a payload can't be identified as Legacy-generated (user requirement — never add a marker or fixed bytes). All parameters are fixed; plaintext = `padLen(1) || seed || padBytes`, no AAD. Decryptors pre-check only alphabet and body length (92–264 bytes) before PBKDF2.
 - **Seed:** 12/24-word BIP-39 with checksum, stored canonical (lowercase, single spaces). Decrypt rejects a result that isn't one.
 - **Self-check:** encrypt parses and decrypts its own output before returning it.
+- **Key-strength nudge:** `estimateKeyBits()`/`keyIsWeak()` (in `legacy-core.js` and mirrored in the port, threshold `WEAK_KEY_BITS=40`) flag short/low-variety keys for a **dismissible** warning on the offline page, demo, and device. A heuristic (length + variety − repetition), not dictionary-aware; it never blocks.
 - **Obfuscation:** 0–4 random padding bytes (count is the first, encrypted, plaintext byte).
 
 ### Implementations and tests

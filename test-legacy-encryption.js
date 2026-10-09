@@ -226,6 +226,19 @@ class TestSuite {
             const p = await C.encryptSeedPhrase(SEED_12, "a", "b");
             assertEqual(await C.decryptSeedPhrase(`\n  ${p} \r\n`, "a", "b"), SEED_12, "trimmed payload");
         });
+        await this.run("Key strength estimate flags weak keys, passes strong ones", () => {
+            const weak = ["cat", "12345678", "aardvark", "password", "aaaaaaaa", "a"];
+            const strong = ["!@#$%^&*", "rusty-hollow-lantern", "correct horse battery staple", "Tr0ub4dor&3"];
+            for (const k of weak) {
+                if (!C.keyIsWeak(k)) throw new Error(`should flag weak: "${k}" (${C.estimateKeyBits(k).toFixed(1)} bits)`);
+            }
+            for (const k of strong) {
+                if (C.keyIsWeak(k)) throw new Error(`should pass: "${k}" (${C.estimateKeyBits(k).toFixed(1)} bits)`);
+            }
+            // variety beats length: 8 distinct symbols > 8 digits > a plain word
+            if (!(C.estimateKeyBits("!@#$%^&*") > C.estimateKeyBits("12345678"))) throw new Error("symbols should outscore digits");
+            if (C.estimateKeyBits("") !== 0) throw new Error("empty key should be 0 bits");
+        });
 
         // --- Random round-trips -----------------------------------------
         const n = this.opts.roundTrips;
