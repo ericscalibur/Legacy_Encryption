@@ -158,7 +158,8 @@
                 font-size: 0.8rem;
                 position: absolute;
                 left: 1rem;
-                top: 0.8rem;
+                top: 50%;
+                transform: translateY(-50%);
             }
 
             /* security <-> memorability scale */
@@ -269,12 +270,14 @@
                     you can't safely make copies. On the other is Bitcoin
                     <strong>multisig</strong> — powerful and enforced on-chain, but
                     complex enough that most people never set it up, and most heirs
-                    can't operate it. Legacy is the middle ground:
-                    <strong>split-custody inheritance with memorable keys, fully
-                    offline, no third parties, no subscriptions, and nothing that has
-                    to outlive you.</strong> It is not the most powerful option — it's
-                    the simplest one that still protects against a single point of
-                    compromise.
+                    can't operate it. Legacy is the middle ground: easier to use than multisig or
+                    cold wallets, but built on the same proven cryptography the
+                    Bitcoin world already trusts. With Legacy, you can
+                    <strong>safely store your encrypted seed phrase digitally</strong>
+                    — online, or in a
+                    <a href="deadman-switch.html">deadman switch like Deploy</a>.
+                    Just remember: <a href="security.html">weak keys are the biggest
+                    risk</a>, so choose them carefully.
                 </p>
 
                 <div>
@@ -285,7 +288,7 @@
                         <li>Want to <strong>avoid third parties</strong> — no lawyers, executors, custodians, or collaborative-custody services holding your keys.</li>
                         <li>Want <strong>zero ongoing cost</strong> — no subscriptions, no accounts, no service that has to still exist when you're gone.</li>
                         <li>Want it <strong>fully offline / air-gapped</strong> — encrypt and decrypt on a <a href="seedsigner.html">SeedSigner</a> with no internet, ever.</li>
-                        <li>Prefer <strong>memorable keys</strong> — a handful of random, unrelated words you can hold in your head or pass along verbally — over share files you have to store.</li>
+                        <li>Prefer <strong>keys you choose yourself</strong> — a handful of unrelated words you can write down or pass along, rather than cryptographic share files you have to store and manage. Memorable or random is up to you — just keep them unguessable (see <a href="security.html">choosing strong keys</a>).</li>
                         <li>Plan to deliver the <strong>Benefactor Key</strong> through a <a href="deadman-switch.html">deadman switch</a>, a will, or sealed instructions — so the beneficiary receives it only when intended.</li>
                         <li>Want to store the encrypted backup <strong>openly and redundantly</strong> — the ciphertext is useless without both keys, so you can copy it freely.</li>
                     </ul>
