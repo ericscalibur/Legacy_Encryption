@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Legacy - The Legacy Challenge</title>
+        <meta name="description" content="Real Bitcoin, locked with Legacy Encryption. The encrypted seed is public. Crack it and the sats are yours." />
+        <link rel="icon" type="image/png" href="favicon.png" />
+        <link rel="stylesheet" href="styles.css" />
+        <style>
+            header {
+                background-image: url("legacy-background.png");
+                background-position: center;
+                background-repeat: no-repeat;
+                background-size: cover;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: flex-start;
+                min-height: 100vh;
+                text-align: center;
+            }
+            .page-hero { padding: 0 2rem; }
+            .page-hero h1 {
+                font-family: "Georgia", serif;
+                font-size: clamp(2rem, 5vw, 3rem);
+                color: #e8e8e8;
+                letter-spacing: 2px;
+                text-shadow: 0 0 5px #0289cb, 0 0 10px #0289cb, 0 0 15px #0289cb;
+            }
+            .page-hero p { color: #aac4e0; margin-top: 0.75rem; font-size: 1rem; }
+
+            .page-section {
+                background: linear-gradient(to bottom, transparent 0px, #000102 120px);
+                margin-top: -80px;
+                position: relative;
+                z-index: 1;
+                border-radius: 16px 16px 0 0;
+                padding: 4rem 1.5rem 6rem;
+            }
+            .page-inner { max-width: 820px; margin: 0 auto; display: flex; flex-direction: column; gap: 1rem; }
+
+            .section-title {
+                font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+                font-size: 1.6rem;
+                font-weight: 700;
+                color: #e8e8e8;
+                text-align: left;
+                margin: 2.5rem 0 0.25rem;
+                border-bottom: 1px solid #0f2444;
+                padding-bottom: 0.5rem;
+            }
+
+            .intro { color: #aac4d8; font-size: 0.95rem; line-height: 1.75; text-align: left; }
+            .intro p { font-family: Arial, sans-serif; font-size: inherit; text-align: left; margin-top: 0.75rem; }
+            .intro p:first-child { margin-top: 0; }
+            .intro strong, .step-text strong { color: #e8e8e8; }
+
+            /* Bounty summary */
+            .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; }
+            .stat {
+                background: #0a1628;
+                border: 1px solid #0f2444;
+                border-radius: 10px;
+                padding: 1.25rem;
+                text-align: left;
+            }
+            .stat-label {
+                font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+                font-size: 0.75rem; letter-spacing: 1px; text-transform: uppercase; color: #5f86ad;
+            }
+            .stat-value {
+                font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+                font-size: 1.5rem; font-weight: 700; color: #e8e8e8; margin-top: 0.35rem;
+            }
+            .stat-value.btc { color: #f7931a; }
+            .stat-note { font-family: Arial, sans-serif; font-size: 0.8rem; color: #7f9cb8; margin-top: 0.25rem; }
+
+            /* Copyable data blocks */
+            .data-card { text-align: center; margin-top: 1rem; }
+            .data-card h3 {
+                font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+                font-weight: 700; font-size: 1.1rem; color: #e8e8e8; margin-bottom: 0.4rem;
+            }
+            .data-card p { font-family: Arial, sans-serif; color: #aac4d8; font-size: 0.9rem; line-height: 1.6; text-align: center; }
+            .data-box {
+                font-family: "Courier New", monospace;
+                font-size: 0.95rem;
+                color: #e8e8e8;
+                background: #000102;
+                border: 1px solid #0f2444;
+                border-radius: 6px;
+                padding: 1rem;
+                margin-top: 0.75rem;
+                overflow-wrap: anywhere;
+                word-break: break-all;
+                line-height: 1.6;
+                user-select: all;
+            }
+            .qr-photo {
+                display: block;
+                width: 100%;
+                max-width: 420px;
+                height: auto;
+                margin: 0.75rem auto 0;
+                border-radius: 8px;
+                border: 1px solid #0f2444;
+            }
+            .data-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: center; margin-top: 0.75rem; }
+            .btn {
+                font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+                font-size: 0.85rem; font-weight: 600;
+                background: rgba(2,150,255,0.12);
+                color: #0296ff;
+                border: 1px solid rgba(2,150,255,0.35);
+                border-radius: 6px;
+                padding: 0.5rem 1rem;
+                cursor: pointer;
+                text-decoration: none;
+            }
+            .btn:hover { background: rgba(2,150,255,0.22); }
+
+            .step-card {
+                background: #0a1628;
+                border: 1px solid #0f2444;
+                border-radius: 10px;
+                padding: 1.5rem;
+                display: flex;
+                gap: 1.25rem;
+                align-items: flex-start;
+            }
+            .step-card.warn-card { border-left: 3px solid #f7931a; }
+            .step-num {
+                width: 36px; height: 36px;
+                background: rgba(2,150,255,0.15);
+                border: 1px solid rgba(2,150,255,0.3);
+                border-radius: 50%;
+                display: flex; align-items: center; justify-content: center;
+                color: #0296ff; font-weight: 700; font-size: 0.9rem; flex-shrink: 0;
+            }
+            .step-text { color: #aac4d8; font-size: 0.95rem; line-height: 1.7; padding-top: 0.4rem; text-align: left; min-width: 0; flex: 1; }
+            .step-text p, .step-text ul, .step-text li { font-family: Arial, sans-serif; font-size: inherit; text-align: left; margin-top: 0.6rem; }
+            .step-text p:first-child { margin-top: 0; }
+            .step-text h3 { font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif; font-weight: 700; font-size: 1.1rem; color: #e8e8e8; text-align: left; margin-bottom: 0.4rem; }
+            .step-text code, .intro code {
+                font-family: "Courier New", monospace;
+                background: rgba(2,150,255,0.08);
+                padding: 0 4px; border-radius: 3px; overflow-wrap: anywhere;
+            }
+
+            .checklist { list-style: none; padding: 0; margin: 0.5rem 0 0; }
+            .checklist li { position: relative; padding-left: 1.75rem; margin-top: 0.6rem; color: #aac4d8; line-height: 1.6; }
+            .checklist li::before {
+                content: "✓"; position: absolute; left: 0; top: 0;
+                color: #0296ff; font-weight: 700;
+            }
+
+            .page-footer { text-align: center; color: #3a5a7a; font-size: 0.8rem; padding: 2rem; border-top: 1px solid #0f2444; }
+
+            @media (max-width: 600px) {
+                .step-card { padding: 1.1rem; gap: 0.9rem; }
+            }
+        </style>
+    </head>
+    <body>
+        <header>
+            <nav id="navbar" class="navbar">
+                <div class="navbar-toggle" id="navbar-toggle">&#9776;</div>
+                <ul class="navbar-menu">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="mission.html">Mission</a></li>
+                    <li><a href="how-it-works.html">How It Works</a></li>
+                    <li><a href="seedsigner.html">SeedSigner</a></li>
+                    <li><a href="who-is-this-for.html">Who It's For</a></li>
+                    <li><a href="benefits.html">Benefits</a></li>
+                    <li><a href="FAQ.html">FAQ</a></li>
+                    <li><a href="deadman-switch.html">Deadman Switch</a></li>
+                    <li><a href="security.html">Security</a></li>
+                    <li><a href="challenge.html">Challenge</a></li>
+                    <li><a href="encrypt.html">Encrypt</a></li>
+                    <li><a href="decrypt.html">Decrypt</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                </ul>
+            </nav>
+            <div style="height:65vh"></div>
+            <div class="page-hero">
+                <h1>The Legacy Challenge</h1>
+                <p>Real Bitcoin. Public ciphertext. Crack it and it's yours.</p>
+            </div>
+        </header>
+
+        <div class="page-section">
+            <div class="page-inner">
+
+                <div class="intro">
+                    <p>
+                        We put our money where our mouth is. <strong>About $1,000 in
+                        Bitcoin</strong> sits in a fresh wallet. Its seed phrase was
+                        encrypted with Legacy, and the encrypted seed is published below
+                        for anyone in the world to download, study, and attack.
+                    </p>
+                    <p>
+                        The only things we're keeping secret are the two keys &mdash;
+                        exactly what a real Legacy user keeps secret. Everything else is
+                        public: the ciphertext, the <a href="protocol.html">full protocol
+                        specification</a>, the open-source code, and the test vectors.
+                        No secret algorithm, no security through obscurity. If Legacy has
+                        a weakness, this is your chance to prove it and get paid for it.
+                    </p>
+                </div>
+
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-label">Bounty</div>
+                        <div class="stat-value btc">&#8383; 0.01241962</div>
+                        <div class="stat-note">1,241,962 sats &middot; &asymp; $1,000 at launch</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Launched</div>
+                        <div class="stat-value">Oct 25, 2026</div>
+                        <div class="stat-note">Open until the coins move</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Status</div>
+                        <div class="stat-value">Unclaimed</div>
+                        <div class="stat-note">Check the address yourself</div>
+                    </div>
+                </div>
+
+                <h2 class="section-title">The target</h2>
+
+                <div class="data-card">
+                    <h3>Encrypted seed (QR)</h3>
+                    <p>The encrypted seed as the SeedSigner displayed it. Scan it straight into Legacy.</p>
+                    <img class="qr-photo" src="challenge-qr.jpg" alt="QR code of the encrypted seed, shown on a SeedSigner screen" />
+                </div>
+
+                <div class="data-card">
+                    <h3>Encrypted seed (text)</h3>
+                    <p>The same payload as text. This is the complete payload &mdash; nothing trimmed.</p>
+                    <div class="data-box" id="payload">9kkG_le-nNOA8lNL5wiRYc-kBe1CvwnFAzGpkK30bMvLW_ZSlJcJiBWfGM1fMfyC4v9-5rdToqQpzOAz-cklEpiOMUzC3gdAmpt_SUzD9lAofWrupKgSIytMxJhzyeURt6uUZAVPRDouqHVgM8b6Wg93WfNBwTF744CpwdiapdBXQsv8BTDRjYAcHZh_JJu8u7G2ze-K8KZ-JWVdoKFjjKjZubKznuEnCZd9CB810EepEzY8M1iG1j8VI5mTgETAvcdDGOU</div>
+                    <div class="data-actions">
+                        <button class="btn" data-copy="payload">Copy payload</button>
+                    </div>
+                </div>
+
+                <div class="data-card">
+                    <h3>Bounty address</h3>
+                    <p>The first receive address of the wallet. Watch it on any block explorer: as long as the balance is there, the challenge is unbroken.</p>
+                    <div class="data-box" id="address">bc1qgsu9604dz08zsutz69ez0ld0kxec56sq39cury</div>
+                    <div class="data-actions">
+                        <button class="btn" data-copy="address">Copy address</button>
+                        <a class="btn" href="https://mempool.space/address/bc1qgsu9604dz08zsutz69ez0ld0kxec56sq39cury" target="_blank" rel="noopener noreferrer">View on mempool.space &rarr;</a>
+                    </div>
+                </div>
+
+                <h2 class="section-title">What you're up against</h2>
+
+                <div class="intro">
+                    <p>Legacy uses standard, battle-tested primitives straight from the browser's Web Crypto API.<br />Full details are in the <a href="protocol.html">protocol spec</a>.</p>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-num">1</div>
+                    <div class="step-text">
+                        <h3>Two keys, both required</h3>
+                        <p>The seed was encrypted under a <strong>benefactor key</strong> and a <strong>beneficiary key</strong>, joined into a single password. You need both, exactly, to decrypt.</p>
+                    </div>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-num">2</div>
+                    <div class="step-text">
+                        <h3>600,000 rounds of key stretching</h3>
+                        <p>The password goes through <strong>PBKDF2-HMAC-SHA256 with 600,000 iterations</strong> and a random 16-byte salt. Every single guess costs an attacker 600,000 hashes, and the salt makes precomputed tables useless.</p>
+                    </div>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-num">3</div>
+                    <div class="step-text">
+                        <h3>AES-256-GCM</h3>
+                        <p>The seed is encrypted with <strong>AES-256-GCM</strong>, the same authenticated cipher that protects most of the world's HTTPS traffic. The ciphertext carries no header, no marker, and no fixed bytes &mdash; every visible character is random.</p>
+                    </div>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-num">4</div>
+                    <div class="step-text">
+                        <h3>Strong, randomly chosen keys</h3>
+                        <p>The keys for this challenge were generated the way our <a href="security.html">Security guide</a> recommends: multiple independent random words, no personal meaning, no relationship between the two. Profiling us won't help. That's the point: Legacy is as strong as the keys you choose, and these were chosen well.</p>
+                    </div>
+                </div>
+
+                <h2 class="section-title">Rules</h2>
+
+                <div class="step-card">
+                    <div class="step-text">
+                        <ul class="checklist">
+                            <li><strong>No sign-up, no entry fee, no purchase.</strong> Anyone can try. The payload is public.</li>
+                            <li><strong>Winner takes it by sweeping it.</strong> If you decrypt the seed, the wallet is yours. Move the coins and you've won. No claim form, no permission needed.</li>
+                            <li><strong>Wallet details:</strong> standard BIP-84 native SegWit (<code>m/84'/0'/0'</code>), no BIP-39 passphrase. Your decrypted seed opens it directly in any wallet.</li>
+                            <li><strong>Attack the cryptography, not people.</strong> Phishing, social engineering, or breaking into anyone's devices or accounts is out of bounds &mdash; and illegal. This is a test of the protocol and the ciphertext only.</li>
+                            <li><strong>Tell us how you did it.</strong> If you win, we'd love a write-up. A real flaw would get fixed and you'd get full credit (and bragging rights forever).</li>
+                            <li><strong>No end date.</strong> The challenge runs until the coins move. We may add to the bounty over time; we will never remove it while the challenge is open.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h2 class="section-title">Want to try?</h2>
+
+                <div class="intro">
+                    <p>
+                        Grab the open-source <a href="Legacy-offline.html">Legacy-offline.html</a>
+                        or the <a href="decrypt.html">online decrypt demo</a>, paste the
+                        payload, and start guessing. Or write your own decryptor from the
+                        <a href="protocol.html">spec</a> &mdash; it fits on one page.
+                    </p>
+                    <p>
+                        And if you'd rather <em>use</em> Legacy than break it: this is
+                        exactly what your own encrypted seed looks like to the rest of the
+                        world. Read <a href="how-it-works.html">How It Works</a> and the
+                        <a href="security.html">Security guide</a> to set up your own
+                        inheritance plan.
+                    </p>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="page-footer">
+            Legacy — Encryption and Consulting. All Rights Reserved 2025.
+        </div>
+
+        <script>
+            const toggle = document.getElementById("navbar-toggle");
+            const menu = document.querySelector(".navbar-menu");
+            toggle.addEventListener("click", function () {
+                menu.classList.toggle("active");
+            });
+
+            document.querySelectorAll("[data-copy]").forEach(function (btn) {
+                btn.addEventListener("click", function () {
+                    const text = document.getElementById(btn.dataset.copy).textContent.trim();
+                    const label = btn.textContent;
+                    navigator.clipboard.writeText(text).then(function () {
+                        btn.textContent = "Copied";
+                        setTimeout(function () { btn.textContent = label; }, 1500);
+                    });
+                });
+            });
+        </script>
+    </body>
+</html>
