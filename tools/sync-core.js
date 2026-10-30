@@ -9,7 +9,7 @@ const fs = require("fs");
 const path = require("path");
 
 const ROOT = path.join(__dirname, "..");
-const PAGES = ["Legacy-offline.html", "encrypt.html", "decrypt.html"];
+const PAGES = ["Legacy-offline.html", "try-it.html"];
 const BEGIN = "// ==== BEGIN LEGACY CORE ====";
 const END = "// ==== END LEGACY CORE ====";
 

@@ -13,7 +13,7 @@ byte-for-byte correct.
 
 | Where | File |
 |---|---|
-| Browser (canonical) | `legacy-core.js`, embedded verbatim in `Legacy-offline.html`, `encrypt.html`, `decrypt.html` (`node tools/sync-core.js` copies it; the test suite fails on drift) |
+| Browser (canonical) | `legacy-core.js`, embedded verbatim in `Legacy-offline.html`, `try-it.html` (`node tools/sync-core.js` copies it; the test suite fails on drift) |
 | SeedSigner device | `seedsigner-port/legacy_encryption.py` |
 
 ---

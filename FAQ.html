@@ -141,18 +141,12 @@
                 <div class="navbar-toggle" id="navbar-toggle">&#9776;</div>
                 <ul class="navbar-menu">
                     <li><a href="index.html">Home</a></li>
-                    <li><a href="mission.html">Mission</a></li>
+                    <li><a href="about.html">About</a></li>
                     <li><a href="how-it-works.html">How It Works</a></li>
-                    <li><a href="seedsigner.html">SeedSigner</a></li>
-                    <li><a href="who-is-this-for.html">Who It's For</a></li>
-                    <li><a href="benefits.html">Benefits</a></li>
                     <li><a href="FAQ.html">FAQ</a></li>
-                    <li><a href="deadman-switch.html">Deadman Switch</a></li>
                     <li><a href="security.html">Security</a></li>
                     <li><a href="challenge.html">Challenge</a></li>
-                    <li><a href="encrypt.html">Encrypt</a></li>
-                    <li><a href="decrypt.html">Decrypt</a></li>
-                    <li><a href="contact.html">Contact</a></li>
+                    <li><a href="try-it.html">Try It</a></li>
                 </ul>
             </nav>
             <div style="height:65vh"></div>
@@ -175,7 +169,7 @@
                     <div class="faq-answer">
                         <p>It depends on whether you're still around to fix it.</p>
                         <p><strong>If you're alive, nothing is lost.</strong> Your seed phrase — backed up physically, as it always should be — is the source of truth. Just choose new keys and re-encrypt. This is why Legacy is a protocol you <strong>maintain</strong>, not a one-time action: periodically confirm your keys still decrypt, and re-encrypt whenever a key is lost, forgotten, or possibly compromised.</p>
-                        <p><strong>If it's for inheritance and you're gone</strong>, a lost key means that encrypted copy can't be opened — and unless there's another means of retrieval, those coins are unreachable. Legacy stores no data and cannot recover keys for you. That's exactly why we recommend redundancy: multiple copies of the encrypted QR and a sealed break-glass fallback (see <a href="who-is-this-for.html">Who It's For</a>).</p>
+                        <p><strong>If it's for inheritance and you're gone</strong>, a lost key means that encrypted copy can't be opened — and unless there's another means of retrieval, those coins are unreachable. Legacy stores no data and cannot recover keys for you. That's exactly why we recommend redundancy: multiple copies of the encrypted QR and a sealed break-glass fallback (see <a href="about.html#who">Who It's For</a>).</p>
                         <p><strong>The key principle:</strong> always maintain a physical backup of your seed phrase. Legacy does <strong>not</strong> replace your primary seed backup — it is a means of recovery and transfer, layered on top of it.</p>
                     </div>
                 </div>
@@ -199,7 +193,7 @@
                     </button>
                     <div class="faq-answer">
                         <p>Download <a href="Legacy-offline.html">Legacy-offline.html</a> from <a href="https://github.com/ericscalibur/Legacy_Encryption">GitHub</a>.</p>
-                        <p><strong>Recommended — fully air-gapped on SeedSigner:</strong> flash the Legacy firmware onto a SeedSigner (see the <a href="seedsigner.html">SeedSigner setup guide</a>). Your seed phrase never touches a computer or the internet at any point in the process.</p>
+                        <p><strong>Recommended — fully air-gapped on SeedSigner:</strong> flash the Legacy firmware onto a SeedSigner (see the <a href="how-it-works.html#seedsigner">SeedSigner setup guide</a>). Your seed phrase never touches a computer or the internet at any point in the process.</p>
                         <p><strong>Alternative:</strong> Disconnect from wifi and open the file in any web browser on your computer.</p>
                     </div>
                 </div>
@@ -228,7 +222,7 @@
                             <li>Encrypted Seed Phrase</li>
                             <li><a href="Legacy-offline.html">Legacy-offline.html</a></li>
                         </ol>
-                        <p>See <a href="deadman-switch.html">Deadman Switch options</a> for setup guidance.</p>
+                        <p>See <a href="how-it-works.html#deadman-switch">Deadman Switch options</a> for setup guidance.</p>
                     </div>
                 </div>
 
@@ -279,7 +273,7 @@
                         <span class="q-arrow">▾</span>
                     </button>
                     <div class="faq-answer">
-                        <p><a href="seedsigner.html">SeedSigner</a> is the recommended way to use Legacy — the entire workflow runs air-gapped. Encrypt on SeedSigner, scan the QR into your Deploy email, and your seed phrase never touches the internet.</p>
+                        <p><a href="how-it-works.html#seedsigner">SeedSigner</a> is the recommended way to use Legacy — the entire workflow runs air-gapped. Encrypt on SeedSigner, scan the QR into your Deploy email, and your seed phrase never touches the internet.</p>
                         <p>For best results when scanning an encrypted QR into SeedSigner:</p>
                         <ul>
                             <li><strong>Printed QR codes scan most reliably</strong> — printing eliminates screen glare, pixel grid artifacts, and double-digitization blur. If you can, print the encrypted QR and store it with your estate documents.</li>
@@ -309,7 +303,7 @@
                     </button>
                     <div class="faq-answer">
                         <p>Take your time — there is no time pressure, and nothing in the email is secret on its own. The encrypted payload is useless without the two passwords.</p>
-                        <p><strong>Normal path:</strong> open the <a href="decrypt.html">Legacy Decryption</a> page (or your saved copy of <a href="https://github.com/ericscalibur/Legacy_Encryption/blob/main/Legacy-offline.html">Legacy-offline.html</a>) on an <strong>offline</strong> computer, paste the ciphertext into the Encrypted Seed Phrase field, enter your Beneficiary Key and the Benefactor Key, and click <em>Decrypt</em>.</p>
+                        <p><strong>Normal path:</strong> open the <a href="try-it.html#decrypt">Legacy Decryption</a> page (or your saved copy of <a href="https://github.com/ericscalibur/Legacy_Encryption/blob/main/Legacy-offline.html">Legacy-offline.html</a>) on an <strong>offline</strong> computer, paste the ciphertext into the Encrypted Seed Phrase field, enter your Beneficiary Key and the Benefactor Key, and click <em>Decrypt</em>.</p>
                         <p><strong>Do NOT</strong> type the passwords into any other website, and do not share them with anyone who offers to "help recover" — run everything offline.</p>
                         <p><strong>If no copy of the tool runs anymore:</strong> any software engineer can rebuild decryption from the specification below using any mainstream cryptography library. The full specification, with test vectors that prove a rebuilt tool is correct, is <a href="https://github.com/ericscalibur/Legacy_Encryption/blob/main/PROTOCOL-SPEC.md">PROTOCOL-SPEC.md</a>.</p>
                         <pre style="white-space: pre-wrap; overflow-x: auto; font-size: 0.85em; background: rgba(0,0,0,0.25); padding: 14px; border-radius: 6px;">TECHNICAL SPECIFICATION OF THE ENCRYPTED PAYLOAD (Legacy protocol)
@@ -354,14 +348,15 @@ follow standard Bitcoin wallet recovery procedure with hardware you control.</pr
                 </div>
 
                 <div class="faq-cta">
-                    <a href="encrypt.html" class="learn-more-button">Try the Demo</a>
+                    <a href="try-it.html" class="learn-more-button">Try the Demo</a>
                 </div>
 
             </div>
         </div>
 
         <div class="faq-footer">
-            Legacy — Encryption and Consulting. All Rights Reserved 2025.
+            Legacy — Encryption and Consulting. All Rights Reserved 2025.<br />
+            <a href="about.html#contact">Contact</a>
         </div>
 
         <script>

@@ -1,7 +1,7 @@
 # Legacy Encryption — Tests
 
 Two suites, one contract. The browser core (`legacy-core.js`, embedded verbatim
-in `Legacy-offline.html`, `encrypt.html`, `decrypt.html`) and the SeedSigner
+in `Legacy-offline.html`, `try-it.html`) and the SeedSigner
 port (`seedsigner-port/legacy_encryption.py`) must both reproduce the published
 vectors in `test-vectors.json` byte-for-byte.
 

@@ -2,7 +2,7 @@
  * Test suite for Legacy Encryption.
  *
  * Tests the real shipped code: legacy-core.js is the exact block embedded in
- * Legacy-offline.html, encrypt.html and decrypt.html, and the first test
+ * Legacy-offline.html and try-it.html, and the first test
  * fails if any embedded copy differs from it by a single byte.
  *
  *   node test-legacy-encryption.js                  standard run

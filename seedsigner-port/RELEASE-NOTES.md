@@ -5,7 +5,7 @@ Based on upstream SeedSigner **0.8.6**, plus Legacy Encryption
 (fork commit `067c8db`, matching Legacy_Encryption `a9f79c7`).
 
 **New to this? Follow the step-by-step setup guide:
-https://ericscalibur.github.io/Legacy_Encryption/seedsigner.html** — it covers
+https://ericscalibur.github.io/Legacy_Encryption/how-it-works.html#seedsigner** — it covers
 the hardware, checking the download, and flashing with a graphical app
 (balenaEtcher or Raspberry Pi Imager) instead of the terminal.
 

@@ -25,11 +25,11 @@ node tools/generate-vectors.js    # only if the format itself changed (it should
 ### Core Application
 The primary deliverable is **`Legacy-offline.html`** — a single self-contained HTML file with no external dependencies and a Content-Security-Policy that forbids all network access.
 
-**`legacy-core.js`** is the single source of truth for the JavaScript crypto (including the BIP-39 wordlist). It is embedded verbatim, between `// ==== BEGIN/END LEGACY CORE ====` markers, in `Legacy-offline.html`, `encrypt.html` and `decrypt.html`. Never edit the embedded copies; edit `legacy-core.js` and run `node tools/sync-core.js`. The test suite fails if any copy drifts.
+**`legacy-core.js`** is the single source of truth for the JavaScript crypto (including the BIP-39 wordlist). It is embedded verbatim, between `// ==== BEGIN/END LEGACY CORE ====` markers, in `Legacy-offline.html` and `try-it.html`. Never edit the embedded copies; edit `legacy-core.js` and run `node tools/sync-core.js`. The test suite fails if any copy drifts.
 
-**`encrypt.html`** and **`decrypt.html`** are online demo versions with a warning not to use real seed phrases there.
+**`try-it.html`** is the online demo (Encrypt and Decrypt tabs) with a warning not to use real seed phrases there.
 
-**`index.html`** is the marketing landing page; the other HTML files (`mission.html`, `how-it-works.html`, `benefits.html`, `FAQ.html`, `protocol.html`, `contact.html`) are informational pages. FAQ #10 contains a plain-language recovery spec for heirs; keep it in sync with `PROTOCOL-SPEC.md`.
+**`index.html`** is the marketing landing page; the other HTML files (`about.html` — mission, benefits, who it's for, contact — `how-it-works.html` — steps, SeedSigner guide, deadman switch — `FAQ.html`, `security.html`, `challenge.html`, `protocol.html`) are informational pages. `mission.html`, `benefits.html`, `who-is-this-for.html`, `seedsigner.html`, `deadman-switch.html`, `encrypt.html`, `decrypt.html` and `contact.html` are redirect stubs kept so old links work. FAQ #10 contains a plain-language recovery spec for heirs; keep it in sync with `PROTOCOL-SPEC.md`.
 
 ### Cryptographic Design (final format — see `PROTOCOL-SPEC.md`)
 There is exactly **one** format. The old unprefixed "v1" format was removed from all implementations (never used for real funds); do not reintroduce version dispatch.
