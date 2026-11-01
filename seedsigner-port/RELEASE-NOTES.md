@@ -2,7 +2,7 @@ SeedSigner firmware with **Legacy Encryption** — dual-key seed phrase
 encryption and decryption on a fully air-gapped device.
 
 Based on upstream SeedSigner **0.8.6**, plus Legacy Encryption
-(fork commit `067c8db`, matching Legacy_Encryption `a9f79c7`).
+(fork commit `e6dacd7`).
 
 **New to this? Follow the step-by-step setup guide:
 https://ericscalibur.github.io/Legacy_Encryption/how-it-works.html#seedsigner** — it covers
@@ -89,8 +89,9 @@ deliberate.
   `LE2.`-prefixed ones) are no longer accepted.
 - When encrypting, each key is entered twice and must match, and the device
   decrypts its own output before showing the QR.
-- A dismissible "Weak Key" warning flags short / low-variety keys when
-  encrypting. It never blocks — but prefer several unrelated words.
+- When encrypting, the device rates each key after you confirm it: orange
+  for very weak, yellow for weak, green for good or strong. The rating is an
+  estimate and never blocks, but prefer several random words.
 - Output is byte-compatible with `Legacy-offline.html`, so a payload can be
   encrypted on the device and decrypted in the browser, or the reverse.
 - This firmware removes SD-card logging and keeps secrets in a single

@@ -219,6 +219,7 @@ const req = JSON.parse(process.argv[3]);
         if (req.op === "encrypt") result = await C.encryptSeedPhrase(req.seed, req.bk, req.byk);
         else if (req.op === "decrypt") result = await C.decryptSeedPhrase(req.payload, req.bk, req.byk);
         else if (req.op === "estimate") result = req.keys.map((k) => C.estimateKeyBits(k));
+        else if (req.op === "strength") result = req.keys.map((k) => C.keyStrength(k));
         console.log(JSON.stringify({ ok: true, result }));
     } catch (e) {
         console.log(JSON.stringify({ ok: false, code: e.code || null, error: e.message }));
@@ -284,8 +285,9 @@ class TestCrossCompat:
     def test_key_strength_matches_js(self):
         keys = ["cat", "12345678", "aardvark", "password", "!@#$%^&*",
                 "rusty-hollow-lantern", "correct horse battery staple",
-                "aaaaaaaa", "Tr0ub4dor&3", "a", "AB cd-12"]
-        # Python's own expectations (threshold 40).
+                "aaaaaaaa", "Tr0ub4dor&3", "a", "AB cd-12",
+                "Password1234!", "P@ssw0rd2026", "Bitcoin2026!", "adm1n$$"]
+        # Python's own expectations.
         for k in keys:
             assert le.key_is_weak(k) == (le.estimate_key_bits(k) < le.WEAK_KEY_BITS)
         if not _has_node():
@@ -298,6 +300,11 @@ class TestCrossCompat:
             assert abs(py_bits - js_bits) < 1e-9, f"{k}: py {py_bits} vs js {js_bits}"
             # and the weak decision agrees
             assert (py_bits < le.WEAK_KEY_BITS) == (js_bits < le.WEAK_KEY_BITS), k
+        # the rating the device shows matches the browser meter
+        r = _node({"op": "strength", "keys": keys})
+        assert r["ok"], r
+        for k, js in zip(keys, r["result"]):
+            assert le.key_strength(k) == (js["level"], js["label"]), k
 
 
 # ===========================================================================
