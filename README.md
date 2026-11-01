@@ -18,4 +18,4 @@ That is all you need to encrypt and decrypt your seedphrase and create a key pai
 
 For further instructions, read the <a href="https://ericscalibur.github.io/Legacy_Encryption/how-it-works.html">How-It-Works</a> page.
 
-If you want in-depth consultion on how to use this product, <a href="https://ericscalibur.github.io/Legacy_Encryption/about.html#contact">Contact me</a>
+Want help with your Bitcoin inheritance plan? [The Bitcoin Hardware Store](https://tbhs.sv) offers private sessions, in person in El Salvador or remotely.
