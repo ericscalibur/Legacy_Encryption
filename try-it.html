@@ -17,55 +17,124 @@
         <link rel="stylesheet" href="styles.css" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <style>
-            body {
+            /* Page layout: the shared header is fixed-height, so let it grow here */
+            html, body { height: auto; }
+            header { height: auto; min-height: 100vh; padding-bottom: 3rem; }
+            body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+            h1 { padding-top: 18vh; }
+
+            .demo { max-width: 640px; margin: 0 auto; padding: 0 16px; }
+            .demo p {
+                margin: 0 0 1rem;
+                font-family: inherit;
+                font-size: 1rem;
+                line-height: 1.6;
+                text-align: left;
+                color: #c9d1da;
+            }
+            .demo p strong { color: #e8e8e8; }
+            .demo a, .demo a:visited { color: #6fd0ff; }
+
+            .notice {
+                border-left: 3px solid #0296ff;
+                background: rgba(2, 150, 255, 0.08);
+                padding: 12px 16px;
+                border-radius: 0 6px 6px 0;
+                margin-bottom: 1.5rem;
+            }
+            .notice p { margin: 0 0 0.5rem; }
+            .notice p:last-child { margin-bottom: 0; }
+
+            /* Encrypt / Decrypt toggle */
+            .tabs {
                 display: flex;
-                flex-direction: column;
-                align-items: center;
-                min-height: 100vh;
+                width: max-content;
+                margin: 2rem auto 2rem;
+                padding: 4px;
+                gap: 4px;
+                background: #0b1626;
+                border: 1px solid #1c3050;
+                border-radius: 10px;
+            }
+            .tabs button {
+                display: block;
                 margin: 0;
-                font-family: sans-serif;
+                min-width: 9rem;
+                padding: 10px 24px;
+                background: transparent;
+                color: #8aa0b8;
+                border: none;
+                border-radius: 7px;
+                font: inherit;
+                font-weight: 600;
+                cursor: pointer;
+                transition: background 0.15s, color 0.15s;
             }
+            .tabs button:hover { color: #e8e8e8; background: rgba(255, 255, 255, 0.06); }
+            .tabs button.active { background: #0296ff; color: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5); }
+            .tabs button:focus-visible { outline: 2px solid #6fd0ff; outline-offset: 2px; }
 
-            label {
+            /* Form */
+            .field { margin-bottom: 1.25rem; }
+            .field label { display: block; margin-bottom: 6px; font-size: 0.95rem; font-weight: 600; color: #e8e8e8; }
+            .demo input[type="text"] {
                 width: 100%;
-                margin: auto;
+                padding: 10px 12px;
+                background: #0b1626;
+                color: #e8e8e8;
+                border: 1px solid #1c3050;
+                border-radius: 6px;
+                font: 1rem "Courier New", monospace;
             }
+            .demo input[type="text"]:focus { outline: none; border-color: #0296ff; box-shadow: 0 0 0 3px rgba(2, 150, 255, 0.25); }
 
-            input[type="text"] {
-                width: 100%;
-                margin: auto;
+            .actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 1.5rem 0 1rem; }
+            .demo button {
+                display: inline-block;
+                margin: 0;
+                padding: 10px 20px;
+                font: inherit;
+                font-weight: 600;
+                border-radius: 6px;
+                cursor: pointer;
+                background: transparent;
+                color: #6fd0ff;
+                border: 1px solid #1c5a8a;
             }
+            .demo button:hover { background: rgba(2, 150, 255, 0.12); }
+            .demo button.primary { background: #0296ff; color: #fff; border-color: #0296ff; }
+            .demo button.primary:hover { background: #1aa3ff; }
+            .demo button:focus-visible { outline: 2px solid #6fd0ff; outline-offset: 2px; }
+            .tabs button { padding: 10px 24px; }
+
+            .result-label { margin: 1.5rem 0 0.4rem; font-size: 0.95rem; font-weight: 600; color: #e8e8e8; }
+            .result {
+                margin: 0 0 1rem;
+                padding: 12px;
+                min-height: 2.8rem;
+                background: #0b1626;
+                border: 1px solid #1c3050;
+                border-radius: 6px;
+                font: 1rem "Courier New", monospace;
+                overflow-wrap: anywhere;
+                text-align: left;
+                color: #e8e8e8;
+            }
+            .demo p.status { min-height: 1.6em; margin: 0.5rem 0 0; }
 
             .key-meter-bar { display: flex; gap: 4px; margin-top: 6px; }
-            .key-meter-bar span { flex: 1; height: 6px; border-radius: 3px; background: #555; }
-            .key-meter-text { min-height: 1.3em; margin-top: 2px; font-size: 0.85em; }
+            .key-meter-bar span { flex: 1; height: 6px; border-radius: 3px; background: #2a3a52; }
+            .key-meter-text { min-height: 1.3em; margin-top: 4px; font-size: 0.85rem; color: #8aa0b8; }
             .key-meter[data-level="0"] .key-meter-bar span:nth-child(-n+1) { background: #ff6b6b; }
             .key-meter[data-level="1"] .key-meter-bar span:nth-child(-n+2) { background: #f7931a; }
             .key-meter[data-level="2"] .key-meter-bar span:nth-child(-n+3) { background: #f4d03f; }
             .key-meter[data-level="3"] .key-meter-bar span { background: #7cfc00; }
 
-            p a {
-                color: #6fd0ff;
-            }
+            #qr-video { width: 100%; max-width: 360px; border: 1px solid #1c3050; border-radius: 6px; display: block; }
+            #encrypt-qr-container { text-align: center; margin: 16px 0; }
+            #encrypt-qr-container p { text-align: center; }
 
-            p a:visited {
-                color: #6fd0ff;
-            }
-
-            .tabs {
-                display: flex;
-                gap: 0.5rem;
-                margin: 0 auto 2rem;
-                justify-content: center;
-            }
-            .tabs button {
-                min-width: 8rem;
-                opacity: 0.55;
-            }
-            .tabs button.active {
-                opacity: 1;
-                box-shadow: 0 0 0 2px #0296ff;
-            }
+            .demo-footer { text-align: center; color: #5f7a96; font-size: 0.8rem; padding: 2rem; border-top: 1px solid #0f2444; }
         </style>
     </head>
 
@@ -86,144 +155,108 @@
                     <li><a href="try-it.html">Try It</a></li>
                 </ul>
             </nav>
-            <div style="height: 75vh"></div>
             <h1>Try It</h1>
 
             <div class="content">
-                <div class="tabs">
-                    <button id="encrypt-tab" onclick="showTab('encrypt')">Encrypt</button>
-                    <button id="decrypt-tab" onclick="showTab('decrypt')">Decrypt</button>
+                <div class="tabs" role="tablist" aria-label="Demo mode">
+                    <button id="encrypt-tab" role="tab" onclick="showTab('encrypt')">Encrypt</button>
+                    <button id="decrypt-tab" role="tab" onclick="showTab('decrypt')">Decrypt</button>
                 </div>
-                <div id="encrypt-panel" style="margin: auto; width: 80%">
-                    <p><strong>Online Demo</strong> — test the encryption here before downloading anything.</p>
-                    <p>
-                        Use the 12 or 24 word buttons to generate a random seed
-                        phrase, enter any keys you like, and verify the full
-                        encrypt/decrypt cycle works as expected.
-                    </p>
-                    <p>
-                        When you're ready to use Legacy for real, download
-                        <strong>Legacy-offline.html</strong> from
-                        <a href="https://github.com/ericscalibur/Legacy_Encryption">github</a>,
-                        disconnect from the internet, and open it locally.
-                        Do not enter your actual seed phrase into this online version.
-                    </p>
-                    <p>
-                        Please read the
-                        <a href="how-it-works.html">HOW-IT-WORKS</a> page and
-                        the <a href="about.html#benefits">BENEFITS</a> page before
-                        using Legacy offline.
-                    </p>
-                    <p>
-                        For testing purposes, you can generate random seed
-                        phrases using the 12 or 24 word buttons.
-                    </p>
-                    <p>
-                        Check the expected functionality of your keys using the
-                        <a href="#decrypt" onclick="showTab('decrypt'); return false;">DECRYPT</a> tab.
-                    </p>
-                    <div style="height: 10vh"></div>
-                    <p>
-                        The strength meter is an estimate, and each key is rated alone.
-                        It can't recognize most dictionary words or anything personal
-                        to you, so random unrelated words are safer than a score. The
-                        choice of key is always yours.
-                    </p>
-                    <label for="benefactorKey">Benefactor Key:</label><br />
-                    <input type="text" id="benefactorKey" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" /><br /><br />
 
-                    <label for="confirmBenefactorKey"
-                        >Confirm Benefactor Key:</label
-                    ><br />
-                    <input type="text" id="confirmBenefactorKey" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" /><br /><br />
-
-                    <label for="beneficiaryKey">Beneficiary Key:</label><br />
-                    <input type="text" id="beneficiaryKey" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" /><br /><br />
-
-                    <label for="confirmBeneficiaryKey"
-                        >Confirm Beneficiary Key:</label
-                    ><br />
-                    <input type="text" id="confirmBeneficiaryKey" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" /><br /><br />
-
-                    <label for="seedPhrase">Seed Phrase:</label><br />
-                    <input type="text" id="seedPhrase" style="color: #000000" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" /><br /><br />
-
-                    <div style="display: flex">
-                        <button
-                            id="encryptButton"
-                            onclick="encryptSeedPhrase()"
-                        >
-                            Encrypt
-                        </button>
-                        <button id="12Button" onclick="generate12SeedPhrase()">
-                            12 words
-                        </button>
-                        <button id="24Button" onclick="generate24SeedPhrase()">
-                            24 words
-                        </button>
+                <div id="encrypt-panel" class="demo" role="tabpanel">
+                    <div class="notice">
+                        <p><strong>Online demo.</strong> Use random test seeds only. Never enter your real seed phrase or keys here.</p>
+                        <p>For real use, download <strong>Legacy-offline.html</strong> from <a href="https://github.com/ericscalibur/Legacy_Encryption">GitHub</a>, disconnect from the internet, and open it locally.</p>
                     </div>
-                    <p id="encrypt-status" role="alert"></p>
-                    <p>Encrypted Seed Phrase:</p>
-                    <p
-                        id="encryptedSeedPhrase"
-                        style="overflow-wrap: break-word"
-                    ></p>
-                    <div id="encrypt-qr-container" style="display:none; text-align:center; margin:16px 0;">
-                        <p style="margin-bottom:8px;">Encrypted QR Code — copy or screenshot this:</p>
+                    <p>
+                        Generate a random 12 or 24 word seed phrase, choose any two keys, and
+                        check that the full encrypt and decrypt cycle works. Then confirm your keys
+                        on the <a href="#decrypt" onclick="showTab('decrypt'); return false;">Decrypt</a> tab.
+                    </p>
+                    <p>
+                        Before using Legacy for real, read <a href="how-it-works.html">How It Works</a>
+                        and <a href="about.html#benefits">Benefits</a>.
+                    </p>
+                    <p>
+                        The strength meter is only an estimate and rates each key on its own. It can't
+                        recognize most dictionary words or anything personal to you, so random unrelated
+                        words are safer than a high score. The choice of key is always yours.
+                    </p>
+
+                    <div class="field">
+                        <label for="benefactorKey">Benefactor key</label>
+                        <input type="text" id="benefactorKey" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" />
+                    </div>
+                    <div class="field">
+                        <label for="confirmBenefactorKey">Confirm benefactor key</label>
+                        <input type="text" id="confirmBenefactorKey" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" />
+                    </div>
+                    <div class="field">
+                        <label for="beneficiaryKey">Beneficiary key</label>
+                        <input type="text" id="beneficiaryKey" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" />
+                    </div>
+                    <div class="field">
+                        <label for="confirmBeneficiaryKey">Confirm beneficiary key</label>
+                        <input type="text" id="confirmBeneficiaryKey" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" />
+                    </div>
+                    <div class="field">
+                        <label for="seedPhrase">Seed phrase</label>
+                        <input type="text" id="seedPhrase" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" />
+                    </div>
+                    <div class="actions">
+                        <button id="encryptButton" class="primary" onclick="encryptSeedPhrase()">Encrypt</button>
+                        <button id="12Button" onclick="generate12SeedPhrase()">Generate 12 words</button>
+                        <button id="24Button" onclick="generate24SeedPhrase()">Generate 24 words</button>
+                    </div>
+                    <p id="encrypt-status" class="status" role="alert"></p>
+                    <div class="result-label">Encrypted seed phrase</div>
+                    <p id="encryptedSeedPhrase" class="result"></p>
+                    <div id="encrypt-qr-container" style="display: none">
+                        <p>Encrypted QR code. Copy or screenshot it.</p>
                         <canvas id="encrypt-qr-canvas"></canvas>
                     </div>
-                    <div style="height: 20vh"></div>
                 </div>
-                <div id="decrypt-panel" style="margin: auto; width: 80%">
-                    <p><strong>Online Demo</strong> — use this to verify your keys work correctly.</p>
+
+                <div id="decrypt-panel" class="demo" role="tabpanel">
+                    <div class="notice">
+                        <p><strong>Online demo.</strong> Use it to check that your keys work. Never enter your real seed phrase or keys here.</p>
+                        <p>For real use, run <strong>Legacy-offline.html</strong> locally with your internet disconnected.</p>
+                    </div>
                     <p>
                         Paste an encrypted seed phrase from the
-                        <a href="#encrypt" onclick="showTab('encrypt'); return false;">Encrypt tab</a> along with
-                        the keys you used, and confirm the decryption returns
-                        the correct result.
+                        <a href="#encrypt" onclick="showTab('encrypt'); return false;">Encrypt</a> tab,
+                        enter the keys you used, and confirm the result matches.
                     </p>
-                    <p>
-                        For real use, run <strong>Legacy-offline.html</strong>
-                        locally with your internet disconnected. Do not enter
-                        your actual seed phrase or keys into this online version.
-                    </p>
-                    <div style="height: 10vh"></div>
 
-                    <label for="decBenefactorKey">Benefactor Key:</label><br />
-                    <input type="text" id="decBenefactorKey" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" /><br /><br />
-
-                    <label for="decBeneficiaryKey">Beneficiary Key:</label><br />
-                    <input type="text" id="decBeneficiaryKey" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" /><br /><br />
-
-                    <label for="decEncryptedSeedPhrase"
-                        >Encrypted Seed Phrase:</label
-                    ><br />
-                    <input type="text" id="decEncryptedSeedPhrase" style="color: #000000" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" /><br /><br />
-
-                    <button onclick="startQrScan()">Scan QR Code</button>
-                    <div id="qr-scanner" style="display:none; margin: 10px 0;">
-                        <video id="qr-video" style="width:100%; max-width:360px; border:1px solid #555; border-radius:4px; display:block;" autoplay playsinline muted></video>
-                        <p id="qr-status" style="margin:6px 0; font-size:0.9em; color:#aaa;"></p>
+                    <div class="field">
+                        <label for="decBenefactorKey">Benefactor key</label>
+                        <input type="text" id="decBenefactorKey" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" />
+                    </div>
+                    <div class="field">
+                        <label for="decBeneficiaryKey">Beneficiary key</label>
+                        <input type="text" id="decBeneficiaryKey" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" />
+                    </div>
+                    <div class="field">
+                        <label for="decEncryptedSeedPhrase">Encrypted seed phrase</label>
+                        <input type="text" id="decEncryptedSeedPhrase" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" />
+                    </div>
+                    <div class="actions">
+                        <button id="decryptButton" class="primary" onclick="decryptSeedPhrase()">Decrypt</button>
+                        <button onclick="startQrScan()">Scan QR code</button>
+                    </div>
+                    <div id="qr-scanner" style="display: none; margin: 10px 0">
+                        <video id="qr-video" autoplay playsinline muted></video>
+                        <p id="qr-status" class="status" style="color: #8aa0b8"></p>
                         <button onclick="stopQrScan()">Cancel</button>
-                    </div><br />
+                    </div>
+                    <p id="decrypt-status" class="status" role="alert"></p>
 
-                    <button id="decryptButton" onclick="decryptSeedPhrase()">
-                        Decrypt</button
-                    >
-                    <p id="decrypt-status" role="alert"></p>
-
-                    <label for="decryptedSeedPhrase"
-                        >Decrypted Seed Phrase:</label
-                    >
-                    <p
-                        id="decryptedSeedPhrase"
-                        style="overflow-wrap: break-word"
-                    ></p>
-                    <div style="height: 20vh"></div>
+                    <div class="result-label">Decrypted seed phrase</div>
+                    <p id="decryptedSeedPhrase" class="result"></p>
                 </div>
             </div>
         </header>
-        <div style="text-align:center; color:#3a5a7a; font-size:0.8rem; padding:2rem; border-top:1px solid #0f2444;">
+        <div class="demo-footer">
             Legacy — Encryption and Consulting. All Rights Reserved 2025.<br />
             <a href="about.html#contact">Contact</a>
         </div>
@@ -241,13 +274,19 @@
             function showTab(name) {
                 for (const t of ["encrypt", "decrypt"]) {
                     document.getElementById(t + "-panel").style.display = t === name ? "" : "none";
-                    document.getElementById(t + "-tab").classList.toggle("active", t === name);
+                    const tab = document.getElementById(t + "-tab");
+                    tab.classList.toggle("active", t === name);
+                    tab.setAttribute("aria-selected", t === name);
                 }
                 history.replaceState(null, "", "#" + name);
             }
             showTab(location.hash === "#decrypt" ? "decrypt" : "encrypt");
         </script>
-        <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+        <script
+            src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"
+            integrity="sha384-b5Ya4Bq3qCyz39m2ISh+4DxjAIljdeFwK/BsXLuj9gugaNwAcj/ia15fxNZL9Nlx"
+            crossorigin="anonymous"
+        ></script>
         <!-- Legacy core + encrypt tab logic -->
         <script>
 // ==== BEGIN LEGACY CORE ====
